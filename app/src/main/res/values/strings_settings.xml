@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки экрана настроек (ui/settings). -->
+<resources>
+    <string name="settings_title">Настройки</string>
+    <string name="settings_back">Назад</string>
+
+    <!-- Разделы -->
+    <string name="settings_pane_sources">Доступы и источники</string>
+    <string name="settings_pane_cards">Мои карты</string>
+    <string name="settings_pane_currency">Валюта</string>
+    <string name="settings_pane_categories">Категории</string>
+    <string name="settings_pane_security">Безопасность</string>
+    <string name="settings_pane_backup">Резервная копия</string>
+    <string name="settings_pane_appearance">Оформление</string>
+    <string name="settings_pane_diagnostics">Диагностика окна</string>
+
+    <string name="settings_summary_tracking_on">Автоотслеживание включено</string>
+    <string name="settings_summary_tracking_off">Автоотслеживание выключено</string>
+    <string name="settings_summary_cards_none">Карт пока нет</string>
+    <string name="settings_summary_cards">Своих карт: %1$d из %2$d</string>
+    <string name="settings_summary_categories">Названия, значки и цвета</string>
+    <string name="settings_summary_lock_off">Блокировка выключена</string>
+    <string name="settings_summary_lock_on">Блокировка: %1$s</string>
+    <string name="settings_summary_lock_unprotected">Телефон не защищён PIN-кодом</string>
+    <string name="settings_summary_backup">Зашифрованный файл с паролем</string>
+
+    <!-- Источники -->
+    <string name="settings_tracking_title">Автоотслеживание</string>
+    <string name="settings_tracking_body">Читать новые банковские SMS и уведомления и добавлять операции сами. Если выключить, новые сообщения не обрабатываются; добавить операцию можно вручную.</string>
+
+    <!-- Карты -->
+    <string name="settings_cards_intro">Отметьте свои карты: переводы между ними не считаются ни расходом, ни доходом.</string>
+    <string name="settings_cards_empty_title">Карт пока нет</string>
+    <string name="settings_cards_empty_body">Карты появятся здесь после первых операций из SMS или уведомлений банка.</string>
+    <string name="settings_card_own">Моя карта</string>
+    <string name="settings_card_no_label">Без подписи</string>
+    <string name="settings_card_edit_label">Подпись карты %1$s</string>
+    <string name="settings_card_label_hint">Например, «Зарплатная»</string>
+    <string name="settings_card_label_field">Подпись</string>
+    <string name="settings_save">Сохранить</string>
+    <string name="settings_cancel">Отмена</string>
+    <string name="settings_saved">Сохранено</string>
+
+    <!-- Валюта -->
+    <string name="settings_currency_intro">Валюта сводок «Сегодня / Месяц», виджета и ручного ввода. Операции в других валютах учитываются отдельно, без пересчёта по курсу.</string>
+    <string name="settings_currency_rub">Российский рубль</string>
+    <string name="settings_currency_usd">Доллар США</string>
+    <string name="settings_currency_eur">Евро</string>
+    <string name="settings_currency_kzt">Казахстанский тенге</string>
+    <string name="settings_currency_byn">Белорусский рубль</string>
+    <string name="settings_currency_cny">Китайский юань</string>
+    <string name="settings_currency_try">Турецкая лира</string>
+    <string name="settings_currency_gbp">Фунт стерлингов</string>
+
+    <!-- Безопасность -->
+    <string name="settings_lock_title">Блокировка приложения</string>
+    <string name="settings_lock_body">Отпечаток пальца или PIN-код телефона при запуске и после перерыва.</string>
+    <string name="settings_lock_unprotected">На телефоне не настроены PIN-код или отпечаток, поэтому блокировка не работает: приложение откроется без проверки.</string>
+    <string name="settings_lock_unavailable">Сейчас телефон не может проверить отпечаток или PIN-код. Блокировка не сработает, пока проверка недоступна.</string>
+    <string name="settings_lock_open_settings">Настроить блокировку экрана</string>
+    <string name="settings_timeout_title">Блокировать снова</string>
+    <string name="settings_timeout_immediately">Сразу после выхода</string>
+    <string name="settings_timeout_1">Через 1 минуту</string>
+    <string name="settings_timeout_5">Через 5 минут</string>
+    <string name="settings_timeout_15">Через 15 минут</string>
+    <string name="settings_timeout_short_immediately">сразу</string>
+    <string name="settings_timeout_short_1">через 1 мин</string>
+    <string name="settings_timeout_short_5">через 5 мин</string>
+    <string name="settings_timeout_short_15">через 15 мин</string>
+    <string name="settings_secure_title">Защита от скриншотов</string>
+    <string name="settings_secure_body">Запретить скриншоты и запись экрана, скрыть содержимое в списке недавних приложений.</string>
+    <string name="settings_widget_hide_title">Скрывать суммы в виджете</string>
+    <string name="settings_widget_hide_body">Виджет на рабочем столе виден без блокировки. Вместо сумм будет «•••», счётчик «на проверку» останется.</string>
+
+    <!-- Бэкап -->
+    <string name="settings_backup_intro">Копия всех операций, сообщений банков, категорий, правил, карт и подписок в одном файле. Файл зашифрован вашим паролем: без него копию не открыть, восстановить пароль нельзя.</string>
+    <string name="settings_backup_export">Создать копию</string>
+    <string name="settings_backup_export_body">Выберите, куда сохранить файл, и придумайте пароль.</string>
+    <string name="settings_backup_import">Восстановить из копии</string>
+    <string name="settings_backup_import_body">Все данные на этом телефоне заменятся данными из файла.</string>
+    <string name="settings_backup_exporting">Шифруем и сохраняем…</string>
+    <string name="settings_backup_importing">Расшифровываем и проверяем…</string>
+    <string name="settings_backup_exported">Копия сохранена. Операций в ней: %1$d.</string>
+    <string name="settings_backup_imported">Данные восстановлены. Операций: %1$d.</string>
+    <string name="settings_backup_password_title_export">Пароль для копии</string>
+    <string name="settings_backup_password_title_import">Пароль от копии</string>
+    <string name="settings_backup_password_body_export">Не меньше %1$d символов. Запишите его: без пароля копию не открыть.</string>
+    <string name="settings_backup_password_body_import">Данные на этом телефоне будут заменены данными из копии. Если пароль неверный, ничего не изменится.</string>
+    <string name="settings_backup_password">Пароль</string>
+    <string name="settings_backup_password_repeat">Повторите пароль</string>
+    <string name="settings_backup_password_short">Пароль короче %1$d символов</string>
+    <string name="settings_backup_password_mismatch">Пароли не совпадают</string>
+    <string name="settings_backup_do_export">Зашифровать и сохранить</string>
+    <string name="settings_backup_do_import">Заменить данные</string>
+    <string name="settings_backup_error_wrong_password">Неверный пароль, либо файл изменён или повреждён. Данные на телефоне не изменились.</string>
+    <string name="settings_backup_error_not_backup">Это не файл резервной копии FoldFinance. Выберите файл .ffbk.</string>
+    <string name="settings_backup_error_newer">Копия создана более новой версией приложения. Обновите FoldFinance и повторите.</string>
+    <string name="settings_backup_error_corrupted">Файл повреждён или обрезан. Данные на телефоне не изменились.</string>
+    <string name="settings_backup_error_invalid">В копии ошибки в данных, восстановить её нельзя. Данные на телефоне не изменились.</string>
+    <string name="settings_backup_error_too_large">Файл слишком большой для резервной копии FoldFinance.</string>
+    <string name="settings_backup_error_io">Не удалось прочитать или записать файл. Проверьте место хранения и попробуйте снова.</string>
+
+    <!-- Оформление -->
+    <string name="settings_theme_title">Тема</string>
+    <string name="settings_theme_system">Как в системе</string>
+    <string name="settings_theme_light">Светлая</string>
+    <string name="settings_theme_dark">Тёмная</string>
+    <string name="settings_dynamic_title">Цвета обоев</string>
+    <string name="settings_dynamic_body">Брать цвета кнопок и выделения из обоев телефона. Цвета доходов, возвратов и категорий не меняются.</string>
+</resources>

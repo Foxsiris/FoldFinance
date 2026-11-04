@@ -1,89 +1,107 @@
 package com.foldfinance.app.ui.settings
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.DevicesFold
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
-import com.foldfinance.app.BuildConfig
-import com.foldfinance.app.R
-import com.foldfinance.app.ui.components.CategoryTile
-import com.foldfinance.app.ui.components.CategoryVisual
-import com.foldfinance.app.ui.components.ListGroup
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.foldfinance.app.backup.BackupManager
+import com.foldfinance.app.prefs.RelockTimeout
+import com.foldfinance.app.prefs.ThemeMode
+import com.foldfinance.app.ui.categories.CategoriesRoute
 import com.foldfinance.app.ui.diagnostics.WindowDiagnosticsRoute
-import com.foldfinance.app.ui.shell.DebugSectionPlaceholder
-import com.foldfinance.app.ui.shell.Section
-import com.foldfinance.app.ui.theme.FoldFinanceTheme
+import com.foldfinance.app.ui.onboarding.IngestSettingsSection
+import java.time.LocalDate
 
 /**
- * «Настройки» — entry point of the section. Not ready yet (hidden from release navigation);
- * in debug builds it hosts debug tools, currently «Диагностика окна».
+ * «Настройки» — точка входа раздела: доступы и источники, мои карты, валюта, категории,
+ * безопасность, резервная копия, оформление; в debug — «Диагностика окна».
+ *
+ * Выбор файла бэкапа — SAF (`CreateDocument` / `OpenDocument`); пароль спрашивается уже после
+ * выбора файла и не сохраняется.
  */
 @Composable
 fun SettingsRoute(modifier: Modifier = Modifier) {
-    if (BuildConfig.DEBUG) {
-        DebugSettings(modifier)
-    } else {
-        DebugSectionPlaceholder(Section.Settings, modifier)
-    }
-}
+    val viewModel: SettingsViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val selected by viewModel.selectedPane.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-@Composable
-private fun DebugSettings(modifier: Modifier) {
-    var showDiagnostics by rememberSaveable { mutableStateOf(false) }
-    if (showDiagnostics) {
-        BackHandler { showDiagnostics = false }
-        WindowDiagnosticsRoute(modifier, onBack = { showDiagnostics = false })
-    } else {
-        DebugSectionPlaceholder(Section.Settings, modifier) {
-            ListGroup(Modifier.fillMaxWidth()) {
-                DebugToolRow(
-                    title = stringResource(R.string.diagnostics_entry_title),
-                    body = stringResource(R.string.diagnostics_entry_body),
-                    onClick = { showDiagnostics = true },
-                )
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshDeviceAuth() }
+
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BackupManager.MIME_TYPE)) { uri ->
+        viewModel.onDocumentPicked(BackupKind.EXPORT, uri)
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        viewModel.onDocumentPicked(BackupKind.IMPORT, uri)
+    }
+
+    val actions = remember(viewModel, context) {
+        object : SettingsActions {
+            override fun selectPane(pane: SettingsPane?) = viewModel.selectPane(pane)
+            override fun setAutoTracking(enabled: Boolean) = viewModel.setAutoTracking(enabled)
+            override fun setOwnCard(mask: String, own: Boolean) = viewModel.setOwnCard(mask, own)
+            override fun setCardLabel(mask: String, label: String) = viewModel.setCardLabel(mask, label)
+            override fun setDefaultCurrency(currency: String) = viewModel.setDefaultCurrency(currency)
+            override fun setLockEnabled(enabled: Boolean) = viewModel.setLockEnabled(enabled)
+            override fun setRelockTimeout(timeout: RelockTimeout) = viewModel.setRelockTimeout(timeout)
+            override fun setSecureWindow(enabled: Boolean) = viewModel.setSecureWindow(enabled)
+            override fun setHideWidgetAmounts(hide: Boolean) = viewModel.setHideWidgetAmounts(hide)
+            override fun setThemeMode(mode: ThemeMode) = viewModel.setThemeMode(mode)
+            override fun setDynamicColor(enabled: Boolean) = viewModel.setDynamicColor(enabled)
+            override fun dismissPassword() = viewModel.onPasswordDismissed()
+            override fun submitPassword(password: CharArray) = viewModel.onPasswordEntered(password)
+
+            override fun startExport() {
+                viewModel.onLeavingForSystemUi()
+                launchSafely { exportLauncher.launch(BackupManager.suggestedFileName(LocalDate.now())) }
+            }
+
+            override fun startImport() {
+                viewModel.onLeavingForSystemUi()
+                launchSafely { importLauncher.launch(arrayOf(BackupManager.MIME_TYPE, "*/*")) }
+            }
+
+            override fun openSecuritySettings() {
+                viewModel.onLeavingForSystemUi()
+                openSecuritySettings(context)
             }
         }
     }
+
+    SettingsScreen(
+        state = state,
+        selected = selected,
+        actions = actions,
+        modifier = modifier,
+        ingestSection = { IngestSettingsSection() },
+        categories = { onBack -> CategoriesRoute(onBack = onBack) },
+        diagnostics = { onBack -> WindowDiagnosticsRoute(modifier, onBack = onBack) },
+    )
 }
 
-@Composable
-private fun DebugToolRow(title: String, body: String, onClick: () -> Unit) {
-    val palette = FoldFinanceTheme.palette
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .heightIn(min = 64.dp)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        CategoryTile(CategoryVisual(title, palette.saffron, Icons.Outlined.DevicesFold))
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = palette.text)
-            Text(body, style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
-        }
-        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = palette.textMuted)
+private inline fun launchSafely(block: () -> Unit) {
+    try {
+        block()
+    } catch (_: ActivityNotFoundException) {
+        // На телефоне нет системного выбора файлов — кнопка просто ничего не делает.
+    }
+}
+
+private fun openSecuritySettings(context: Context) {
+    try {
+        context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (_: ActivityNotFoundException) {
+        context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }
