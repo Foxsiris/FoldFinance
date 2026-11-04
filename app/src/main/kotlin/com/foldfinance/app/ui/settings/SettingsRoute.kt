@@ -21,6 +21,8 @@ import com.foldfinance.app.prefs.ThemeMode
 import com.foldfinance.app.ui.categories.CategoriesRoute
 import com.foldfinance.app.ui.diagnostics.WindowDiagnosticsRoute
 import com.foldfinance.app.ui.onboarding.IngestSettingsSection
+import com.foldfinance.app.ingest.debug.IngestDebugTools
+import androidx.compose.foundation.layout.Column
 import java.time.LocalDate
 
 /**
@@ -84,7 +86,13 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
         selected = selected,
         actions = actions,
         modifier = modifier,
-        ingestSection = { IngestSettingsSection() },
+        ingestSection = {
+            Column {
+                IngestSettingsSection()
+                // Только debug: тестовая SMS и тестовое банковское уведомление. В release пусто.
+                IngestDebugTools()
+            }
+        },
         categories = { onBack -> CategoriesRoute(onBack = onBack) },
         diagnostics = { onBack -> WindowDiagnosticsRoute(modifier, onBack = onBack) },
     )
