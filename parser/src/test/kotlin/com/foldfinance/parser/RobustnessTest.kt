@@ -107,5 +107,6 @@ class RobustnessTest {
     }
 
     @Test
-    fun parserVersionIsOne() = assertThat(PARSER_VERSION).isEqualTo(1)
+    // v2: реальные форматы Сбера («Счёт карты MIR-») и Халвы («ХАЛВА пополнена … https://»).
+    fun parserVersionIsTwo() = assertThat(PARSER_VERSION).isEqualTo(2)
 }

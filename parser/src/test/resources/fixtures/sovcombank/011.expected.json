@@ -1,0 +1,24 @@
+{
+  "description": "РЕАЛЬНЫЙ формат (обезличен: сумма заменена). Пополнение Халвы без источника и маски карты: может быть и доходом, и переводом себе — на проверку",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Halva",
+    "receivedAt": "2026-11-05T10:15:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "sovcombank",
+  "operations": [
+    {
+      "amountMinor": 2500000,
+      "currency": "RUB",
+      "direction": "INCOME",
+      "kind": "TOP_UP",
+      "merchant": null,
+      "cardMask": null,
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": true
+    }
+  ],
+  "balance": null
+}

@@ -44,6 +44,8 @@ internal object Signals {
         OpType.TOP_UP to "зачисление",
         OpType.TOP_UP to "зачислено",
         OpType.TOP_UP to "пополнение",
+        OpType.TOP_UP to "пополнена",
+        OpType.TOP_UP to "пополнен",
         OpType.TOP_UP to "поступление",
         OpType.TOP_UP to "поступило",
         OpType.TOP_UP to "зарплата",
@@ -110,6 +112,15 @@ internal object Signals {
 
     /** Признаки рекламы/информирования. Само по себе не решает — см. вызывающий код. */
     fun looksLikePromo(lower: String): Boolean = promoMarkers.containsMatchIn(lower)
+
+    // Причастия совершённой операции: реклама так не пишет («Халва пополнена 25000 р. https://…»),
+    // поэтому ссылка в таком сообщении не делает его рекламой.
+    private val completedOperation = Regex(
+        "(?<!\\p{L})(пополнен[аоы]?|зачислен[аоы]?|списан[аоы]?|поступил[аио]?|оплачен[аоы]?)(?!\\p{L})",
+    )
+
+    /** Сообщение сообщает о уже совершённой операции (а не предлагает её). */
+    fun reportsCompletedOperation(lower: String): Boolean = completedOperation.containsMatchIn(lower)
 
     private val declined = Regex("(?<!\\p{L})(отказ|отклонен|недостаточно средств|не выполнена|declined)")
 

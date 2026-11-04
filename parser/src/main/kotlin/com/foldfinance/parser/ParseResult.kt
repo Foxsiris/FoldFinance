@@ -1,11 +1,11 @@
-package com.foldfinance.parser
+﻿package com.foldfinance.parser
 
 /**
  * Версия правил распознавания. Увеличивается при любом изменении парсеров,
  * которое может дать другой результат на уже сохранённых сообщениях.
  * `:core` перепарсивает `RawMessage` с версией меньше текущей.
  */
-const val PARSER_VERSION: Int = 1
+const val PARSER_VERSION: Int = 2
 
 /** Канал, по которому пришло сообщение. */
 enum class MessageChannel { SMS, PUSH }

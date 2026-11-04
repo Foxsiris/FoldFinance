@@ -1,0 +1,28 @@
+{
+  "description": "РЕАЛЬНЫЙ формат (обезличен: цифры карты и баланс заменены). Покупка по СБП, «Счёт карты MIR-», точка в копейках",
+  "meta": {
+    "channel": "SMS",
+    "sender": "900",
+    "receivedAt": "2026-11-05T19:03:20+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "sber",
+  "operations": [
+    {
+      "amountMinor": 7199,
+      "currency": "RUB",
+      "direction": "EXPENSE",
+      "kind": "PURCHASE",
+      "merchant": "Магнит",
+      "cardMask": "*4821",
+      "counterpartyCardMask": null,
+      "occurredAt": "2026-11-05T19:03:00+03:00",
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 1234567,
+    "currency": "RUB",
+    "cardMask": "*4821"
+  }
+}

@@ -61,7 +61,9 @@ internal class MessageAnalyzer(private val profile: BankProfile, private val zon
         val masks = CardMasks.find(lower)
         val balanceAmount = amounts.indices.firstOrNull { roles[it] == Role.BALANCE }?.let { amounts[it] }
 
-        if (Signals.looksLikePromo(lower) && masks.isEmpty() && balanceAmount == null) {
+        if (Signals.looksLikePromo(lower) && masks.isEmpty() && balanceAmount == null &&
+            !Signals.reportsCompletedOperation(lower)
+        ) {
             return ParseResult.NotFinancial
         }
         val firstPlain = amounts.indices.firstOrNull { roles[it] == Role.PLAIN }
@@ -156,6 +158,9 @@ internal class MessageAnalyzer(private val profile: BankProfile, private val zon
             i != opIndex && roles[i] == Role.PLAIN && amounts[i].currency == opAmount.currency
         }
         if (unexplained) confidence -= 0.15f
+        // «ХАЛВА пополнена 25000.00 р.»: без карты и источника это может быть и доход,
+        // и перевод себе (погашение кредитки) — не угадываем, отправляем на проверку.
+        if (kind == Kind.TOP_UP && own == null) confidence = minOf(confidence, LOW_CONFIDENCE)
 
         if (opAmount.amountMinor <= 0L) return uncertain(UncertainReasons.ZERO_AMOUNT, balance = balance)
 
@@ -254,6 +259,8 @@ internal class MessageAnalyzer(private val profile: BankProfile, private val zon
         val lc = TextNormalizer.matchingForm(candidate)
         if (MERCHANT_REJECT_PREFIXES.any { lc.startsWith(it) }) return null
         if (candidate.none { it.isLetter() }) return null
+        // Ссылка банка в конце SMS («https://scb.im/hva») — не название магазина.
+        if (URL_LIKE.containsMatchIn(lc)) return null
         return candidate
     }
 
@@ -289,6 +296,7 @@ internal class MessageAnalyzer(private val profile: BankProfile, private val zon
     private companion object {
         const val ROLE_WINDOW = 30
         const val MAX_MERCHANT_LENGTH = 64
+        private val URL_LIKE = Regex("^(https?://|www\\.)")
         const val UNKNOWN_CONFIDENCE = 0.3f
         const val LOW_CONFIDENCE = 0.4f
         const val LEADING_SEPARATORS = " .,;:-–—)\n"
