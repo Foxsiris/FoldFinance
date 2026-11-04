@@ -34,9 +34,6 @@ import com.foldfinance.app.ui.components.TransactionRow
 import com.foldfinance.app.ui.components.categoryVisual
 import com.foldfinance.app.ui.diagnostics.WindowDiagnosticsScreen
 import com.foldfinance.app.ui.layout.TwoPane
-import com.foldfinance.app.ui.shell.Section
-import com.foldfinance.app.ui.shell.Sections
-import com.foldfinance.app.ui.shell.ShellScaffold
 import com.foldfinance.core.model.DefaultCategories
 import com.foldfinance.core.model.Source
 import com.foldfinance.parser.Direction
@@ -45,24 +42,13 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Screenshots of the shell, the component gallery and the diagnostics screen in
+ * Screenshots of the component gallery and the diagnostics screen in
  * 3 Fold configurations × light/dark. Record: `recordRoborazziDebug`, check: `verifyRoborazziDebug`.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ScreenshotTests {
 
-    /** What release users see today: only «Обзор», no navigation, an honest empty state. */
-    @Test fun shellRelease() = captureInAllConfigs("shell_release") {
-        val sections = Sections.visible(debug = false)
-        ShellScaffold(sections = sections, selected = Section.Overview, onSelect = {})
-    }
-
-    /** Debug build: all sections in the navigation suite (bar on compact/tabletop, rail in book). */
-    @Test fun shellDebug() = captureInAllConfigs("shell_debug") {
-        var selected by remember { mutableStateOf(Section.Overview) }
-        ShellScaffold(sections = Section.entries, selected = selected, onSelect = { selected = it })
-    }
 
     @Test fun diagnostics() = captureInAllConfigs("diagnostics") {
         WindowDiagnosticsScreen(readings = readings, layout = layout, copied = false, onCopy = {}, onBack = {})

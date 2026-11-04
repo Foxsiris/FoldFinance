@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки раздела «Проверка» (ui/review). -->
+<resources>
+    <string name="review_confirm">Подтвердить</string>
+    <string name="review_pick_category">Категория</string>
+    <string name="review_swipe_hint">Вправо — подтвердить, влево — выбрать категорию</string>
+    <string name="review_choose_category">Категория</string>
+    <string name="review_sheet_title">Категория для «%1$s»</string>
+    <!-- Сегодня, 14:05, Расход -->
+    <string name="review_card_meta">%1$s, %2$s, %3$s</string>
+    <!-- 900, SMS -->
+    <string name="review_card_source">%1$s, %2$s</string>
+    <string name="review_done_title">Всё разобрано</string>
+    <string name="review_done_body">Операции, которые распознались неуверенно, появятся здесь. Их можно подтвердить или поправить за пару секунд.</string>
+    <string name="review_select_all">Выбрать все</string>
+    <string name="review_clear_selection">Снять выбор</string>
+    <string name="review_bulk_body">Выберите категорию — она назначится всем выбранным операциям, и они уйдут из очереди.</string>
+    <plurals name="review_left">
+        <item quantity="one">Осталась %d операция</item>
+        <item quantity="few">Осталось %d операции</item>
+        <item quantity="many">Осталось %d операций</item>
+        <item quantity="other">Осталось %d операции</item>
+    </plurals>
+    <plurals name="review_selected">
+        <item quantity="one">Выбрана %d операция</item>
+        <item quantity="few">Выбрано %d операции</item>
+        <item quantity="many">Выбрано %d операций</item>
+        <item quantity="other">Выбрано %d операции</item>
+    </plurals>
+    <plurals name="review_confirm_selected">
+        <item quantity="one">Подтвердить %d</item>
+        <item quantity="few">Подтвердить %d</item>
+        <item quantity="many">Подтвердить %d</item>
+        <item quantity="other">Подтвердить %d</item>
+    </plurals>
+</resources>

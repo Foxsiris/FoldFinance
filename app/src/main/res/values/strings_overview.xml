@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки раздела «Обзор» (ui/overview). -->
+<resources>
+    <string name="overview_empty_title">Операций пока нет</string>
+    <string name="overview_empty_body">Здесь появятся расходы и доходы из банковских SMS и уведомлений. Всё хранится только на этом телефоне. Операцию можно добавить и вручную.</string>
+    <string name="overview_empty_action">Добавить вручную</string>
+    <string name="overview_summary_title">Сводка</string>
+    <string name="overview_summary_pending">Расходы за сегодня и за месяц появятся здесь после первой операции.</string>
+    <string name="overview_list_title">Операции</string>
+    <string name="overview_list_nothing">Таких операций в этом периоде нет.</string>
+
+    <string name="overview_feed_title">Последние операции</string>
+    <string name="overview_feed_all">Вся история</string>
+    <string name="overview_feed_empty">В этом периоде операций ещё нет.</string>
+    <string name="overview_review_button">Разобрать %1$d</string>
+
+    <!-- Остаток •1234 / на 14:05: известный остаток банка, не сумма по операциям -->
+    <string name="overview_balance">Остаток •%1$s</string>
+    <string name="overview_balance_inline">Остаток •%1$s на %2$s</string>
+    <string name="overview_balance_at">по данным банка на %1$s</string>
+
+    <string name="overview_period_week">Расходы за неделю</string>
+    <string name="overview_period_month">Расходы за %1$s</string>
+    <string name="overview_period_year">Расходы за %1$d год</string>
+    <string name="overview_categories_title">По категориям</string>
+    <string name="overview_share_percent">%1$d %%</string>
+    <string name="overview_selection_clear">Снять фильтр</string>
+
+    <string name="overview_chart_max">Больше всего за день: %1$s</string>
+    <string name="overview_chart_max_month">Больше всего за месяц: %1$s</string>
+    <string name="overview_chart_nothing">Расходов в этом периоде нет</string>
+    <string name="overview_chart_description">График расходов по дням, максимум %1$s. Нажмите на столбец, чтобы показать операции этого дня.</string>
+</resources>

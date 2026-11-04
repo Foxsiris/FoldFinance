@@ -2,7 +2,7 @@ package com.foldfinance.app.ui.components
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -69,11 +69,14 @@ fun PeriodSelector(
     ) {
         val segment = maxWidth / periods.size
         val index = periods.indexOf(selected)
-        val thumbOffset by animateDpAsState(segment * index.coerceAtLeast(0), FoldMotion.spatial(), label = "periodThumb")
+        // Animate the position in segments, not in dp: when the control is re-measured with another
+        // width (a pane settling next to the hinge), the thumb follows at once instead of animating
+        // from a stale dp offset. selected == null (custom period) shows no thumb.
+        val thumbIndex by animateFloatAsState(index.coerceAtLeast(0).toFloat(), FoldMotion.spatial(), label = "periodThumb")
         if (index >= 0) {
             Box(
                 Modifier
-                    .offset(x = thumbOffset)
+                    .offset(x = segment * thumbIndex)
                     .width(segment)
                     .fillMaxHeight()
                     .background(palette.saffronContainer, FoldShapes.pill),

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки операции: деталь, редактор, ручное добавление (ui/transaction). -->
+<resources>
+    <string name="tx_day_today">Сегодня</string>
+    <string name="tx_day_yesterday">Вчера</string>
+    <!-- 3 ноября, вторник -->
+    <string name="tx_day_with_weekday">%1$s, %2$s</string>
+    <!-- Сегодня, 14:05 / 3 ноября, 14:05 -->
+    <string name="tx_date_time">%1$s, %2$s</string>
+
+    <string name="tx_title_expense">Покупка</string>
+    <string name="tx_title_income">Поступление</string>
+    <string name="tx_title_refund">Возврат</string>
+    <string name="tx_title_transfer_in">Входящий перевод</string>
+    <string name="tx_title_transfer_out">Перевод</string>
+    <string name="tx_title_internal_transfer">Перевод между своими картами</string>
+    <string name="tx_title_top_up">Пополнение</string>
+    <string name="tx_title_cash">Снятие наличных</string>
+    <string name="tx_title_fee">Комиссия</string>
+    <string name="tx_no_category">Без категории</string>
+
+    <string name="tx_direction_expense">Расход</string>
+    <string name="tx_direction_income">Доход</string>
+    <string name="tx_direction_refund">Возврат</string>
+    <string name="tx_direction_internal">Между своими</string>
+
+    <string name="tx_source_sms">SMS</string>
+    <string name="tx_source_push">Уведомление</string>
+    <string name="tx_source_manual">Добавлено вручную</string>
+
+    <!-- Деталь -->
+    <string name="tx_back">Назад</string>
+    <string name="tx_edit">Изменить</string>
+    <string name="tx_delete">Удалить</string>
+    <string name="tx_category">Категория</string>
+    <string name="tx_direction">Тип</string>
+    <string name="tx_card">Карта</string>
+    <string name="tx_card_mask">•%1$s</string>
+    <string name="tx_source">Источник</string>
+    <string name="tx_raw_title">Исходное сообщение</string>
+    <string name="tx_raw_missing">Текст сообщения не сохранился.</string>
+    <!-- 900 · 5 ноября, 14:05 -->
+    <string name="tx_raw_meta">%1$s, %2$s, %3$s</string>
+    <string name="tx_note">Заметка</string>
+    <string name="tx_note_add">Добавить заметку</string>
+    <string name="tx_review_hint">Тип или сумма распознаны неуверенно. Проверьте и подтвердите.</string>
+    <string name="tx_confirm">Подтвердить</string>
+    <string name="tx_deleted">Операция удалена</string>
+    <string name="tx_undo">Отменить</string>
+    <string name="tx_saved">Сохранено</string>
+    <string name="tx_select_hint_title">Выберите операцию</string>
+    <string name="tx_select_hint_body">Здесь появятся сумма, категория и исходное сообщение банка.</string>
+
+    <!-- Правило мерчанта -->
+    <string name="tx_rule_title">Применять для всех операций от %1$s?</string>
+    <string name="tx_rule_body">Прошлые и новые операции от %1$s получат категорию «%2$s». Операции, исправленные вручную, не изменятся.</string>
+    <string name="tx_rule_apply">Применять</string>
+    <string name="tx_rule_only_this">Только эту</string>
+    <string name="tx_rule_applied">Категория запомнена</string>
+
+    <!-- Форма -->
+    <string name="tx_form_title_add">Новая операция</string>
+    <string name="tx_form_title_edit">Изменить операцию</string>
+    <string name="tx_form_close">Закрыть</string>
+    <string name="tx_form_merchant">Где потрачено</string>
+    <string name="tx_form_merchant_income">От кого</string>
+    <string name="tx_form_note">Заметка</string>
+    <string name="tx_form_save">Сохранить</string>
+    <string name="tx_form_next">Далее</string>
+    <string name="tx_form_done">Готово</string>
+    <string name="tx_form_time">Время</string>
+    <string name="tx_cancel">Отмена</string>
+    <string name="tx_keypad_decimal">Запятая</string>
+    <string name="tx_keypad_backspace">Стереть</string>
+    <string name="tx_add">Добавить</string>
+</resources>

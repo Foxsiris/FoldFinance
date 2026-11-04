@@ -49,7 +49,7 @@ enum class Section(
  */
 object Sections {
     /** Sections with real, release-quality content. */
-    val ready: Set<Section> = setOf(Section.Overview)
+    val ready: Set<Section> = Section.entries.toSet()
 
     fun isReady(section: Section): Boolean = section in ready
 
