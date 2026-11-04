@@ -1,0 +1,28 @@
+{
+  "description": "Зачисление зарплаты → INCOME",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Sovcombank",
+    "receivedAt": "2026-11-05T09:30:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "sovcombank",
+  "operations": [
+    {
+      "amountMinor": 8500000,
+      "currency": "RUB",
+      "direction": "INCOME",
+      "kind": "TOP_UP",
+      "merchant": "ООО РОМАШКА",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 8729000,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

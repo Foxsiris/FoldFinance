@@ -1,0 +1,29 @@
+{
+  "description": "Push: покупка, сумма в заголовке, тонкий пробел",
+  "meta": {
+    "channel": "PUSH",
+    "sender": "com.idamob.tinkoff.android",
+    "receivedAt": "2026-11-05T20:10:00+03:00",
+    "title": "Покупка 1 450 ₽"
+  },
+  "result": "PARSED",
+  "parserId": "tbank",
+  "operations": [
+    {
+      "amountMinor": 145000,
+      "currency": "RUB",
+      "direction": "EXPENSE",
+      "kind": "PURCHASE",
+      "merchant": "YANDEX.TAXI",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 9665000,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

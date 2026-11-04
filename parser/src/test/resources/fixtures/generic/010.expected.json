@@ -1,0 +1,9 @@
+{
+  "description": "Отказ в операции → NotFinancial (деньги не списаны)",
+  "meta": {
+    "channel": "SMS",
+    "sender": "BANK",
+    "receivedAt": "2026-11-05T19:00:00+03:00"
+  },
+  "result": "NOT_FINANCIAL"
+}

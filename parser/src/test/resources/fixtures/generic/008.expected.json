@@ -1,0 +1,23 @@
+{
+  "description": "Только знак + без ключевого слова → Uncertain, предположение INCOME",
+  "meta": {
+    "channel": "SMS",
+    "sender": "BANK",
+    "receivedAt": "2026-11-05T17:00:00+03:00"
+  },
+  "result": "UNCERTAIN",
+  "parserId": "generic",
+  "reason": "unknown_operation_type",
+  "partial": {
+    "amountMinor": 500000,
+    "currency": "RUB",
+    "direction": "INCOME",
+    "kind": "UNKNOWN",
+    "merchant": "IVAN I",
+    "cardMask": "*4321",
+    "counterpartyCardMask": null,
+    "occurredAt": null,
+    "needsReview": true
+  },
+  "balance": null
+}

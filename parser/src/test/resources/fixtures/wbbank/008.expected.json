@@ -1,0 +1,9 @@
+{
+  "description": "Реклама → NotFinancial",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Wildberries",
+    "receivedAt": "2026-11-05T11:00:00+03:00"
+  },
+  "result": "NOT_FINANCIAL"
+}

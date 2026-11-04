@@ -1,0 +1,28 @@
+{
+  "description": "Неизвестный банк: покупка распознана, но confidence ≤ 0.6 → на проверку",
+  "meta": {
+    "channel": "SMS",
+    "sender": "BANK",
+    "receivedAt": "2026-11-05T12:35:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "generic",
+  "operations": [
+    {
+      "amountMinor": 125000,
+      "currency": "RUB",
+      "direction": "EXPENSE",
+      "kind": "PURCHASE",
+      "merchant": "SUPERMARKET",
+      "cardMask": "*4321",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": true
+    }
+  ],
+  "balance": {
+    "amountMinor": 340000,
+    "currency": "RUB",
+    "cardMask": "*4321"
+  }
+}

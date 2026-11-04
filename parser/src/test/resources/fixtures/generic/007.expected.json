@@ -1,0 +1,23 @@
+{
+  "description": "Перевод без признаков направления → Uncertain",
+  "meta": {
+    "channel": "SMS",
+    "sender": "BANK",
+    "receivedAt": "2026-11-05T16:00:00+03:00"
+  },
+  "result": "UNCERTAIN",
+  "parserId": "generic",
+  "reason": "direction_unknown",
+  "partial": {
+    "amountMinor": 200000,
+    "currency": "RUB",
+    "direction": "EXPENSE",
+    "kind": "TRANSFER",
+    "merchant": null,
+    "cardMask": "*4321",
+    "counterpartyCardMask": null,
+    "occurredAt": null,
+    "needsReview": true
+  },
+  "balance": null
+}

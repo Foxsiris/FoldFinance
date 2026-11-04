@@ -1,0 +1,28 @@
+{
+  "description": "Валютная покупка USD, остаток в рублях",
+  "meta": {
+    "channel": "SMS",
+    "sender": "900",
+    "receivedAt": "2026-11-05T14:21:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "sber",
+  "operations": [
+    {
+      "amountMinor": 1250,
+      "currency": "USD",
+      "direction": "EXPENSE",
+      "kind": "PURCHASE",
+      "merchant": "NETFLIX.COM",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": "2026-11-05T14:20:00+03:00",
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 1000000,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "description": "Возврат: Direction.REFUND, не доход",
+  "meta": {
+    "channel": "SMS",
+    "sender": "WBBank",
+    "receivedAt": "2026-11-05T13:00:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "wbbank",
+  "operations": [
+    {
+      "amountMinor": 249000,
+      "currency": "RUB",
+      "direction": "REFUND",
+      "kind": "REFUND",
+      "merchant": "WILDBERRIES",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 1252556,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

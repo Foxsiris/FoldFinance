@@ -1,0 +1,23 @@
+{
+  "description": "Обмен валюты → Uncertain (направление решает пользователь)",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Sovcombank",
+    "receivedAt": "2026-11-05T16:00:00+03:00"
+  },
+  "result": "UNCERTAIN",
+  "parserId": "sovcombank",
+  "reason": "fx_exchange",
+  "partial": {
+    "amountMinor": 10000,
+    "currency": "USD",
+    "direction": "EXPENSE",
+    "kind": "FX",
+    "merchant": null,
+    "cardMask": "*1234",
+    "counterpartyCardMask": null,
+    "occurredAt": null,
+    "needsReview": true
+  },
+  "balance": null
+}

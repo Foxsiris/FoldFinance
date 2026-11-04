@@ -1,0 +1,28 @@
+{
+  "description": "Комиссия за обслуживание как самостоятельная операция",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Sovcombank",
+    "receivedAt": "2026-11-05T00:05:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "sovcombank",
+  "operations": [
+    {
+      "amountMinor": 9900,
+      "currency": "RUB",
+      "direction": "EXPENSE",
+      "kind": "FEE",
+      "merchant": null,
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 8219100,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

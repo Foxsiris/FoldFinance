@@ -1,0 +1,28 @@
+{
+  "description": "Возврат: Direction.REFUND, не доход",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Tinkoff",
+    "receivedAt": "2026-11-05T17:20:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "tbank",
+  "operations": [
+    {
+      "amountMinor": 99000,
+      "currency": "RUB",
+      "direction": "REFUND",
+      "kind": "REFUND",
+      "merchant": "OZON",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 10062556,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

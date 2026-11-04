@@ -1,0 +1,28 @@
+{
+  "description": "Подписка",
+  "meta": {
+    "channel": "SMS",
+    "sender": "T-Bank",
+    "receivedAt": "2026-11-05T08:00:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "tbank",
+  "operations": [
+    {
+      "amountMinor": 29900,
+      "currency": "RUB",
+      "direction": "EXPENSE",
+      "kind": "SUBSCRIPTION",
+      "merchant": "YANDEX PLUS",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 993556,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

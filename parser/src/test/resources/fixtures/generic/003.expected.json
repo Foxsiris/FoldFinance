@@ -1,0 +1,23 @@
+{
+  "description": "Неоднозначная сумма 1,500 → Uncertain",
+  "meta": {
+    "channel": "SMS",
+    "sender": "BANK",
+    "receivedAt": "2026-11-05T13:00:00+03:00"
+  },
+  "result": "UNCERTAIN",
+  "parserId": "generic",
+  "reason": "ambiguous_amount",
+  "partial": {
+    "amountMinor": 150000,
+    "currency": "USD",
+    "direction": "EXPENSE",
+    "kind": "PURCHASE",
+    "merchant": "SHOP",
+    "cardMask": "*4321",
+    "counterpartyCardMask": null,
+    "occurredAt": null,
+    "needsReview": true
+  },
+  "balance": null
+}

@@ -1,0 +1,9 @@
+{
+  "description": "Реклама → NotFinancial",
+  "meta": {
+    "channel": "SMS",
+    "sender": "T-Bank",
+    "receivedAt": "2026-11-05T12:00:00+03:00"
+  },
+  "result": "NOT_FINANCIAL"
+}

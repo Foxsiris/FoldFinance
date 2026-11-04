@@ -1,0 +1,28 @@
+{
+  "description": "Входящий перевод от человека",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Wildberries",
+    "receivedAt": "2026-11-05T15:00:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "wbbank",
+  "operations": [
+    {
+      "amountMinor": 300000,
+      "currency": "RUB",
+      "direction": "INCOME",
+      "kind": "TRANSFER",
+      "merchant": "ИВАН И",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 542556,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "description": "Push неизвестного приложения: зачисление со знаком +",
+  "meta": {
+    "channel": "PUSH",
+    "sender": "com.example.bank",
+    "receivedAt": "2026-11-05T10:00:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "generic",
+  "operations": [
+    {
+      "amountMinor": 2000000,
+      "currency": "RUB",
+      "direction": "INCOME",
+      "kind": "TOP_UP",
+      "merchant": null,
+      "cardMask": "*4321",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": true
+    }
+  ],
+  "balance": null
+}

@@ -1,0 +1,39 @@
+{
+  "description": "Перевод себе на другую карту + комиссия",
+  "meta": {
+    "channel": "SMS",
+    "sender": "WB Bank",
+    "receivedAt": "2026-11-05T14:00:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "wbbank",
+  "operations": [
+    {
+      "amountMinor": 1000000,
+      "currency": "RUB",
+      "direction": "EXPENSE",
+      "kind": "TRANSFER",
+      "merchant": null,
+      "cardMask": "*1234",
+      "counterpartyCardMask": "*5678",
+      "occurredAt": null,
+      "needsReview": false
+    },
+    {
+      "amountMinor": 10000,
+      "currency": "RUB",
+      "direction": "EXPENSE",
+      "kind": "FEE",
+      "merchant": null,
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 242556,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

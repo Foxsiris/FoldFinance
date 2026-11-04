@@ -1,0 +1,28 @@
+{
+  "description": "Валютная покупка USD, знак $ перед суммой",
+  "meta": {
+    "channel": "SMS",
+    "sender": "WB Bank",
+    "receivedAt": "2026-11-05T19:00:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "wbbank",
+  "operations": [
+    {
+      "amountMinor": 999,
+      "currency": "USD",
+      "direction": "EXPENSE",
+      "kind": "PURCHASE",
+      "merchant": "SPOTIFY",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 882556,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}
