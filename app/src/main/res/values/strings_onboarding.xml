@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Онбординг доступов и блок настроек «Доступы и источники» (ui/onboarding). -->
+<resources>
+    <string name="onboarding_step_counter">Шаг %1$d из %2$d</string>
+    <string name="onboarding_skip">Пропустить</string>
+    <string name="onboarding_next">Далее</string>
+    <string name="onboarding_done">Готово</string>
+
+    <!-- SMS -->
+    <string name="onboarding_sms_title">Операции из SMS</string>
+    <string name="onboarding_sms_body">FoldFinance читает SMS банков и сам записывает покупки, переводы и зачисления, включая уже полученные сообщения.</string>
+    <string name="onboarding_sms_privacy">Тексты остаются на телефоне в зашифрованной базе, в сеть ничего не уходит. Личная переписка, коды подтверждения и реклама не сохраняются.</string>
+    <string name="onboarding_sms_action">Разрешить доступ к SMS</string>
+    <string name="onboarding_sms_granted">Доступ к SMS есть</string>
+
+    <string name="onboarding_restricted_title">Android скрыл доступ</string>
+    <string name="onboarding_restricted_body">Приложение установлено не из магазина, поэтому Android прячет доступ к SMS за ограниченными настройками. Это можно разрешить вручную.</string>
+    <string name="onboarding_restricted_step1">Откройте «Сведения о приложении».</string>
+    <string name="onboarding_restricted_step2">Нажмите ⋮ в правом верхнем углу.</string>
+    <string name="onboarding_restricted_step3">Выберите «Разрешить ограниченные настройки» и подтвердите.</string>
+    <string name="onboarding_restricted_step4">Вернитесь сюда и нажмите «Запросить снова». Если пункта ⋮ нет, включите SMS в разделе «Разрешения».</string>
+    <string name="onboarding_open_app_details">Открыть сведения о приложении</string>
+    <string name="onboarding_request_again">Запросить снова</string>
+
+    <!-- Уведомления -->
+    <string name="onboarding_push_title">Банковские уведомления</string>
+    <string name="onboarding_push_body">Уведомления банков приходят сразу после операции, а у части операций SMS нет вовсе. Одна и та же операция из SMS и уведомления записывается один раз.</string>
+    <string name="onboarding_push_privacy">Читаются только приложения, которые вы выберете дальше. Уведомления остальных приложений отбрасываются сразу и нигде не сохраняются.</string>
+    <string name="onboarding_push_action">Открыть доступ к уведомлениям</string>
+    <string name="onboarding_push_granted">Доступ к уведомлениям есть</string>
+    <string name="onboarding_push_restricted">Если переключатель неактивен и появляется «Ограниченная настройка»: «Сведения о приложении» → ⋮ → «Разрешить ограниченные настройки», затем включите доступ снова.</string>
+
+    <!-- Источники -->
+    <string name="onboarding_sources_title">Источники уведомлений</string>
+    <string name="onboarding_sources_body">Отметьте приложения банков. Банки, которые FoldFinance знает, стоят сверху.</string>
+    <string name="onboarding_sources_banks">Банки</string>
+    <string name="onboarding_sources_other">Другие приложения</string>
+    <string name="onboarding_sources_save">Сохранить</string>
+    <string name="onboarding_sources_saved">Сохранено</string>
+    <string name="onboarding_sources_loading">Загружаю список приложений</string>
+    <string name="onboarding_sources_empty_title">Приложений не нашлось</string>
+    <string name="onboarding_sources_empty_body">Установите приложение банка и вернитесь сюда, или выберите источники позже в настройках.</string>
+    <string name="onboarding_sources_known_bank">Известный банк</string>
+
+    <!-- POST_NOTIFICATIONS -->
+    <string name="onboarding_progress_title">Ход сканирования в шторке</string>
+    <string name="onboarding_progress_body">Пока импортируется история, в шторке видно, сколько SMS просмотрено. Только числа: ни текстов, ни сумм.</string>
+    <string name="onboarding_progress_action">Разрешить уведомления</string>
+    <string name="onboarding_progress_granted">Уведомления разрешены</string>
+
+    <!-- Батарея -->
+    <string name="onboarding_battery_title">Работа в фоне</string>
+    <string name="onboarding_battery_body">Samsung усыпляет приложения в фоне. Тогда новые SMS и уведомления обрабатываются с опозданием, а слушатель уведомлений отключается.</string>
+    <string name="onboarding_battery_step1">«Сведения о приложении» → «Батарея» → «Без ограничений».</string>
+    <string name="onboarding_battery_step2">Или «Настройки» → «Батарея» → «Ограничения фонового использования» → «Приложения без спящего режима» → добавьте FoldFinance.</string>
+    <string name="onboarding_battery_action">Открыть настройки батареи</string>
+    <string name="onboarding_battery_ok">Ограничений батареи нет</string>
+    <string name="onboarding_battery_limited">Приложение может засыпать в фоне</string>
+
+    <!-- Сканирование -->
+    <string name="onboarding_scan_title">Импорт истории SMS</string>
+    <string name="onboarding_scan_body">FoldFinance просматривает банковские SMS на телефоне. Это идёт в фоне: приложение можно свернуть.</string>
+    <string name="onboarding_scan_scanned">просмотрено из %1$s</string>
+    <string name="onboarding_scan_scanned_unknown">просмотрено SMS</string>
+    <string name="onboarding_scan_found">Найдено операций</string>
+    <string name="onboarding_scan_income">Доходы</string>
+    <string name="onboarding_scan_expense">Расходы</string>
+    <string name="onboarding_scan_rub_note">Суммы в рублях по известным операциям</string>
+    <string name="onboarding_scan_running">Сканирую, можно свернуть приложение</string>
+    <string name="onboarding_scan_finished">Готово, история импортирована</string>
+    <string name="onboarding_scan_failed">Сканирование прервалось. Запустите его снова в настройках: уже найденное не задвоится.</string>
+    <string name="onboarding_scan_background">Продолжить в фоне</string>
+    <string name="onboarding_scan_start">Начать сканирование</string>
+    <string name="onboarding_scan_no_sms_title">Без доступа к SMS импортировать нечего</string>
+    <string name="onboarding_scan_no_sms_body">Разрешите доступ к SMS в настройках, когда будете готовы, или добавляйте операции вручную.</string>
+    <plurals name="onboarding_operations">
+        <item quantity="one">%d операция</item>
+        <item quantity="few">%d операции</item>
+        <item quantity="many">%d операций</item>
+        <item quantity="other">%d операции</item>
+    </plurals>
+
+    <!-- Блок настроек -->
+    <string name="ingest_settings_title">Доступы и источники</string>
+    <string name="ingest_settings_supporting">Откуда FoldFinance берёт операции</string>
+    <string name="ingest_settings_sms">Чтение SMS</string>
+    <string name="ingest_settings_push_access">Доступ к уведомлениям</string>
+    <string name="ingest_settings_listener">Слушатель уведомлений</string>
+    <string name="ingest_settings_post_notifications">Уведомление о сканировании</string>
+    <string name="ingest_settings_sources">Источники уведомлений</string>
+    <string name="ingest_settings_rescan">Сканировать SMS заново</string>
+    <string name="ingest_settings_rescan_body">Полный проход по истории. Уже записанные операции не задвоятся.</string>
+    <string name="ingest_settings_rescan_running">Сканирую: %1$d из %2$d</string>
+    <string name="ingest_settings_rescan_queued">Сканирование запускается</string>
+    <string name="ingest_settings_battery">Работа в фоне</string>
+
+    <string name="ingest_status_granted">Разрешено</string>
+    <string name="ingest_status_denied">Нет доступа</string>
+    <string name="ingest_status_enabled">Включён</string>
+    <string name="ingest_status_disabled">Выключен</string>
+    <string name="ingest_status_connected">Подключён</string>
+    <string name="ingest_status_disconnected">Отключён</string>
+    <string name="ingest_status_not_bound">Не подключён</string>
+    <string name="ingest_status_no_sources">Не выбраны</string>
+    <plurals name="ingest_status_sources">
+        <item quantity="one">Выбрано %d приложение</item>
+        <item quantity="few">Выбрано %d приложения</item>
+        <item quantity="many">Выбрано %d приложений</item>
+        <item quantity="other">Выбрано %d приложения</item>
+    </plurals>
+
+    <string name="ingest_action_allow">Разрешить</string>
+    <string name="ingest_action_open">Открыть</string>
+    <string name="ingest_action_rebind">Переподключить</string>
+    <string name="ingest_action_choose">Выбрать</string>
+    <string name="ingest_action_scan">Сканировать</string>
+    <string name="ingest_action_how">Как настроить</string>
+</resources>

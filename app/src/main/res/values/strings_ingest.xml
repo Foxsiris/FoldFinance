@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки слоя приёма сообщений (ingest): уведомление о сканировании, debug-инструменты. -->
+<resources>
+    <string name="ingest_channel_scan_name">Сканирование SMS</string>
+    <string name="ingest_channel_scan_description">Ход импорта банковских SMS. Без текстов и сумм.</string>
+    <string name="ingest_scan_notification_title">Сканирую SMS</string>
+    <string name="ingest_scan_notification_starting">Готовлюсь к сканированию</string>
+    <string name="ingest_scan_notification_progress">%1$d из %2$d, найдено операций: %3$d</string>
+
+    <!-- Debug (видно только в debug-сборке) -->
+    <string name="ingest_debug_title">Отладка приёма</string>
+    <string name="ingest_debug_channel_name">Тестовые банковские уведомления</string>
+    <string name="ingest_debug_push_title">Отправить тестовое банковское уведомление</string>
+    <string name="ingest_debug_push_body">Уведомление от этого приложения с синтетическим текстом Т-Банка. Свой пакет в белом списке только в debug.</string>
+    <string name="ingest_debug_sms_title">Вставить тестовую SMS</string>
+    <string name="ingest_debug_sms_body">Синтетическая SMS Сбербанка от 900 сразу в приём, без системного хранилища SMS.</string>
+    <string name="ingest_debug_result_posted">Уведомление отправлено. Если доступ к уведомлениям есть, операция появится в истории.</string>
+    <string name="ingest_debug_result_no_permission">Нет разрешения на уведомления. Разрешите его в блоке «Доступы и источники».</string>
+    <string name="ingest_debug_result_recorded">SMS записана, операция создана.</string>
+    <string name="ingest_debug_result_already">Такая SMS уже обработана.</string>
+    <string name="ingest_debug_result_not_financial">Парсер решил, что это не операция.</string>
+    <string name="ingest_debug_result_unrecognized">Сохранено, но операция не распознана.</string>
+    <string name="ingest_debug_result_failed">Не удалось записать. Подробности в logcat.</string>
+</resources>
