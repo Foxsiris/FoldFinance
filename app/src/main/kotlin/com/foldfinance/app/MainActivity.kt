@@ -3,6 +3,7 @@ package com.foldfinance.app
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -43,6 +44,9 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Защита от скриншотов до первого кадра: настройка читается асинхронно, и AppSecurityGate
+        // снимет флаг, только если пользователь выключил «Защиту от скриншотов».
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         if (savedInstanceState == null) handleIntent(intent)
         setContent {
             AppSecurityGate { dark, dynamicColor -> AppContent(dark, dynamicColor) }
