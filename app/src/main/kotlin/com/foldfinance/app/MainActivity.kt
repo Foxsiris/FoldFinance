@@ -6,13 +6,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.foldfinance.app.ui.layout.LocalAppLayout
 import com.foldfinance.app.ui.layout.LocalWindowReadings
 import com.foldfinance.app.ui.layout.rememberWindowReadings
+import com.foldfinance.app.ui.security.AppSecurityGate
 import com.foldfinance.app.ui.shell.FoldFinanceAppUi
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -32,7 +33,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            val dark = isSystemInDarkTheme()
+            AppSecurityGate { dark, dynamicColor -> AppContent(dark, dynamicColor) }
+        }
+    }
+
+    @Composable
+    private fun AppContent(dark: Boolean, dynamicColor: Boolean) {
             DisposableEffect(dark) {
                 // Transparent bars with icons matching the theme (the window background is ink/paper).
                 val style = if (dark) {
@@ -49,10 +55,9 @@ class MainActivity : ComponentActivity() {
                 LocalAppLayout provides layout,
                 LocalWindowReadings provides readings,
             ) {
-                FoldFinanceTheme(darkTheme = dark) {
+                FoldFinanceTheme(darkTheme = dark, dynamicColor = dynamicColor) {
                     FoldFinanceAppUi()
                 }
             }
-        }
     }
 }

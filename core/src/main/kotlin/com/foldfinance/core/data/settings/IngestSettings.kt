@@ -2,6 +2,7 @@ package com.foldfinance.core.data.settings
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -29,6 +30,16 @@ class IngestSettings @Inject constructor(
 
     val pushPackageWhitelist: Flow<Set<String>> =
         store.data.map { it[KEY_WHITELIST] ?: emptySet() }.distinctUntilChanged()
+
+    /** Автоотслеживание SMS и уведомлений (переключатель в настройках). По умолчанию включено. */
+    val autoTrackingEnabled: Flow<Boolean> =
+        store.data.map { it[KEY_AUTO_TRACKING] ?: true }.distinctUntilChanged()
+
+    suspend fun autoTrackingEnabled(): Boolean = autoTrackingEnabled.first()
+
+    suspend fun setAutoTrackingEnabled(enabled: Boolean) {
+        store.edit { it[KEY_AUTO_TRACKING] = enabled }
+    }
 
     suspend fun lastProcessedSmsId(): Long = lastProcessedSmsId.first()
 
@@ -64,5 +75,6 @@ class IngestSettings @Inject constructor(
     private companion object {
         val KEY_LAST_SMS_ID = longPreferencesKey("last_processed_sms_id")
         val KEY_WHITELIST = stringSetPreferencesKey("push_package_whitelist")
+        val KEY_AUTO_TRACKING = booleanPreferencesKey("auto_tracking_enabled")
     }
 }
