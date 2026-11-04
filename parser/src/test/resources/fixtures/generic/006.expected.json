@@ -1,0 +1,9 @@
+{
+  "description": "Код подтверждения на английском → NotFinancial",
+  "meta": {
+    "channel": "SMS",
+    "sender": "SERVICE",
+    "receivedAt": "2026-11-05T15:30:00+03:00"
+  },
+  "result": "NOT_FINANCIAL"
+}

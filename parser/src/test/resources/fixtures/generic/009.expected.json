@@ -1,0 +1,13 @@
+{
+  "description": "Ключевое слово есть, суммы нет → Uncertain без partial",
+  "meta": {
+    "channel": "SMS",
+    "sender": "BANK",
+    "receivedAt": "2026-11-05T18:00:00+03:00"
+  },
+  "result": "UNCERTAIN",
+  "parserId": "generic",
+  "reason": "amount_not_found",
+  "partial": null,
+  "balance": null
+}

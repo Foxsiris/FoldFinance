@@ -1,0 +1,9 @@
+{
+  "description": "Код подтверждения → NotFinancial",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Sovcombank",
+    "receivedAt": "2026-11-05T11:05:00+03:00"
+  },
+  "result": "NOT_FINANCIAL"
+}

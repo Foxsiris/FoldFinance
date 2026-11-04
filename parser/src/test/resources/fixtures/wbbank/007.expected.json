@@ -1,0 +1,27 @@
+{
+  "description": "Нераспознанный вид операции → Uncertain",
+  "meta": {
+    "channel": "SMS",
+    "sender": "WB Bank",
+    "receivedAt": "2026-11-05T17:00:00+03:00"
+  },
+  "result": "UNCERTAIN",
+  "parserId": "wbbank",
+  "reason": "unknown_operation_type",
+  "partial": {
+    "amountMinor": 70000,
+    "currency": "RUB",
+    "direction": "EXPENSE",
+    "kind": "UNKNOWN",
+    "merchant": null,
+    "cardMask": "*1234",
+    "counterpartyCardMask": null,
+    "occurredAt": null,
+    "needsReview": true
+  },
+  "balance": {
+    "amountMinor": 972556,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

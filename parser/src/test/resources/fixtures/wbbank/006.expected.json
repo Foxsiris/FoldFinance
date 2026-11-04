@@ -1,0 +1,28 @@
+{
+  "description": "Пополнение с другой карты → INCOME + TRANSFER с маской источника",
+  "meta": {
+    "channel": "SMS",
+    "sender": "WB Bank",
+    "receivedAt": "2026-11-05T16:00:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "wbbank",
+  "operations": [
+    {
+      "amountMinor": 500000,
+      "currency": "RUB",
+      "direction": "INCOME",
+      "kind": "TRANSFER",
+      "merchant": null,
+      "cardMask": "*1234",
+      "counterpartyCardMask": "*9012",
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 1042556,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

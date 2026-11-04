@@ -1,0 +1,27 @@
+{
+  "description": "Неизвестный вид операции → Uncertain с частичными данными",
+  "meta": {
+    "channel": "SMS",
+    "sender": "900",
+    "receivedAt": "2026-11-05T21:11:00+03:00"
+  },
+  "result": "UNCERTAIN",
+  "parserId": "sber",
+  "reason": "unknown_operation_type",
+  "partial": {
+    "amountMinor": 70000,
+    "currency": "RUB",
+    "direction": "EXPENSE",
+    "kind": "UNKNOWN",
+    "merchant": "SBOL",
+    "cardMask": "*1234",
+    "counterpartyCardMask": null,
+    "occurredAt": "2026-11-05T21:10:00+03:00",
+    "needsReview": true
+  },
+  "balance": {
+    "amountMinor": 430000,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

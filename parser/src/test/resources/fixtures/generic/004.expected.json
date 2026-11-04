@@ -1,0 +1,23 @@
+{
+  "description": "Нет ключевого слова операции → Uncertain",
+  "meta": {
+    "channel": "SMS",
+    "sender": "BANK",
+    "receivedAt": "2026-11-05T14:00:00+03:00"
+  },
+  "result": "UNCERTAIN",
+  "parserId": "generic",
+  "reason": "unknown_operation_type",
+  "partial": {
+    "amountMinor": 30000,
+    "currency": "RUB",
+    "direction": "EXPENSE",
+    "kind": "UNKNOWN",
+    "merchant": null,
+    "cardMask": "*4321",
+    "counterpartyCardMask": null,
+    "occurredAt": null,
+    "needsReview": true
+  },
+  "balance": null
+}

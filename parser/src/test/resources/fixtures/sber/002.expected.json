@@ -1,0 +1,28 @@
+{
+  "description": "Возврат: Direction.REFUND, не доход",
+  "meta": {
+    "channel": "SMS",
+    "sender": "900",
+    "receivedAt": "2026-11-05T12:41:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "sber",
+  "operations": [
+    {
+      "amountMinor": 99000,
+      "currency": "RUB",
+      "direction": "REFUND",
+      "kind": "REFUND",
+      "merchant": "OZON.RU",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": "2026-11-05T12:40:00+03:00",
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 1122456,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

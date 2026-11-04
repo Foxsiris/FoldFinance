@@ -1,0 +1,28 @@
+{
+  "description": "Покупка",
+  "meta": {
+    "channel": "SMS",
+    "sender": "WB Bank",
+    "receivedAt": "2026-11-05T12:35:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "wbbank",
+  "operations": [
+    {
+      "amountMinor": 150000,
+      "currency": "RUB",
+      "direction": "EXPENSE",
+      "kind": "PURCHASE",
+      "merchant": "WILDBERRIES",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 1023456,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

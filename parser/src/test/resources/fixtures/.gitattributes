@@ -1,0 +1,2 @@
+# Fixtures must keep exact bytes (NBSP, thin spaces) and LF line endings.
+* text eol=lf

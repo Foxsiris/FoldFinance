@@ -1,0 +1,27 @@
+{
+  "description": "Нераспознанный вид операции → Uncertain",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Tinkoff",
+    "receivedAt": "2026-11-05T22:00:00+03:00"
+  },
+  "result": "UNCERTAIN",
+  "parserId": "tbank",
+  "reason": "unknown_operation_type",
+  "partial": {
+    "amountMinor": 120000,
+    "currency": "RUB",
+    "direction": "EXPENSE",
+    "kind": "UNKNOWN",
+    "merchant": "SBP",
+    "cardMask": "*1234",
+    "counterpartyCardMask": null,
+    "occurredAt": null,
+    "needsReview": true
+  },
+  "balance": {
+    "amountMinor": 9545000,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}

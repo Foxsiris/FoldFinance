@@ -1,0 +1,9 @@
+{
+  "description": "Код входа → NotFinancial",
+  "meta": {
+    "channel": "SMS",
+    "sender": "900",
+    "receivedAt": "2026-11-05T09:00:00+03:00"
+  },
+  "result": "NOT_FINANCIAL"
+}

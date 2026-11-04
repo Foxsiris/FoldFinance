@@ -1,0 +1,28 @@
+{
+  "description": "Валютная покупка EUR",
+  "meta": {
+    "channel": "SMS",
+    "sender": "Tinkoff",
+    "receivedAt": "2026-11-05T19:45:00+03:00"
+  },
+  "result": "PARSED",
+  "parserId": "tbank",
+  "operations": [
+    {
+      "amountMinor": 2500,
+      "currency": "EUR",
+      "direction": "EXPENSE",
+      "kind": "PURCHASE",
+      "merchant": "BOOKING.COM",
+      "cardMask": "*1234",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 9810000,
+    "currency": "RUB",
+    "cardMask": "*1234"
+  }
+}
