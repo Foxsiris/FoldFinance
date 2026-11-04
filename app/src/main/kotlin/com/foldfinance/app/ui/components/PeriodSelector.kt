@@ -46,11 +46,13 @@ enum class Period(@StringRes val labelRes: Int) {
  * spring (instant under reduced motion). 48 dp tall: a comfortable thumb target on the outer
  * screen and in the bottom (touch) half of tabletop.
  *
+ * @param selected selected segment; `null` shows no thumb (a period outside these segments, such
+ *   as a custom range, is active).
  * @param periods segments to show, in order.
  */
 @Composable
 fun PeriodSelector(
-    selected: Period,
+    selected: Period?,
     onSelect: (Period) -> Unit,
     modifier: Modifier = Modifier,
     periods: List<Period> = Period.entries,
@@ -66,15 +68,17 @@ fun PeriodSelector(
             .semantics { contentDescription = description },
     ) {
         val segment = maxWidth / periods.size
-        val index = periods.indexOf(selected).coerceAtLeast(0)
-        val thumbOffset by animateDpAsState(segment * index, FoldMotion.spatial(), label = "periodThumb")
-        Box(
-            Modifier
-                .offset(x = thumbOffset)
-                .width(segment)
-                .fillMaxHeight()
-                .background(palette.saffronContainer, FoldShapes.pill),
-        )
+        val index = periods.indexOf(selected)
+        val thumbOffset by animateDpAsState(segment * index.coerceAtLeast(0), FoldMotion.spatial(), label = "periodThumb")
+        if (index >= 0) {
+            Box(
+                Modifier
+                    .offset(x = thumbOffset)
+                    .width(segment)
+                    .fillMaxHeight()
+                    .background(palette.saffronContainer, FoldShapes.pill),
+            )
+        }
         Row(Modifier.fillMaxWidth().selectableGroup()) {
             periods.forEach { period ->
                 val isSelected = period == selected
