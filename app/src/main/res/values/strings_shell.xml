@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки оболочки: навигация и пустые разделы. -->
+<resources>
+    <string name="section_overview">Обзор</string>
+    <string name="section_history">История</string>
+    <string name="section_analytics">Аналитика</string>
+    <string name="section_review">Проверка</string>
+    <string name="section_subscriptions">Подписки</string>
+    <string name="section_settings">Настройки</string>
+
+    <!-- Обзор без операций (видно и в release) -->
+    <string name="overview_empty_title">Операций пока нет</string>
+    <string name="overview_empty_body">Здесь появятся расходы и доходы из банковских SMS и уведомлений. Всё хранится только на этом телефоне.</string>
+    <string name="overview_summary_title">Сводка</string>
+    <string name="overview_summary_pending">Расходы за сегодня и за месяц появятся здесь после первой операции.</string>
+    <string name="overview_list_title">Операции</string>
+
+    <!-- Пустые разделы видны только в debug -->
+    <string name="section_placeholder_debug">Раздел в разработке. В release-сборке он скрыт из навигации.</string>
+</resources>

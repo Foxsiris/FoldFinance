@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки общих компонентов (ui/components). -->
+<resources>
+    <string name="component_review_badge">На проверку</string>
+
+    <string name="component_source_sms">Из SMS</string>
+    <string name="component_source_push">Из уведомления</string>
+    <string name="component_source_manual">Добавлено вручную</string>
+
+    <string name="component_summary_today">за сегодня</string>
+    <string name="component_summary_month">за месяц</string>
+    <string name="component_summary_footnote">По известным операциям</string>
+
+    <string name="component_period_day">День</string>
+    <string name="component_period_week">Неделя</string>
+    <string name="component_period_month">Месяц</string>
+    <string name="component_period_year">Год</string>
+    <string name="component_period_selector">Период</string>
+</resources>
