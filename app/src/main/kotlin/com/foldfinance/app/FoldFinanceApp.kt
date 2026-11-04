@@ -3,6 +3,7 @@ package com.foldfinance.app
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.foldfinance.app.ingest.IngestScheduler
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -19,5 +20,7 @@ class FoldFinanceApp : Application(), Configuration.Provider {
         super.onCreate()
         // Timber только в debug. Тексты сообщений и суммы не логируются нигде.
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
+        // Периодический дельта-скан SMS и проверка перепарсинга (идемпотентно, KEEP).
+        IngestScheduler(this).ensureScheduled()
     }
 }
