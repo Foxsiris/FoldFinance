@@ -1,6 +1,8 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+// AGP 9: Kotlin компилируется встроенной поддержкой AGP, плагин kotlin-android не нужен.
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -10,12 +12,13 @@ plugins {
 
 android {
     namespace = "com.foldfinance.app"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.foldfinance.app"
         minSdk = 31
-        targetSdk = 35
+        // Android 16 (Fold 8). Поведение Android 17 включим отдельно после проверки на устройстве.
+        targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
     }
@@ -39,9 +42,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -52,6 +52,10 @@ android {
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
+}
+
+kotlin {
+    compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
 }
 
 roborazzi {
@@ -90,6 +94,7 @@ dependencies {
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
 
     implementation(libs.work.runtime.ktx)
     implementation(libs.datastore.preferences)
