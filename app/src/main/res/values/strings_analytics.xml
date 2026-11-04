@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки раздела «Аналитика» (ui/analytics). -->
+<resources>
+    <string name="analytics_title">Аналитика</string>
+    <string name="analytics_period_custom">Свой период</string>
+    <string name="analytics_period_pick_title">Выберите период</string>
+    <string name="analytics_period_pick_confirm">Показать</string>
+    <string name="analytics_period_pick_cancel">Отмена</string>
+    <string name="analytics_period_previous">Предыдущий период</string>
+    <string name="analytics_period_next">Следующий период</string>
+    <string name="analytics_today">Сегодня</string>
+    <string name="analytics_yesterday">Вчера</string>
+
+    <string name="analytics_net_expense">потрачено</string>
+    <string name="analytics_income">Доходы</string>
+    <string name="analytics_expense">Расходы</string>
+    <string name="analytics_refunds">Возвраты</string>
+    <string name="analytics_average_day">В среднем за день</string>
+    <string name="analytics_average_day_hint">по %1$d дн.</string>
+    <string name="analytics_footnote">По известным операциям, без пересчёта валют</string>
+    <string name="analytics_needs_review">%1$d на проверке — учтены как есть</string>
+
+    <string name="analytics_compare_title">К прошлому периоду</string>
+    <string name="analytics_compare_more">на %1$s больше</string>
+    <string name="analytics_compare_less">на %1$s меньше</string>
+    <string name="analytics_compare_same">как в прошлый раз</string>
+    <string name="analytics_compare_new">в прошлом периоде не было</string>
+    <string name="analytics_compare_expense">Расходы</string>
+    <string name="analytics_compare_income">Доходы</string>
+    <string name="analytics_previous_day">к предыдущему дню</string>
+    <string name="analytics_previous_week">к прошлой неделе</string>
+    <string name="analytics_previous_month">к прошлому месяцу</string>
+    <string name="analytics_previous_year">к прошлому году</string>
+    <string name="analytics_previous_custom">к такому же периоду раньше</string>
+
+    <string name="analytics_ratio_title">Доходы и расходы</string>
+    <string name="analytics_ratio_share">Потрачено %1$s%% дохода</string>
+    <string name="analytics_ratio_over">Расходы больше доходов на %1$s</string>
+    <string name="analytics_ratio_left">Осталось %1$s</string>
+    <string name="analytics_ratio_no_income">Доходов за период нет</string>
+
+    <string name="analytics_chart_title">Динамика</string>
+    <string name="analytics_chart_daily">Расходы за день</string>
+    <string name="analytics_chart_monthly">Расходы за месяц</string>
+    <string name="analytics_chart_cumulative_expense">Расходы с начала периода</string>
+    <string name="analytics_chart_cumulative_income">Доходы с начала периода</string>
+    <string name="analytics_chart_hint_day">Нажмите на столбец, чтобы увидеть операции дня</string>
+    <string name="analytics_chart_hint_month">Нажмите на столбец, чтобы увидеть операции месяца</string>
+    <string name="analytics_chart_description">График расходов по дням: всего %1$s, больше всего %2$s</string>
+
+    <string name="analytics_categories_title">Категории</string>
+    <string name="analytics_categories_empty">Расходов по категориям в этом периоде нет</string>
+    <string name="analytics_uncategorized">Без категории</string>
+
+    <string name="analytics_day_operations">Операции</string>
+    <plurals name="analytics_operations_count">
+        <item quantity="one">%1$d операция</item>
+        <item quantity="few">%1$d операции</item>
+        <item quantity="many">%1$d операций</item>
+        <item quantity="other">%1$d операции</item>
+    </plurals>
+    <string name="analytics_day_close">Закрыть</string>
+    <string name="analytics_day_empty">В этот день операций не было</string>
+
+    <string name="analytics_empty_title">За этот период операций нет</string>
+    <string name="analytics_empty_body">Статистика считается по операциям из банковских SMS, уведомлений и добавленным вручную. Загляните в прошлый период или выберите другой.</string>
+    <string name="analytics_empty_action">Предыдущий период</string>
+    <string name="analytics_currency">Валюта</string>
+</resources>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки экрана «Категории» (ui/categories). -->
+<resources>
+    <string name="categories_title">Категории</string>
+    <string name="categories_back">Назад</string>
+    <string name="categories_add">Добавить категорию</string>
+    <string name="categories_base">Базовая</string>
+    <string name="categories_own">Своя</string>
+    <string name="categories_edit_hint">Выберите категорию, чтобы изменить название, иконку или цвет.</string>
+    <string name="categories_editor_new">Новая категория</string>
+    <string name="categories_editor_edit">Категория</string>
+    <string name="categories_name">Название</string>
+    <string name="categories_name_error">Введите название</string>
+    <string name="categories_icon">Иконка</string>
+    <string name="categories_color">Цвет</string>
+    <string name="categories_color_auto">Авто</string>
+    <string name="categories_color_slot">Цвет %1$d</string>
+    <string name="categories_save">Сохранить</string>
+    <string name="categories_cancel">Отмена</string>
+    <string name="categories_saved">Сохранено</string>
+    <string name="categories_save_failed">Не удалось сохранить. Попробуйте ещё раз.</string>
+</resources>

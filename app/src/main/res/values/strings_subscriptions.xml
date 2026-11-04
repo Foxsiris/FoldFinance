@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки раздела «Подписки» (ui/subscriptions). -->
+<resources>
+    <string name="subscriptions_title">Подписки</string>
+    <string name="subscriptions_monthly_total">в месяц на подписки</string>
+    <plurals name="subscriptions_count">
+        <item quantity="one">%1$d подписка</item>
+        <item quantity="few">%1$d подписки</item>
+        <item quantity="many">%1$d подписок</item>
+        <item quantity="other">%1$d подписки</item>
+    </plurals>
+    <string name="subscriptions_totals_footnote">Сумма по каждой валюте отдельно; недельные и годовые пересчитаны в месяц</string>
+
+    <string name="subscriptions_candidates_title">Похоже на подписку, подтвердить?</string>
+    <string name="subscriptions_candidates_supporting">Нашли регулярные списания одному получателю</string>
+    <string name="subscriptions_candidate_dates">Последнее списание %1$s, следующее — %2$s</string>
+    <string name="subscriptions_confirm">Подтвердить</string>
+    <string name="subscriptions_dismiss">Не подписка</string>
+
+    <string name="subscriptions_list_title">Мои подписки</string>
+    <string name="subscriptions_list_empty">Подтвердите найденные подписки — они появятся здесь вместе с датами списаний.</string>
+    <string name="subscriptions_next_charge">Следующее — %1$s</string>
+    <string name="subscriptions_more">Ещё</string>
+    <string name="subscriptions_stop_tracking">Это не подписка</string>
+    <string name="subscriptions_monthly_equivalent">≈ %1$s в месяц</string>
+
+    <string name="subscriptions_period_weekly">раз в неделю</string>
+    <string name="subscriptions_period_monthly">раз в месяц</string>
+    <string name="subscriptions_period_yearly">раз в год</string>
+
+    <string name="subscriptions_calendar_title">Календарь списаний</string>
+    <string name="subscriptions_calendar_show">Показать календарь</string>
+    <string name="subscriptions_calendar_hide">Скрыть календарь</string>
+    <string name="subscriptions_calendar_previous">Предыдущий месяц</string>
+    <string name="subscriptions_calendar_next">Следующий месяц</string>
+    <string name="subscriptions_calendar_day_empty">В этот день списаний нет</string>
+    <string name="subscriptions_calendar_charged">списано</string>
+    <string name="subscriptions_upcoming_title">Ближайшие списания</string>
+    <string name="subscriptions_upcoming_empty">В ближайший месяц списаний нет</string>
+    <string name="subscriptions_today">Сегодня</string>
+    <string name="subscriptions_tomorrow">Завтра</string>
+
+    <string name="subscriptions_empty_title">Подписок пока нет</string>
+    <string name="subscriptions_empty_body">Регулярные платежи появятся здесь сами, когда накопится история: три списания одному получателю на похожую сумму, для годовых — два.</string>
+</resources>
