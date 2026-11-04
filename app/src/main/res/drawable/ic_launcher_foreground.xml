@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Две половины разложенного телефона; шов — перфорация чека, на правой половине столбики расходов. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFF2C14E"
+        android:pathData="M30,34h21v40h-21a4,4 0,0 1,-4 -4v-32a4,4 0,0 1,4 -4z" />
+    <path
+        android:fillColor="#FFE9EEF7"
+        android:pathData="M57,34h21a4,4 0,0 1,4 4v32a4,4 0,0 1,-4 4h-21z" />
+    <path android:fillColor="#FF14213A" android:pathData="M62,58h4v10h-4z" />
+    <path android:fillColor="#FF14213A" android:pathData="M69,50h4v18h-4z" />
+    <path android:fillColor="#FF14213A" android:pathData="M76,44h4v24h-4z" />
+    <path android:fillColor="#FFE9EEF7" android:pathData="M53,36h2v3h-2zM53,42h2v3h-2zM53,48h2v3h-2zM53,54h2v3h-2zM53,60h2v3h-2zM53,66h2v3h-2z" />
+</vector>

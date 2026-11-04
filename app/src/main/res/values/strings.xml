@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Общие строки. Строки фич лежат в strings_<feature>.xml, чтобы фичи не конфликтовали. -->
+<resources>
+    <string name="app_name">FoldFinance</string>
+    <string name="widget_label">Расходы</string>
+    <string name="widget_description">Расходы за сегодня и месяц, операции на проверку</string>
+</resources>
