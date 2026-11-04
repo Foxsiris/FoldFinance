@@ -2,7 +2,9 @@ package com.foldfinance.app.widget
 
 import android.content.Context
 import com.foldfinance.core.data.db.FoldFinanceDatabase
+import com.foldfinance.core.data.subscriptions.RefreshSubscriptionsUseCase
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -13,13 +15,15 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Обновляет виджет после любой записи в таблицу операций — из SMS, push, ручного ввода,
- * проверки или импорта. Одна точка вместо вызовов в каждом месте записи.
+ * Реагирует на любую запись в таблицу операций — из SMS, push, ручного ввода, проверки или
+ * импорта: обновляет виджет и пересчитывает кандидатов в подписки. Одна точка вместо вызовов
+ * в каждом месте записи. Подписки пишутся в свою таблицу, поэтому цикла нет.
  */
 @Singleton
 class WidgetRefresher @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: FoldFinanceDatabase,
+    private val refreshSubscriptions: RefreshSubscriptionsUseCase,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -28,7 +32,16 @@ class WidgetRefresher @Inject constructor(
         scope.launch {
             database.invalidationTracker.createFlow(TRANSACTIONS_TABLE, emitInitialState = false)
                 .debounce(DEBOUNCE_MS)
-                .collect { FinanceWidgetUpdater.requestUpdate(context) }
+                .collect {
+                    FinanceWidgetUpdater.requestUpdate(context)
+                    try {
+                        refreshSubscriptions()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        // Не критично: экран подписок пересчитает сам при открытии.
+                    }
+                }
         }
     }
 
