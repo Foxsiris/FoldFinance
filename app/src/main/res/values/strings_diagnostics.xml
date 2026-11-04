@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-экран «Диагностика окна». В release недоступен. -->
+<resources>
+    <string name="diagnostics_title">Диагностика окна</string>
+    <string name="diagnostics_subtitle">Обновляется вживую при складывании, повороте и изменении окна</string>
+    <string name="diagnostics_entry_title">Диагностика окна</string>
+    <string name="diagnostics_entry_body">Размеры окна, size class и шарнир в реальном времени</string>
+    <string name="diagnostics_back">Назад</string>
+
+    <string name="diagnostics_window">Окно</string>
+    <string name="diagnostics_window_px">%1$d × %2$d px</string>
+    <string name="diagnostics_density">Плотность</string>
+    <string name="diagnostics_size_class_width">Size class, ширина</string>
+    <string name="diagnostics_size_class_height">Size class, высота</string>
+
+    <string name="diagnostics_layout">Раскладка</string>
+    <string name="diagnostics_layout_mode">Режим</string>
+    <string name="diagnostics_layout_compact">Compact — одна панель</string>
+    <string name="diagnostics_layout_book">Book — панели слева и справа</string>
+    <string name="diagnostics_layout_tabletop">Tabletop — панели сверху и снизу</string>
+    <string name="diagnostics_layout_split">Граница панелей</string>
+    <string name="diagnostics_layout_split_hinge">по шарниру</string>
+    <string name="diagnostics_layout_split_proportion">по пропорции</string>
+    <string name="diagnostics_layout_hinge_size">Толщина шарнира</string>
+
+    <string name="diagnostics_folds">Шарниры (FoldingFeature)</string>
+    <string name="diagnostics_folds_none">Не обнаружено. Так бывает на внешнем экране, в pop-up окне и в половине split-screen.</string>
+    <string name="diagnostics_fold_title">Шарнир %1$d</string>
+    <string name="diagnostics_fold_bounds_px">Границы, px</string>
+    <string name="diagnostics_fold_bounds_dp">Границы, dp</string>
+    <string name="diagnostics_fold_state">state</string>
+    <string name="diagnostics_fold_orientation">orientation</string>
+    <string name="diagnostics_fold_separating">isSeparating</string>
+    <string name="diagnostics_fold_occlusion">occlusionType</string>
+
+    <string name="diagnostics_copy">Скопировать показания</string>
+    <string name="diagnostics_copied">Скопировано — вставьте в сообщение</string>
+    <string name="diagnostics_unavailable">Показания окна недоступны вне MainActivity.</string>
+</resources>
