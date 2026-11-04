@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки Glance-виджета (widget/). Название и описание виджета — в strings.xml. -->
+<resources>
+    <string name="widget_today">Сегодня</string>
+    <string name="widget_month">за месяц</string>
+    <string name="widget_add">Добавить операцию</string>
+    <string name="widget_hidden_amount">•••</string>
+    <string name="widget_unavailable">Откройте FoldFinance, чтобы увидеть расходы</string>
+    <string name="widget_review_count">%1$d на проверку</string>
+</resources>

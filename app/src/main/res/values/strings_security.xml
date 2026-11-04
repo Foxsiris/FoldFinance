@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки блокировки приложения (ui/security). -->
+<resources>
+    <string name="lock_title">FoldFinance заблокирован</string>
+    <string name="lock_body">Подтвердите, что это вы: отпечаток пальца или PIN-код телефона.</string>
+    <string name="lock_unlock">Разблокировать</string>
+    <string name="lock_prompt_title">Вход в FoldFinance</string>
+    <string name="lock_prompt_subtitle">Отпечаток пальца или PIN-код телефона</string>
+    <string name="lock_error_lockout">Слишком много попыток. Подождите немного или разблокируйте телефон PIN-кодом и попробуйте снова.</string>
+    <string name="lock_error_generic">Не удалось проверить: %1$s</string>
+
+    <string name="lock_unprotected_title">Телефон не защищён</string>
+    <string name="lock_unprotected_body">На телефоне не настроены ни отпечаток, ни PIN-код, поэтому блокировка FoldFinance не может работать. Приложение откроется без проверки. Настройте блокировку экрана, чтобы защитить данные.</string>
+    <string name="lock_unavailable_title">Проверка недоступна</string>
+    <string name="lock_unavailable_body">Телефон сейчас не может проверить отпечаток или PIN-код. Приложение откроется без проверки. Попробуйте позже или проверьте настройки безопасности телефона.</string>
+    <string name="lock_continue_unprotected">Продолжить без блокировки</string>
+    <string name="lock_open_security_settings">Настроить блокировку экрана</string>
+</resources>
