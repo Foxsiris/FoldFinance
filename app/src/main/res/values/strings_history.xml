@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки раздела «История» (ui/history). -->
+<resources>
+    <string name="history_search">Поиск</string>
+    <string name="history_search_clear">Очистить поиск</string>
+    <string name="history_sort">Сортировка</string>
+    <string name="history_sort_date_desc">Сначала новые</string>
+    <string name="history_sort_date_asc">Сначала старые</string>
+    <string name="history_sort_amount_desc">Сначала крупные</string>
+    <string name="history_sort_amount_asc">Сначала мелкие</string>
+
+    <string name="history_filter_period">Период</string>
+    <string name="history_filter_type">Тип</string>
+    <string name="history_filter_type_count">Типы: %1$d</string>
+    <string name="history_filter_category">Категории</string>
+    <string name="history_filter_category_count">Категории: %1$d</string>
+    <string name="history_filter_amount">Сумма</string>
+    <string name="history_filter_amount_from">от %1$s</string>
+    <string name="history_filter_amount_to">до %1$s</string>
+    <string name="history_filter_amount_range">%1$s – %2$s</string>
+    <string name="history_filter_amount_title">Сумма операции</string>
+    <string name="history_filter_amount_min">От</string>
+    <string name="history_filter_amount_max">До</string>
+    <string name="history_filter_apply">Применить</string>
+    <string name="history_filter_clear">Сбросить</string>
+    <string name="history_filter_reset">Сбросить фильтры</string>
+
+    <string name="history_period_all">Всё время</string>
+    <string name="history_period_today">Сегодня</string>
+    <string name="history_period_week">Эта неделя</string>
+    <string name="history_period_month">Этот месяц</string>
+    <string name="history_period_year">Этот год</string>
+
+    <string name="history_empty_title">Операций пока нет</string>
+    <string name="history_empty_body">Они появятся из банковских SMS и уведомлений. Можно добавить операцию вручную.</string>
+    <string name="history_nothing_found_title">Ничего не найдено</string>
+    <string name="history_nothing_found_body">Под эти фильтры не подходит ни одна операция. Измените их или сбросьте.</string>
+
+    <string name="history_summary_expense">расходы по известным операциям</string>
+    <string name="history_summary_income">доходы</string>
+    <plurals name="history_count">
+        <item quantity="one">%d операция</item>
+        <item quantity="few">%d операции</item>
+        <item quantity="many">%d операций</item>
+        <item quantity="other">%d операции</item>
+    </plurals>
+</resources>

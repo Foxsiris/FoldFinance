@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,8 @@ import com.foldfinance.parser.Direction
  * @param source where the operation came from; shown as a small icon with a content description.
  * @param needsReview shows the saffron «На проверку» badge.
  * @param selected highlights the row (selected item of a list-detail layout).
+ * @param compactBadge show «На проверку» as a saffron dot (same meaning for screen readers) —
+ *   for narrow panes, where the pill would be clipped.
  */
 @Composable
 fun TransactionRow(
@@ -64,6 +68,7 @@ fun TransactionRow(
     needsReview: Boolean = false,
     selected: Boolean = false,
     onClick: (() -> Unit)? = null,
+    compactBadge: Boolean = false,
 ) {
     val palette = FoldFinanceTheme.palette
     val clickable = if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier
@@ -103,7 +108,7 @@ fun TransactionRow(
                 )
                 if (needsReview) {
                     Spacer(Modifier.width(8.dp))
-                    ReviewBadge()
+                    if (compactBadge) ReviewDot() else ReviewBadge()
                 }
             }
         }
@@ -149,6 +154,18 @@ fun ReviewBadge(modifier: Modifier = Modifier) {
             maxLines = 1,
         )
     }
+}
+
+/** Compact form of [ReviewBadge]: an 8 dp saffron dot with the same content description. */
+@Composable
+fun ReviewDot(modifier: Modifier = Modifier) {
+    val description = stringResource(R.string.component_review_badge)
+    Box(
+        modifier
+            .size(8.dp)
+            .background(FoldFinanceTheme.palette.saffron, FoldShapes.pill)
+            .semantics { contentDescription = description },
+    )
 }
 
 private fun Source.icon(): ImageVector = when (this) {
