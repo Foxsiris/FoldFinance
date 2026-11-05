@@ -51,7 +51,7 @@ import com.foldfinance.app.ui.format.MoneyFormat
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
 import com.foldfinance.app.ui.transaction.AmountEntry
-import com.foldfinance.app.ui.transaction.PrimaryCurrency
+import com.foldfinance.app.prefs.AppSettings
 import com.foldfinance.app.ui.transaction.label
 import com.foldfinance.core.data.repository.TransactionSort
 import com.foldfinance.core.model.Category
@@ -84,6 +84,7 @@ fun HistoryFilterBar(
     modifier: Modifier = Modifier,
     showCategoryPill: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
+    currency: String = AppSettings.DEFAULT_CURRENCY,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.padding(contentPadding), verticalAlignment = Alignment.CenterVertically) {
@@ -95,7 +96,7 @@ fun HistoryFilterBar(
             item { PeriodPill(filter.period, actions::setPeriod) }
             item { DirectionPill(filter.directionValues, actions::toggleDirection) }
             if (showCategoryPill) item { CategoryPill(filter, categories, actions) }
-            item { AmountPill(filter, actions::setAmountRange) }
+            item { AmountPill(filter, currency, actions::setAmountRange) }
             if (filter.isNarrowed) {
                 item {
                     FilterPill(
@@ -236,14 +237,14 @@ private fun CategoryPill(filter: HistoryFilter, categories: List<Category>, acti
 }
 
 @Composable
-private fun AmountPill(filter: HistoryFilter, onRange: (Long?, Long?) -> Unit) {
+private fun AmountPill(filter: HistoryFilter, currency: String, onRange: (Long?, Long?) -> Unit) {
     var open by rememberSaveable { mutableStateOf(false) }
     val min = filter.minAmountMinor
     val max = filter.maxAmountMinor
     val label = when {
-        min != null && max != null -> stringResource(R.string.history_filter_amount_range, MoneyFormat.format(min, PrimaryCurrency), MoneyFormat.format(max, PrimaryCurrency))
-        min != null -> stringResource(R.string.history_filter_amount_from, MoneyFormat.format(min, PrimaryCurrency))
-        max != null -> stringResource(R.string.history_filter_amount_to, MoneyFormat.format(max, PrimaryCurrency))
+        min != null && max != null -> stringResource(R.string.history_filter_amount_range, MoneyFormat.format(min, currency), MoneyFormat.format(max, currency))
+        min != null -> stringResource(R.string.history_filter_amount_from, MoneyFormat.format(min, currency))
+        max != null -> stringResource(R.string.history_filter_amount_to, MoneyFormat.format(max, currency))
         else -> stringResource(R.string.history_filter_amount)
     }
     FilterPill(label = label, active = filter.hasAmountFilter, onClick = { open = true })
@@ -251,6 +252,7 @@ private fun AmountPill(filter: HistoryFilter, onRange: (Long?, Long?) -> Unit) {
         AmountRangeDialog(
             initialMin = min,
             initialMax = max,
+            currency = currency,
             onDismiss = { open = false },
             onApply = { lo, hi ->
                 open = false
@@ -261,7 +263,7 @@ private fun AmountPill(filter: HistoryFilter, onRange: (Long?, Long?) -> Unit) {
 }
 
 @Composable
-private fun AmountRangeDialog(initialMin: Long?, initialMax: Long?, onDismiss: () -> Unit, onApply: (Long?, Long?) -> Unit) {
+private fun AmountRangeDialog(initialMin: Long?, initialMax: Long?, currency: String, onDismiss: () -> Unit, onApply: (Long?, Long?) -> Unit) {
     var minText by rememberSaveable { mutableStateOf(initialMin?.let { AmountEntry.fromMinor(it) }.orEmpty()) }
     var maxText by rememberSaveable { mutableStateOf(initialMax?.let { AmountEntry.fromMinor(it) }.orEmpty()) }
     AlertDialog(
@@ -269,8 +271,8 @@ private fun AmountRangeDialog(initialMin: Long?, initialMax: Long?, onDismiss: (
         title = { Text(stringResource(R.string.history_filter_amount_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                AmountField(minText, { minText = sanitizeAmount(it) }, stringResource(R.string.history_filter_amount_min))
-                AmountField(maxText, { maxText = sanitizeAmount(it) }, stringResource(R.string.history_filter_amount_max))
+                AmountField(minText, { minText = sanitizeAmount(it) }, stringResource(R.string.history_filter_amount_min), currency)
+                AmountField(maxText, { maxText = sanitizeAmount(it) }, stringResource(R.string.history_filter_amount_max), currency)
             }
         },
         confirmButton = {
@@ -295,13 +297,13 @@ internal fun sanitizeAmount(input: String): String {
 }
 
 @Composable
-private fun AmountField(value: String, onValue: (String) -> Unit, label: String) {
+private fun AmountField(value: String, onValue: (String) -> Unit, label: String, currency: String) {
     TextField(
         value = value,
         onValueChange = onValue,
         label = { Text(label) },
         singleLine = true,
-        suffix = { Text(MoneyFormat.symbol(PrimaryCurrency)) },
+        suffix = { Text(MoneyFormat.symbol(currency)) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
         shape = FoldShapes.tile,
         colors = TextFieldDefaults.colors(

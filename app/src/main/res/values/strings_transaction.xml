@@ -35,7 +35,6 @@
     <string name="tx_category">Категория</string>
     <string name="tx_direction">Тип</string>
     <string name="tx_card">Карта</string>
-    <string name="tx_card_mask">•%1$s</string>
     <string name="tx_source">Источник</string>
     <string name="tx_raw_title">Исходное сообщение</string>
     <string name="tx_raw_missing">Текст сообщения не сохранился.</string>

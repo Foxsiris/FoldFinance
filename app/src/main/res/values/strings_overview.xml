@@ -14,9 +14,9 @@
     <string name="overview_feed_empty">В этом периоде операций ещё нет.</string>
     <string name="overview_review_button">Разобрать %1$d</string>
 
-    <!-- Остаток •1234 / на 14:05: известный остаток банка, не сумма по операциям -->
-    <string name="overview_balance">Остаток •%1$s</string>
-    <string name="overview_balance_inline">Остаток •%1$s на %2$s</string>
+    <!-- Остаток •• 1234 / на 14:05: известный остаток банка, не сумма по операциям. %1$s — маска из CardMaskFormat -->
+    <string name="overview_balance">Остаток %1$s</string>
+    <string name="overview_balance_inline">Остаток %1$s на %2$s</string>
     <string name="overview_balance_at">по данным банка на %1$s</string>
 
     <string name="overview_period_week">Расходы за неделю</string>
@@ -30,4 +30,21 @@
     <string name="overview_chart_max_month">Больше всего за месяц: %1$s</string>
     <string name="overview_chart_nothing">Расходов в этом периоде нет</string>
     <string name="overview_chart_description">График расходов по дням, максимум %1$s. Нажмите на столбец, чтобы показать операции этого дня.</string>
+
+    <!-- Карточка «Подписки»: на внешнем экране раздела нет в нижней панели -->
+    <string name="overview_subscriptions_title">Подписки</string>
+    <string name="overview_subscriptions_monthly">в месяц</string>
+    <string name="overview_subscriptions_empty">Регулярные списания и календарь</string>
+    <plurals name="overview_subscriptions_confirmed">
+        <item quantity="one">%d подписка</item>
+        <item quantity="few">%d подписки</item>
+        <item quantity="many">%d подписок</item>
+        <item quantity="other">%d подписки</item>
+    </plurals>
+    <plurals name="overview_subscriptions_candidates">
+        <item quantity="one">Найдена %d похожая, подтвердите</item>
+        <item quantity="few">Найдено %d похожих, подтвердите</item>
+        <item quantity="many">Найдено %d похожих, подтвердите</item>
+        <item quantity="other">Найдено %d похожих, подтвердите</item>
+    </plurals>
 </resources>

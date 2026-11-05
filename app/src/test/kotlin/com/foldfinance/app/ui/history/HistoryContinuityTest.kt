@@ -62,7 +62,7 @@ class HistoryContinuityTest {
     @Before fun setUp() {
         harness.install()
         val repo = SampleData.transactionRepository()
-        val vm = HistoryViewModel(SavedStateHandle(), repo, FakeCategoryRepository(), FakeMerchantRuleRepository(), ScreenshotClock)
+        val vm = HistoryViewModel(SavedStateHandle(), repo, FakeCategoryRepository(), FakeMerchantRuleRepository(), com.foldfinance.app.ui.fakes.fakePreferences(), ScreenshotClock)
         state = harness.snapshot(vm.state)
         details = state.sections.flatMap { it.items }.associate { tx ->
             tx.id to requireNotNull(harness.first(repo.observeDetail(tx.id, FakeCategoryRepository())))

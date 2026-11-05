@@ -35,21 +35,60 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
 
 /** 40 dp плитка значка раздела (без описания для TalkBack: рядом есть название). */
 @Composable
-internal fun SettingsIcon(icon: ImageVector, tint: Color = FoldFinanceTheme.palette.saffron) {
+internal fun SettingsIcon(icon: ImageVector, tint: Color = FoldFinanceTheme.palette.saffron, size: Dp = 40.dp) {
     val alpha = if (FoldFinanceTheme.palette.isDark) 0.18f else 0.14f
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(size)
             .background(tint.copy(alpha = alpha), FoldShapes.tile),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(size * 0.55f))
+    }
+}
+
+/**
+ * Компактная строка списка разделов для узкой левой панели: значок и название в одну строку
+ * (название слегка ужимается, а не переносится по словам), без описания и стрелки.
+ */
+@Composable
+internal fun SettingsCompactNavRow(
+    icon: ImageVector,
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val palette = FoldFinanceTheme.palette
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (selected) palette.saffronContainer else Color.Transparent)
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SettingsIcon(icon, size = 32.dp)
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) palette.onSaffronContainer else palette.text,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+            autoSize = TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = MaterialTheme.typography.bodyLarge.fontSize, stepSize = 0.5.sp),
+        )
     }
 }
 

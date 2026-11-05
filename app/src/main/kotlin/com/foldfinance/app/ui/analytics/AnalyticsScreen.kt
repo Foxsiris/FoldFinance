@@ -64,10 +64,13 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.foldfinance.app.R
 import com.foldfinance.app.ui.components.CategoryTile
 import com.foldfinance.app.ui.components.EmptyState
+import com.foldfinance.app.ui.components.LabeledAmount
 import com.foldfinance.app.ui.components.ListGroup
 import com.foldfinance.app.ui.components.ListGroupDivider
 import com.foldfinance.app.ui.components.MoneyStyle
@@ -349,13 +352,17 @@ private fun PeriodHeader(state: AnalyticsUiState, actions: AnalyticsActions) {
         stringResource(R.string.analytics_yesterday),
     )
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        val titleStyle = MaterialTheme.typography.headlineLarge
         Text(
             text = title,
             modifier = Modifier.weight(1f).semantics { heading() },
-            style = MaterialTheme.typography.headlineLarge,
+            style = titleStyle,
             color = palette.text,
             maxLines = 1,
+            softWrap = false,
             overflow = TextOverflow.Ellipsis,
+            // Next to the arrows in a ≈ 230 dp pane «Октябрь» shrinks instead of «Октя…».
+            autoSize = TextAutoSize.StepBased(minFontSize = 17.sp, maxFontSize = titleStyle.fontSize, stepSize = 0.5.sp),
         )
         val colors = IconButtonDefaults.iconButtonColors(
             containerColor = palette.surfaceRaised,
@@ -441,14 +448,18 @@ private fun HeroTotals(
             Spacer(Modifier.height(12.dp))
         }
         MoneyText(amountMinor = summary.netExpenseMinor, currency = summary.currency, style = style)
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // The comparison badge goes under «потрачено» when the pane is too narrow for both.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 text = stringResource(R.string.analytics_net_expense),
                 style = MaterialTheme.typography.bodyLarge,
                 color = palette.textMuted,
             )
             state.comparison?.netExpense?.let { change ->
-                Spacer(Modifier.width(10.dp))
                 ChangeBadge(change, periodComparisonLabel(state.period.type), positiveIsGood = false)
             }
         }
@@ -684,25 +695,26 @@ private fun StatsGroup(state: AnalyticsUiState) {
     )
 }
 
+/** A statistic: label on the left, value on the right; in a narrow pane the value goes under the label (still on the right). */
 @Composable
 private fun StatRow(label: String, supporting: String? = null, value: @Composable () -> Unit) {
     val palette = FoldFinanceTheme.palette
-    Row(
-        Modifier
+    LabeledAmount(
+        modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge, color = palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (supporting != null) {
-                Text(supporting, style = MaterialTheme.typography.bodySmall, color = palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        stackedAlignment = Alignment.End,
+        label = {
+            Column {
+                Text(label, style = MaterialTheme.typography.bodyLarge, color = palette.text)
+                if (supporting != null) {
+                    Text(supporting, style = MaterialTheme.typography.bodySmall, color = palette.textMuted)
+                }
             }
-        }
-        Spacer(Modifier.width(12.dp))
-        value()
-    }
+        },
+        amount = value,
+    )
 }
 
 /** «+1 200 ₽ · 12%» style value of a change, as an amount with a sign and a percent under it. */
@@ -761,10 +773,15 @@ private fun RatioCard(state: AnalyticsUiState) {
                 )
             }
             Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     text = stringResource(R.string.analytics_ratio_share, AnalyticsFormat.percent(share)),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.padding(end = 12.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.text,
                 )

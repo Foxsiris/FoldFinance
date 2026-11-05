@@ -4,17 +4,22 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.foldfinance.app.ui.components.Period as PeriodChoice
-import com.foldfinance.app.ui.transaction.PrimaryCurrency
+import com.foldfinance.app.prefs.AppPreferences
+import com.foldfinance.app.prefs.AppSettings
 import com.foldfinance.app.ui.transaction.UiClock
 import com.foldfinance.core.data.repository.BalanceRepository
 import com.foldfinance.core.data.repository.CategoryRepository
+import com.foldfinance.core.data.repository.SubscriptionRepository
 import com.foldfinance.core.data.repository.TransactionFilter
 import com.foldfinance.core.data.repository.TransactionRepository
 import com.foldfinance.core.domain.analytics.AnalyticsCalculator
 import com.foldfinance.core.domain.analytics.Period
 import com.foldfinance.core.domain.analytics.PeriodType
+import com.foldfinance.core.domain.subscriptions.SubscriptionCosts
 import com.foldfinance.core.model.Category
 import com.foldfinance.core.model.KnownBalance
+import com.foldfinance.core.model.Subscription
+import com.foldfinance.core.model.SubscriptionStatus
 import com.foldfinance.core.model.Transaction
 import com.foldfinance.parser.Direction
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -57,7 +62,8 @@ sealed interface CategorySelection {
 data class OverviewUiState(
     val loading: Boolean = true,
     val hasAnyTransactions: Boolean = false,
-    val currency: String = PrimaryCurrency,
+    /** Currency of the totals: «Валюта» from the settings ([AppPreferences.defaultCurrency]). */
+    val currency: String = AppSettings.DEFAULT_CURRENCY,
     val today: LocalDate = LocalDate.MIN,
     val todayMinor: Long = 0,
     val monthMinor: Long = 0,
@@ -73,7 +79,20 @@ data class OverviewUiState(
     /** Operations of the period, newest first, narrowed by the selected category and bar. */
     val transactions: List<Transaction> = emptyList(),
     val categories: Map<Long, Category> = emptyMap(),
+    /** Subscriptions entry of the overview (the outer-screen bar has no «Подписки»). */
+    val subscriptions: SubscriptionsSummary = SubscriptionsSummary(),
 )
+
+/**
+ * What the «Подписки» card of the overview says.
+ *
+ * @property monthlyMinor monthly cost of confirmed subscriptions in [OverviewUiState.currency].
+ * @property confirmed confirmed subscriptions in any currency.
+ * @property candidates detector findings waiting for a decision.
+ */
+data class SubscriptionsSummary(val monthlyMinor: Long = 0, val confirmed: Int = 0, val candidates: Int = 0) {
+    val isEmpty: Boolean get() = confirmed == 0 && candidates == 0
+}
 
 /**
  * «Обзор»: today / month totals by known operations, known bank balances (shown apart), the
@@ -88,6 +107,8 @@ class OverviewViewModel @Inject constructor(
     private val transactions: TransactionRepository,
     categories: CategoryRepository,
     balances: BalanceRepository,
+    subscriptions: SubscriptionRepository,
+    preferences: AppPreferences,
     @UiClock private val clock: Clock,
 ) : ViewModel() {
 
@@ -115,9 +136,11 @@ class OverviewViewModel @Inject constructor(
         selection,
         categories.observeAll(),
         balances.observeLatest(),
-        combine(transactions.observeReviewCount(), hasAny) { count, any -> count to any },
-    ) { (choice, range, list), (categoryKey, barKey), cats, known, (reviewCount, any) ->
-        build(choice, range, list, categoryKey, barKey, cats, known, reviewCount, any)
+        combine(transactions.observeReviewCount(), hasAny, preferences.defaultCurrency, subscriptions.observeAll()) { count, any, currency, subs ->
+            Extras(count, any, currency, subs)
+        },
+    ) { (choice, range, list), (categoryKey, barKey), cats, known, extras ->
+        build(choice, range, list, categoryKey, barKey, cats, known, extras)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverviewUiState())
 
     fun setPeriod(period: PeriodChoice) {
@@ -156,13 +179,13 @@ class OverviewViewModel @Inject constructor(
         barKey: Long?,
         cats: List<Category>,
         known: List<KnownBalance>,
-        reviewCount: Int,
-        any: Boolean,
+        extras: Extras,
     ): OverviewUiState {
         val now = clock.instant()
         val zone = clock.zone
-        val todayMonth = AnalyticsCalculator.todayMonth(all, PrimaryCurrency, now, zone)
-        val summary = AnalyticsCalculator.summarize(all, range, now).currency(PrimaryCurrency)
+        val currency = extras.currency
+        val todayMonth = AnalyticsCalculator.todayMonth(all, currency, now, zone)
+        val summary = AnalyticsCalculator.summarize(all, range, now).currency(currency)
         val bars = if (choice == PeriodChoice.Year) {
             summary.daily.groupBy { YearMonth.from(it.date) }.map { (month, days) ->
                 val first = month.atDay(1)
@@ -191,13 +214,13 @@ class OverviewViewModel @Inject constructor(
             .toList()
         return OverviewUiState(
             loading = false,
-            hasAnyTransactions = any,
-            currency = PrimaryCurrency,
+            hasAnyTransactions = extras.hasAny,
+            currency = currency,
             today = now.atZone(zone).toLocalDate(),
             todayMinor = todayMonth.todayNetExpenseMinor,
             monthMinor = todayMonth.monthNetExpenseMinor,
             balances = known.sortedByDescending { it.asOf },
-            reviewCount = reviewCount,
+            reviewCount = extras.reviewCount,
             period = choice,
             periodStart = range.startDate,
             periodExpenseMinor = summary.netExpenseMinor,
@@ -207,8 +230,26 @@ class OverviewViewModel @Inject constructor(
             selectedBar = bar?.key,
             transactions = list,
             categories = cats.associateBy { it.id },
+            subscriptions = subscriptionsSummary(extras.subscriptions, currency),
         )
     }
+
+    private fun subscriptionsSummary(all: List<Subscription>, currency: String): SubscriptionsSummary {
+        val confirmed = all.filter { it.status == SubscriptionStatus.CONFIRMED }
+        return SubscriptionsSummary(
+            monthlyMinor = SubscriptionCosts.monthlyTotals(confirmed)[currency] ?: 0,
+            confirmed = confirmed.size,
+            candidates = all.count { it.status == SubscriptionStatus.CANDIDATE },
+        )
+    }
+
+    /** Inputs of [build] besides the period data and the selection. */
+    private data class Extras(
+        val reviewCount: Int,
+        val hasAny: Boolean,
+        val currency: String,
+        val subscriptions: List<Subscription>,
+    )
 
     private fun CategorySelection.toKey(): Long = when (this) {
         is CategorySelection.Of -> categoryId

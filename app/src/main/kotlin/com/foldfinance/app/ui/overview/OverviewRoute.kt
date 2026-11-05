@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +28,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.TaskAlt
@@ -44,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -57,6 +61,8 @@ import com.foldfinance.app.R
 import com.foldfinance.app.ui.components.CategoryChip
 import com.foldfinance.app.ui.components.CategoryTile
 import com.foldfinance.app.ui.components.EmptyState
+import com.foldfinance.app.ui.components.LabeledAmount
+import com.foldfinance.app.ui.components.LabeledAmountGroup
 import com.foldfinance.app.ui.components.ListGroup
 import com.foldfinance.app.ui.components.ListGroupDivider
 import com.foldfinance.app.ui.components.MoneyStyle
@@ -65,6 +71,7 @@ import com.foldfinance.app.ui.components.Period
 import com.foldfinance.app.ui.components.PeriodSelector
 import com.foldfinance.app.ui.components.SectionHeader
 import com.foldfinance.app.ui.components.SummaryCard
+import com.foldfinance.app.ui.format.CardMaskFormat
 import com.foldfinance.app.ui.format.monthTitle
 import com.foldfinance.app.ui.layout.AppLayout
 import com.foldfinance.app.ui.layout.LocalAppLayout
@@ -101,6 +108,7 @@ interface OverviewActions {
     fun openTransaction(transactionId: Long)
     fun openReview()
     fun openHistory()
+    fun openSubscriptions()
     fun add()
 }
 
@@ -138,6 +146,7 @@ fun OverviewRoute(
             override fun openTransaction(transactionId: Long) = shell.openTransaction(transactionId)
             override fun openReview() = shell.openSection(Section.Review)
             override fun openHistory() = shell.openSection(Section.History)
+            override fun openSubscriptions() = shell.openSection(Section.Subscriptions)
             override fun add() = addForm.openAdd()
         }
     }
@@ -186,6 +195,7 @@ fun OverviewScreen(
                 ) {
                     if (state.hasAnyTransactions) {
                         Summary(state, zone, todayStyle = MoneyStyle.DisplayMedium, twoLineBalances = true)
+                        SubscriptionsCard(state, actions::openSubscriptions)
                         PeriodSelector(selected = state.period, onSelect = actions::setPeriod, periods = OverviewPeriods)
                         ChartCard(state, actions)
                         CategoryBreakdown(state, actions)
@@ -267,6 +277,8 @@ private fun CompactOverview(state: OverviewUiState, actions: OverviewActions, zo
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         ) {
             item(key = "summary") { Summary(state, zone) }
+            // The outer-screen bar has five items; «Подписки» live here (and in «Настройки»).
+            item(key = "subscriptions") { SubscriptionsCard(state, actions::openSubscriptions, Modifier.padding(top = 12.dp)) }
             item(key = "feedHeader") {
                 Spacer(Modifier.height(8.dp))
                 SectionHeader(
@@ -379,6 +391,61 @@ private fun Summary(
             null
         },
     )
+}
+
+/**
+ * Entry to «Подписки»: what confirmed subscriptions cost per month, or how many candidates wait
+ * for a decision. A tap opens the section.
+ */
+@Composable
+private fun SubscriptionsCard(state: OverviewUiState, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val palette = FoldFinanceTheme.palette
+    val summary = state.subscriptions
+    val caption = when {
+        summary.confirmed > 0 && summary.monthlyMinor > 0 -> stringResource(R.string.overview_subscriptions_monthly)
+        summary.confirmed > 0 -> pluralStringResource(R.plurals.overview_subscriptions_confirmed, summary.confirmed, summary.confirmed)
+        summary.candidates > 0 -> pluralStringResource(R.plurals.overview_subscriptions_candidates, summary.candidates, summary.candidates)
+        else -> stringResource(R.string.overview_subscriptions_empty)
+    }
+    Surface(
+        onClick = onOpen,
+        modifier = modifier.fillMaxWidth(),
+        shape = FoldShapes.listGroup,
+        color = palette.surface,
+    ) {
+        Row(
+            Modifier.heightIn(min = 64.dp).padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier.size(40.dp).background(palette.saffron.copy(alpha = if (palette.isDark) 0.18f else 0.14f), FoldShapes.tile),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Outlined.Autorenew, contentDescription = null, tint = palette.saffron, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            LabeledAmount(
+                modifier = Modifier.weight(1f),
+                label = {
+                    Column {
+                        Text(stringResource(R.string.overview_subscriptions_title), style = MaterialTheme.typography.bodyLarge, color = palette.text, maxLines = 1)
+                        Text(caption, style = MaterialTheme.typography.bodyMedium, color = palette.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                },
+                amount = {
+                    if (summary.monthlyMinor > 0) {
+                        MoneyText(amountMinor = summary.monthlyMinor, currency = state.currency, style = MoneyStyle.InlineStrong)
+                    }
+                },
+            )
+            Icon(
+                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = palette.textMuted,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+    }
 }
 
 /** Before the first operation: an honest card instead of zeros. */
@@ -507,50 +574,59 @@ private fun CategoryFilterStrip(state: OverviewUiState, actions: OverviewActions
     }
 }
 
-/** Known bank balances, never mixed with totals: «Остаток •1234 на 14:05». */
+/**
+ * Known bank balances, never mixed with totals: «Остаток •• 1234 на 14:05». Caption and amount
+ * side by side when every line fits; otherwise all captions go over their amounts, so nothing is
+ * cut («Остато по дан…» on the 674 dp inner screen) and the lines look alike.
+ */
 @Composable
 private fun Balances(balances: List<KnownBalance>, today: LocalDate, zone: ZoneId, twoLine: Boolean) {
     val palette = FoldFinanceTheme.palette
     Column {
         HorizontalDivider(thickness = 1.dp, color = palette.seam.copy(alpha = 0.7f))
         Spacer(Modifier.height(8.dp))
-        balances.forEach { balance ->
-            val date = balance.asOf.atZone(zone).toLocalDate()
-            val time = formatTime(balance.asOf, zone)
-            val at = if (date == today) time else stringResource(R.string.tx_date_time, formatDate(date, today), time)
-            Row(Modifier.fillMaxWidth().heightIn(min = if (twoLine) 44.dp else 32.dp).padding(vertical = if (twoLine) 4.dp else 0.dp), verticalAlignment = Alignment.CenterVertically) {
+        LabeledAmountGroup(
+            count = balances.size,
+            modifier = Modifier.fillMaxWidth(),
+            rowMinHeight = if (twoLine) 44.dp else 32.dp,
+            rowSpacing = if (twoLine) 8.dp else 4.dp,
+            label = { index ->
+                val balance = balances[index]
+                val date = balance.asOf.atZone(zone).toLocalDate()
+                val time = formatTime(balance.asOf, zone)
+                val at = if (date == today) time else stringResource(R.string.tx_date_time, formatDate(date, today), time)
+                val mask = CardMaskFormat.format(balance.cardMask)
                 if (twoLine) {
-                    Column(Modifier.weight(1f)) {
+                    Column {
                         Text(
-                            text = stringResource(R.string.overview_balance, balance.cardMask),
+                            text = stringResource(R.string.overview_balance, mask),
                             style = MaterialTheme.typography.bodyMedium,
                             color = palette.text,
                             maxLines = 1,
+                            softWrap = false,
                         )
                         Text(
                             text = stringResource(R.string.overview_balance_at, at),
                             style = MaterialTheme.typography.labelMedium,
                             color = palette.textMuted,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 } else {
                     Text(
-                        text = stringResource(R.string.overview_balance_inline, balance.cardMask, at),
+                        text = stringResource(R.string.overview_balance_inline, mask, at),
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.textMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
                     )
                 }
-                Spacer(Modifier.width(12.dp))
+            },
+            amount = { index ->
+                val balance = balances[index]
                 MoneyText(amountMinor = balance.amountMinor, currency = balance.currency, style = MoneyStyle.Inline)
-            }
-        }
+            },
+        )
     }
 }
+
 /** Right pane of the book layout (and the bottom of tabletop): the list the left side filters. */
 @Composable
 private fun ListPane(
@@ -571,12 +647,19 @@ private fun ListPane(
         ) {
             if (showTitle) {
                 item(key = "title") {
-                    Row(Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    // In a narrow pane «Разобрать N» goes under the title instead of breaking it.
+                    FlowRow(
+                        Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        itemVerticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text(
                             text = stringResource(R.string.overview_list_title),
-                            modifier = Modifier.weight(1f).semantics { heading() },
+                            modifier = Modifier.semantics { heading() },
                             style = MaterialTheme.typography.headlineLarge,
                             color = palette.text,
+                            maxLines = 1,
                         )
                         if (state.reviewCount > 0) ReviewButton(state.reviewCount, actions::openReview, compact = true)
                     }

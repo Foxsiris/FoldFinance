@@ -66,5 +66,25 @@ object DeviceConfigs {
         ),
     )
 
+    /**
+     * Inner screen in portrait, as the «7.6in Foldable» emulator (Android 16) shows it: 674×841 dp,
+     * vertical hinge at x = 337. With the rail the left pane is only ≈ 230 dp — the narrowest
+     * two-pane case; catches amounts, rows and lists that do not fit next to the hinge.
+     */
+    val InnerPortrait = DeviceConfig(
+        id = "inner_portrait",
+        widthDp = 674,
+        heightDp = 841,
+        folds = listOf(
+            Fold(DpBounds(337f, 0f, 337f, 841f), FoldState.FLAT, FoldOrientation.VERTICAL, isSeparating = false),
+        ),
+    )
+
+    /** Outer screen of the same emulator: 337×841 dp, Compact — the narrowest bottom bar. */
+    val OuterNarrow = DeviceConfig(id = "outer_narrow", widthDp = 337, heightDp = 841, folds = emptyList())
+
     val all: List<DeviceConfig> = listOf(Outer, Inner, Tabletop)
+
+    /** [all] plus the emulator's narrow windows: for the main screens. */
+    val withNarrow: List<DeviceConfig> = all + listOf(InnerPortrait, OuterNarrow)
 }

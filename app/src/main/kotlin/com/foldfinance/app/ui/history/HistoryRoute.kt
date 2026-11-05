@@ -100,7 +100,6 @@ import com.foldfinance.app.ui.transaction.FormMode
 import com.foldfinance.app.ui.transaction.HingeSeamOverlay
 import com.foldfinance.app.ui.transaction.LocalAppSnackbar
 import com.foldfinance.app.ui.transaction.MerchantRuleDialog
-import com.foldfinance.app.ui.transaction.PrimaryCurrency
 import com.foldfinance.app.ui.transaction.SavedSnackbarEffect
 import com.foldfinance.app.ui.transaction.TransactionDetail
 import com.foldfinance.app.ui.transaction.TransactionDetailActions
@@ -425,6 +424,7 @@ private fun HistoryListPane(
                 actions = filterActions,
                 showCategoryPill = !twoPane,
                 contentPadding = PaddingValues(horizontal = sidePadding),
+                currency = state.currency,
             )
             if (twoPane && state.categories.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
@@ -641,13 +641,13 @@ private fun HistorySummary(state: HistoryUiState, modifier: Modifier = Modifier)
             color = palette.textMuted,
         )
         Spacer(Modifier.weight(1f))
-        MoneyText(amountMinor = state.expenseMinor, currency = PrimaryCurrency, style = MoneyStyle.Display)
+        MoneyText(amountMinor = state.expenseMinor, currency = state.currency, style = MoneyStyle.Display)
         Text(stringResource(R.string.history_summary_expense), style = MaterialTheme.typography.bodyLarge, color = palette.textMuted)
         if (state.incomeMinor > 0) {
             Spacer(Modifier.height(12.dp))
             MoneyText(
                 amountMinor = state.incomeMinor,
-                currency = PrimaryCurrency,
+                currency = state.currency,
                 direction = com.foldfinance.parser.Direction.INCOME,
                 style = MoneyStyle.DisplaySmall,
             )

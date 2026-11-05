@@ -20,9 +20,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
-/** Primary currency of totals until multi-currency settings exist (stage 7 counts others apart). */
-const val PrimaryCurrency: String = "RUB"
-
 private val TimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", RuLocale)
 private val DayMonthFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", RuLocale)
 private val DayMonthYearFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy", RuLocale)

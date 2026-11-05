@@ -3,6 +3,7 @@ package com.foldfinance.app.ui.settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -19,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CreditCard
@@ -102,6 +104,7 @@ fun SettingsScreen(
     ingestSection: @Composable () -> Unit = {},
     categories: @Composable (onBack: () -> Unit) -> Unit = {},
     diagnostics: @Composable (onBack: () -> Unit) -> Unit = {},
+    onOpenSubscriptions: (() -> Unit)? = null,
 ) {
     val back = { actions.selectPane(null) }
     if (selected == SettingsPane.DIAGNOSTICS) {
@@ -120,7 +123,11 @@ fun SettingsScreen(
 
     if (layout is AppLayout.Compact) {
         if (selected == null) {
-            SettingsList(state, panes, selected = null, twoPane = false, onSelect = actions::selectPane, modifier = modifier)
+            SettingsList(
+                state, panes, selected = null, twoPane = false, onSelect = actions::selectPane, modifier = modifier,
+                // The outer-screen bar has no «Подписки»: the section is one row away here.
+                onOpenSubscriptions = onOpenSubscriptions,
+            )
         } else {
             BackHandler(onBack = back)
             PaneHost(state, selected, actions, ingestSection, categories, onBack = back, modifier = modifier)
@@ -151,36 +158,72 @@ private fun SettingsList(
     twoPane: Boolean,
     onSelect: (SettingsPane) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenSubscriptions: (() -> Unit)? = null,
 ) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 24.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.settings_title),
-            modifier = Modifier.semantics { heading() },
-            style = MaterialTheme.typography.headlineLarge,
-            color = FoldFinanceTheme.palette.text,
-        )
-        Spacer(Modifier.height(20.dp))
-        ListGroup(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
-            panes.forEachIndexed { index, pane ->
-                if (index > 0) ListGroupDivider()
-                SettingsNavRow(
-                    icon = pane.icon(),
-                    title = stringResource(pane.titleRes()),
-                    summary = paneSummary(pane, state),
-                    selected = pane == selected,
-                    // В двух панелях раздел открывается рядом — стрелка «вперёд» не нужна.
-                    showChevron = !twoPane || pane == SettingsPane.DIAGNOSTICS,
-                    onClick = { onSelect(pane) },
-                )
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        // Узкая левая панель (≈ 230 dp у шарнира на 674 dp): значок и одна строка, без описаний.
+        val compactRows = twoPane && maxWidth < CompactListWidth
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = if (compactRows) 12.dp else 24.dp,
+                    end = if (compactRows) 0.dp else 24.dp,
+                    top = 24.dp,
+                    bottom = 24.dp,
+                ),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_title),
+                modifier = Modifier.padding(start = if (compactRows) 8.dp else 0.dp).semantics { heading() },
+                style = MaterialTheme.typography.headlineLarge,
+                color = FoldFinanceTheme.palette.text,
+                maxLines = 1,
+            )
+            Spacer(Modifier.height(if (compactRows) 16.dp else 20.dp))
+            ListGroup(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
+                panes.forEachIndexed { index, pane ->
+                    if (index > 0) ListGroupDivider(startInset = if (compactRows) 54.dp else 68.dp)
+                    if (compactRows) {
+                        SettingsCompactNavRow(
+                            icon = pane.icon(),
+                            title = stringResource(pane.titleRes()),
+                            selected = pane == selected,
+                            onClick = { onSelect(pane) },
+                        )
+                    } else {
+                        SettingsNavRow(
+                            icon = pane.icon(),
+                            title = stringResource(pane.titleRes()),
+                            summary = paneSummary(pane, state),
+                            selected = pane == selected,
+                            // В двух панелях раздел открывается рядом — стрелка «вперёд» не нужна.
+                            showChevron = !twoPane || pane == SettingsPane.DIAGNOSTICS,
+                            onClick = { onSelect(pane) },
+                        )
+                    }
+                }
+            }
+            if (onOpenSubscriptions != null) {
+                Spacer(Modifier.height(16.dp))
+                ListGroup(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
+                    SettingsNavRow(
+                        icon = Icons.Outlined.Autorenew,
+                        title = stringResource(R.string.settings_subscriptions),
+                        summary = stringResource(R.string.settings_subscriptions_summary),
+                        selected = false,
+                        showChevron = true,
+                        onClick = onOpenSubscriptions,
+                    )
+                }
             }
         }
     }
 }
+
+/** Narrower than this, the two-pane list of sections shows compact rows. */
+private val CompactListWidth = 300.dp
 
 /** Содержимое раздела с заголовком; на внешнем экране — со стрелкой «Назад». */
 @Composable

@@ -13,6 +13,8 @@
     <string name="settings_pane_backup">Резервная копия</string>
     <string name="settings_pane_appearance">Оформление</string>
     <string name="settings_pane_diagnostics">Диагностика окна</string>
+    <string name="settings_subscriptions">Подписки</string>
+    <string name="settings_subscriptions_summary">Регулярные списания и календарь</string>
 
     <string name="settings_summary_tracking_on">Автоотслеживание включено</string>
     <string name="settings_summary_tracking_off">Автоотслеживание выключено</string>
