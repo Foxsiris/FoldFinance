@@ -228,6 +228,12 @@ interface BalanceRepository {
     fun observeLatest(): Flow<List<KnownBalance>>
 
     fun observeLatest(cardMask: String): Flow<KnownBalance?>
+
+    /**
+     * История известных остатков карты [cardMask], новые сверху (по [KnownBalance.asOf]). Каждая
+     * запись — значение банка из одного сообщения; пусто — банк остаток по карте не присылал.
+     */
+    fun observeHistory(cardMask: String): Flow<List<KnownBalance>>
 }
 
 @Singleton
@@ -237,6 +243,9 @@ class BalanceRepositoryImpl @Inject constructor(db: FoldFinanceDatabase) : Balan
     override fun observeLatest(): Flow<List<KnownBalance>> = dao.observeLatestPerCard().map { l -> l.map { it.toModel() } }
 
     override fun observeLatest(cardMask: String): Flow<KnownBalance?> = dao.observeLatest(cardMask).map { it?.toModel() }
+
+    override fun observeHistory(cardMask: String): Flow<List<KnownBalance>> =
+        dao.observeHistory(cardMask).map { l -> l.map { it.toModel() } }
 }
 
 // ---------------------------------------------------------------- Подписки

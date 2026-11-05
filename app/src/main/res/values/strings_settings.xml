@@ -31,14 +31,6 @@
     <string name="settings_tracking_body">Читать новые банковские SMS и уведомления и добавлять операции сами. Если выключить, новые сообщения не обрабатываются; добавить операцию можно вручную.</string>
 
     <!-- Карты -->
-    <string name="settings_cards_intro">Отметьте свои карты: переводы между ними не считаются ни расходом, ни доходом.</string>
-    <string name="settings_cards_empty_title">Карт пока нет</string>
-    <string name="settings_cards_empty_body">Карты появятся здесь после первых операций из SMS или уведомлений банка.</string>
-    <string name="settings_card_own">Моя карта</string>
-    <string name="settings_card_no_label">Без подписи</string>
-    <string name="settings_card_edit_label">Подпись карты %1$s</string>
-    <string name="settings_card_label_hint">Например, «Зарплатная»</string>
-    <string name="settings_card_label_field">Подпись</string>
     <string name="settings_save">Сохранить</string>
     <string name="settings_cancel">Отмена</string>
     <string name="settings_saved">Сохранено</string>

@@ -70,8 +70,14 @@ class SettingsScreenshotTests {
         )
     }
 
-    @Test fun cards() = captureInAllConfigs("settings_cards") {
-        SettingsScreen(state = sample, selected = SettingsPane.CARDS, actions = SettingsActions.None)
+    /** «Мои карты» open «Счета и карты» on the whole section (its screenshots: AccountsScreenshotTest). */
+    @Test fun cardsOpenAccounts() = captureInAllConfigs("settings_cards", configs = listOf(DeviceConfigs.Outer)) {
+        SettingsScreen(
+            state = sample,
+            selected = SettingsPane.CARDS,
+            actions = SettingsActions.None,
+            accounts = { _ -> androidx.compose.material3.Text("Счета и карты") },
+        )
     }
 
     @Test fun backup() = captureInAllConfigs("settings_backup") {

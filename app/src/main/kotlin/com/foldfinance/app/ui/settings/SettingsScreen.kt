@@ -60,8 +60,6 @@ import com.foldfinance.app.ui.theme.FoldShapes
 interface SettingsActions {
     fun selectPane(pane: SettingsPane?) {}
     fun setAutoTracking(enabled: Boolean) {}
-    fun setOwnCard(mask: String, own: Boolean) {}
-    fun setCardLabel(mask: String, label: String) {}
     fun setDefaultCurrency(currency: String) {}
     fun setLockEnabled(enabled: Boolean) {}
     fun setRelockTimeout(timeout: RelockTimeout) {}
@@ -92,7 +90,8 @@ interface SettingsActions {
  *   Без явного выбора справа открыт первый раздел.
  *
  * Чужие блоки встраиваются слотами: [ingestSection] — «Доступы и источники» (ingest),
- * [aiSection] — «Локальный ИИ», [categories] — управление категориями, [diagnostics] — debug-экран окна.
+ * [aiSection] — «Локальный ИИ», [categories] — управление категориями, [diagnostics] — debug-экран окна,
+ * [accounts] — «Счета и карты»: «Мои карты» открывают его на весь раздел (у экрана свои две панели).
  */
 @Composable
 fun SettingsScreen(
@@ -106,12 +105,18 @@ fun SettingsScreen(
     aiSection: @Composable () -> Unit = {},
     categories: @Composable (onBack: () -> Unit) -> Unit = {},
     diagnostics: @Composable (onBack: () -> Unit) -> Unit = {},
+    accounts: @Composable (onBack: () -> Unit) -> Unit = {},
     onOpenSubscriptions: (() -> Unit)? = null,
 ) {
     val back = { actions.selectPane(null) }
     if (selected == SettingsPane.DIAGNOSTICS) {
         BackHandler(onBack = back)
         diagnostics(back)
+        return
+    }
+    if (selected == SettingsPane.CARDS) {
+        // The screen handles «Назад» itself: first it closes an open card, then calls back.
+        accounts(back)
         return
     }
     val passwordRequest = state.passwordRequest
@@ -135,7 +140,8 @@ fun SettingsScreen(
             PaneHost(state, selected, actions, ingestSection, aiSection, categories, onBack = back, modifier = modifier)
         }
     } else {
-        val shown = selected ?: panes.first()
+        // «Мои карты» are a screen of their own (above): never the pane shown next to the list.
+    val shown = selected ?: panes.first { it != SettingsPane.CARDS }
         TwoPane(
             modifier = modifier.fillMaxSize(),
             layout = layout,
@@ -201,7 +207,7 @@ private fun SettingsList(
                             summary = paneSummary(pane, state),
                             selected = pane == selected,
                             // В двух панелях раздел открывается рядом — стрелка «вперёд» не нужна.
-                            showChevron = !twoPane || pane == SettingsPane.DIAGNOSTICS,
+                            showChevron = !twoPane || pane == SettingsPane.DIAGNOSTICS || pane == SettingsPane.CARDS,
                             onClick = { onSelect(pane) },
                         )
                     }
@@ -279,13 +285,12 @@ private fun PaneHost(
         ) {
             when (pane) {
                 SettingsPane.SOURCES -> SourcesPane(state, actions, ingestSection)
-                SettingsPane.CARDS -> CardsPane(state, actions)
                 SettingsPane.CURRENCY -> CurrencyPane(state, actions)
                 SettingsPane.SECURITY -> SecurityPane(state, actions)
                 SettingsPane.BACKUP -> BackupPane(state, actions)
                 SettingsPane.APPEARANCE -> AppearancePane(state, actions)
                 SettingsPane.AI -> aiSection()
-                SettingsPane.CATEGORIES, SettingsPane.DIAGNOSTICS -> Unit
+                SettingsPane.CATEGORIES, SettingsPane.DIAGNOSTICS, SettingsPane.CARDS -> Unit
             }
         }
     }

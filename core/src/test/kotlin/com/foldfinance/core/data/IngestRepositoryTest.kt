@@ -173,6 +173,11 @@ class IngestRepositoryTest {
         assertThat(dir(own.transactionIds.single())).isEqualTo(Direction.INTERNAL_TRANSFER)
         assertThat(dir(foreign.transactionIds.single())).isEqualTo(Direction.EXPENSE)
         assertThat(dir(third.transactionIds.single())).isEqualTo(Direction.INTERNAL_TRANSFER)
+
+        // Откуда и куда: модель несёт маску второй карты и направление парсера («Счета и карты»).
+        val ownTx = transactions.observeById(own.transactionIds.single()).first()!!
+        assertThat(ownTx.counterpartyCardMask).isEqualTo("*5678")
+        assertThat(ownTx.parsedDirection).isEqualTo(Direction.EXPENSE)
     }
 
     @Test
@@ -256,6 +261,29 @@ class IngestRepositoryTest {
         assertThat(latest.map { it.cardMask to it.amountMinor })
             .containsExactly("*1234" to 880_000L, "*5678" to 10_000L).inOrder()
         assertThat(latest.first().asOf).isEqualTo(T0.plusSeconds(600))
+    }
+
+    @Test
+    fun knownBalance_historyPerCard_newestFirst() = runTest {
+        val repo = ingest(
+            registryOf(
+                "b1" to parsed(op(1_000), balance = ParsedBalance(900_000, "RUB", "*1234")),
+                "b2" to parsed(op(2_000), balance = ParsedBalance(880_000, "RUB", "*1234")),
+                "b3" to parsed(op(3_000, cardMask = "*5678"), balance = ParsedBalance(10_000, "RUB", "*5678")),
+                "b4" to parsed(op(4_000), balance = ParsedBalance(876_000, "RUB", "*1234")),
+            ),
+        )
+        repo.ingest(sms(1, "b1", T0))
+        repo.ingest(sms(4, "b4", T0.plusSeconds(1800)))
+        repo.ingest(sms(2, "b2", T0.plusSeconds(600)))
+        repo.ingest(sms(3, "b3", T0.plusSeconds(1200)))
+
+        val balances = BalanceRepositoryImpl(db)
+        val history = balances.observeHistory("*1234").first()
+        assertThat(history.map { it.amountMinor }).containsExactly(876_000L, 880_000L, 900_000L).inOrder()
+        assertThat(history.map { it.cardMask }.toSet()).containsExactly("*1234")
+        assertThat(history.first()).isEqualTo(balances.observeLatest("*1234").first())
+        assertThat(balances.observeHistory("*0000").first()).isEmpty()
     }
 
     @Test

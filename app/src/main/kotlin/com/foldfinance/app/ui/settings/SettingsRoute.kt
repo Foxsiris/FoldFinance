@@ -20,6 +20,7 @@ import com.foldfinance.app.backup.BackupManager
 import com.foldfinance.app.ingest.debug.IngestDebugTools
 import com.foldfinance.app.prefs.RelockTimeout
 import com.foldfinance.app.prefs.ThemeMode
+import com.foldfinance.app.ui.accounts.AccountsRoute
 import com.foldfinance.app.ui.ai.settings.AiSettingsSection
 import com.foldfinance.app.ui.categories.CategoriesRoute
 import com.foldfinance.app.ui.diagnostics.WindowDiagnosticsRoute
@@ -29,7 +30,7 @@ import com.foldfinance.app.ui.shell.Section
 import java.time.LocalDate
 
 /**
- * «Настройки» — точка входа раздела: доступы и источники, мои карты, валюта, категории,
+ * «Настройки» — точка входа раздела: доступы и источники, мои карты («Счета и карты»), валюта, категории,
  * локальный ИИ, безопасность, резервная копия, оформление; в debug — «Диагностика окна».
  *
  * Выбор файла бэкапа — SAF (`CreateDocument` / `OpenDocument`); пароль спрашивается уже после
@@ -58,8 +59,6 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
         object : SettingsActions {
             override fun selectPane(pane: SettingsPane?) = viewModel.selectPane(pane)
             override fun setAutoTracking(enabled: Boolean) = viewModel.setAutoTracking(enabled)
-            override fun setOwnCard(mask: String, own: Boolean) = viewModel.setOwnCard(mask, own)
-            override fun setCardLabel(mask: String, label: String) = viewModel.setCardLabel(mask, label)
             override fun setDefaultCurrency(currency: String) = viewModel.setDefaultCurrency(currency)
             override fun setLockEnabled(enabled: Boolean) = viewModel.setLockEnabled(enabled)
             override fun setRelockTimeout(timeout: RelockTimeout) = viewModel.setRelockTimeout(timeout)
@@ -103,6 +102,7 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
         aiSection = { AiSettingsSection() },
         categories = { onBack -> CategoriesRoute(onBack = onBack) },
         diagnostics = { onBack -> WindowDiagnosticsRoute(modifier, onBack = onBack) },
+        accounts = { onBack -> AccountsRoute(modifier, onBack = onBack) },
         onOpenSubscriptions = { shell.openSection(Section.Subscriptions) },
     )
 }

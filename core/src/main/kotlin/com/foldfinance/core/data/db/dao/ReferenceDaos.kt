@@ -110,6 +110,10 @@ interface KnownBalanceDao {
 
     @Query("SELECT * FROM known_balances WHERE card_mask = :cardMask ORDER BY as_of DESC, id DESC LIMIT 1")
     fun observeLatest(cardMask: String): Flow<KnownBalanceEntity?>
+
+    /** Все известные остатки карты, новые сверху (индекс `card_mask, as_of`). */
+    @Query("SELECT * FROM known_balances WHERE card_mask = :cardMask ORDER BY as_of DESC, id DESC")
+    fun observeHistory(cardMask: String): Flow<List<KnownBalanceEntity>>
 }
 
 @Dao
