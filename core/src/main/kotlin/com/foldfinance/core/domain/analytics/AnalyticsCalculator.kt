@@ -15,7 +15,9 @@ import java.time.ZoneId
  * - каждая валюта считается отдельно, без курсов;
  * - нетто-расходы = EXPENSE − REFUND; возврат уменьшает расходы своей категории и не доход;
  * - INTERNAL_TRANSFER исключён из всех сумм;
- * - операции с `needsReview` учитываются (их число отдаётся отдельно).
+ * - операции с `needsReview` учитываются (их число отдаётся отдельно);
+ * - разбитая по чеку операция ([Transaction.splits]) распределяется по категориям частей, остаток —
+ *   в категорию самой операции; итоги, дни и число операций от разбиения не меняются.
  */
 object AnalyticsCalculator {
 
@@ -126,12 +128,12 @@ object AnalyticsCalculator {
             when (tx.direction) {
                 Direction.EXPENSE -> {
                     expense = Math.addExact(expense, amount)
-                    catExpense.add(tx.categoryId, amount)
+                    catExpense.addByCategory(tx)
                     dayExpense.add(date, amount)
                 }
                 Direction.REFUND -> {
                     refund = Math.addExact(refund, amount)
-                    catRefund.add(tx.categoryId, amount)
+                    catRefund.addByCategory(tx)
                     dayRefund.add(date, amount)
                 }
                 Direction.INCOME -> {
@@ -180,6 +182,28 @@ object AnalyticsCalculator {
             averageDailyNetExpenseMinor = average,
             daily = daily,
         )
+    }
+
+    /**
+     * Доли операции по категориям: части разбиения — в свои категории, остаток — в категорию
+     * операции. Сумма долей всегда равна сумме операции.
+     */
+    fun categoryShares(tx: Transaction): List<Pair<Long?, Long>> {
+        val parts = tx.splits
+        if (parts.isEmpty()) return listOf(tx.categoryId to tx.amountMinor)
+        var allocated = 0L
+        for (p in parts) {
+            // Испорченное разбиение (часть ≤ 0 или части больше операции) не учитывается.
+            if (p.amountMinor <= 0) return listOf(tx.categoryId to tx.amountMinor)
+            allocated = Math.addExact(allocated, p.amountMinor)
+            if (allocated > tx.amountMinor) return listOf(tx.categoryId to tx.amountMinor)
+        }
+        val rest = tx.amountMinor - allocated
+        return parts.map { it.categoryId to it.amountMinor } + listOfNotNull(rest.takeIf { it > 0 }?.let { tx.categoryId to it })
+    }
+
+    private fun MutableMap<Long?, Long>.addByCategory(tx: Transaction) {
+        for ((category, amount) in categoryShares(tx)) add(category, amount)
     }
 
     private fun <K> MutableMap<K, Long>.add(key: K, amount: Long) {

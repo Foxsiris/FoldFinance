@@ -14,7 +14,7 @@ import com.foldfinance.parser.Kind
 import com.foldfinance.parser.MessageChannel
 import java.time.Instant
 
-// Room-сущности схемы v3. Любое изменение колонок/индексов = новая версия БД + миграция + тест.
+// Room-сущности схемы v4. Любое изменение колонок/индексов = новая версия БД + миграция + тест.
 
 /**
  * Операция.
@@ -258,4 +258,39 @@ data class MerchantAliasEntity(
     @ColumnInfo(name = "category_confirmed", defaultValue = "0") val categoryConfirmed: Boolean = false,
     @ColumnInfo(name = "ai_checked_at") val aiCheckedAt: Instant?,
     @ColumnInfo(name = "updated_at") val updatedAt: Instant,
+)
+
+/**
+ * Часть операции, разбитой по чеку (v4): [amountMinor] родительской операции [parentId] относится к
+ * категории [categoryId]. Сумма частей не больше суммы операции; остаток остаётся в категории самой
+ * операции. Родительская операция не меняется (дедуп и перепарсинг работают как раньше); удаление
+ * операции удаляет и её части.
+ *
+ * - [label] — что вошло в часть (строки чека), для показа; `null` — без подписи;
+ * - [categoryId] `null` — без категории (и после удаления категории).
+ */
+@Entity(
+    tableName = "transaction_split",
+    foreignKeys = [
+        ForeignKey(
+            entity = TransactionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["parent_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["category_id"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
+    ],
+    indices = [Index(value = ["parent_id"]), Index(value = ["category_id"])],
+)
+data class TransactionSplitEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "parent_id") val parentId: Long,
+    @ColumnInfo(name = "category_id") val categoryId: Long?,
+    @ColumnInfo(name = "amount_minor") val amountMinor: Long,
+    val label: String?,
 )

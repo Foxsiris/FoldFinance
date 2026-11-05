@@ -2,6 +2,7 @@ package com.foldfinance.core.domain.analytics
 
 import com.foldfinance.core.domain.TestTransactions.at
 import com.foldfinance.core.domain.TestTransactions.tx
+import com.foldfinance.core.model.TransactionSplit
 import com.foldfinance.parser.Direction
 import com.foldfinance.parser.Kind
 import com.google.common.truth.Truth.assertThat
@@ -28,6 +29,42 @@ class AnalyticsCalculatorTest {
         tx(msk("2026-11-04T08:00"), 10_000_00, Direction.INCOME, kind = Kind.CREDIT),
         tx(msk("2026-11-04T09:00"), 5_000_00, Direction.INTERNAL_TRANSFER, kind = Kind.TRANSFER, categoryId = 9),
     )
+
+    @Test
+    fun `split operation is distributed over its parts, the rest stays in its category, totals unchanged`() {
+        val plain = AnalyticsCalculator.summarize(baseline, november).currency("RUB")
+        // 1000 ₽ в категории 1: 300 ₽ — в категорию 2, 200 ₽ — без категории, остаток 500 ₽ — в категории 1.
+        val split = baseline.mapIndexed { i, t ->
+            if (i == 0) {
+                t.copy(splits = listOf(TransactionSplit(parentId = t.id, categoryId = 2, amountMinor = 300_00), TransactionSplit(parentId = t.id, categoryId = null, amountMinor = 200_00)))
+            } else {
+                t
+            }
+        }
+        val rub = AnalyticsCalculator.summarize(split, november).currency("RUB")
+
+        assertThat(rub.expenseMinor).isEqualTo(plain.expenseMinor)
+        assertThat(rub.netExpenseMinor).isEqualTo(plain.netExpenseMinor)
+        assertThat(rub.incomeMinor).isEqualTo(plain.incomeMinor)
+        assertThat(rub.operationCount).isEqualTo(plain.operationCount)
+        assertThat(rub.daily).isEqualTo(plain.daily)
+        val byCategory = rub.categories.associate { it.categoryId to it.netExpenseMinor }
+        // Категория 1: остаток 500 − возврат 300; категория 2: 500 + 300.
+        assertThat(byCategory).containsExactly(1L, 200_00L, 2L, 800_00L, null, 200_00L)
+        assertThat(rub.categories.sumOf { it.netExpenseMinor }).isEqualTo(rub.netExpenseMinor)
+    }
+
+    @Test
+    fun `fully split operation leaves nothing in its own category, broken split is ignored`() {
+        val t = tx(msk("2026-11-05T10:00"), 1000_00, categoryId = 1)
+        val full = t.copy(splits = listOf(TransactionSplit(parentId = t.id, categoryId = 3, amountMinor = 1000_00)))
+        assertThat(AnalyticsCalculator.categoryShares(full)).containsExactly(3L to 1000_00L)
+
+        val broken = t.copy(splits = listOf(TransactionSplit(parentId = t.id, categoryId = 3, amountMinor = 1000_01)))
+        assertThat(AnalyticsCalculator.categoryShares(broken)).containsExactly(1L to 1000_00L)
+        val zero = t.copy(splits = listOf(TransactionSplit(parentId = t.id, categoryId = 3, amountMinor = 0)))
+        assertThat(AnalyticsCalculator.categoryShares(zero)).containsExactly(1L to 1000_00L)
+    }
 
     @Test
     fun `net expense is expense minus refund, refund is not income, internal transfer excluded`() {

@@ -113,6 +113,19 @@ object BackupValidator {
             check(a.aiCategoryId == null || a.aiCategoryId in categoryIds, "$at.aiCategoryId")
         }
 
+        snapshot.transactionSplits.uniqueIds("transactionSplits") { it.id }
+        val txAmounts = snapshot.transactions.associate { it.id to it.amountMinor }
+        val splitTotals = HashMap<Long, Long>()
+        snapshot.transactionSplits.forEachIndexed { i, p ->
+            val at = "transactionSplits[$i]"
+            check(p.parentId in txIds, "$at.parentId")
+            check(p.categoryId == null || p.categoryId in categoryIds, "$at.categoryId")
+            check(p.amountMinor > 0, "$at.amountMinor")
+            val total = runCatching { Math.addExact(splitTotals[p.parentId] ?: 0L, p.amountMinor) }.getOrNull()
+            check(total != null && total <= txAmounts.getValue(p.parentId), "$at.amountMinor")
+            splitTotals[p.parentId] = total!!
+        }
+
         snapshot.subscriptions.uniqueIds("subscriptions") { it.id }
         snapshot.subscriptions.forEachIndexed { i, s ->
             val at = "subscriptions[$i]"

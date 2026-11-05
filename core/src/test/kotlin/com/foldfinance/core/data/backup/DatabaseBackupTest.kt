@@ -9,6 +9,7 @@ import com.foldfinance.core.data.db.entity.MerchantRuleEntity
 import com.foldfinance.core.data.db.entity.RawMessageEntity
 import com.foldfinance.core.data.db.entity.SubscriptionEntity
 import com.foldfinance.core.data.db.entity.TransactionEntity
+import com.foldfinance.core.data.db.entity.TransactionSplitEntity
 import com.foldfinance.core.data.fixedClock
 import com.foldfinance.core.data.inMemoryDb
 import com.foldfinance.core.data.repository.CategoryRepositoryImpl
@@ -95,6 +96,11 @@ class DatabaseBackupTest {
         assertInvalid(good.copy(rawMessages = good.rawMessages.map { it.copy(transactionId = 999) }), "transactionId")
         assertInvalid(good.copy(subscriptions = good.subscriptions.map { it.copy(amountMinor = -5) }), "amountMinor")
         assertInvalid(good.copy(transactions = good.transactions + good.transactions.first()), "duplicated")
+        assertInvalid(good.copy(transactionSplits = good.transactionSplits.map { it.copy(parentId = 999) }), "transactionSplits[0].parentId")
+        assertInvalid(good.copy(transactionSplits = good.transactionSplits.map { it.copy(amountMinor = 0) }), "transactionSplits[0].amountMinor")
+        // Части больше суммы операции (150 000): 100 000 + 60 000.
+        val overflow = good.transactionSplits + good.transactionSplits.first().copy(id = 99, amountMinor = 60_000)
+        assertInvalid(good.copy(transactionSplits = overflow), "transactionSplits[1].amountMinor")
     }
 
     @Test
@@ -123,14 +129,16 @@ class DatabaseBackupTest {
         populate(source)
         val current = DatabaseBackup(source, fixedClock()).snapshot()
         assertThat(current.merchantAliases).hasSize(1)
-        // Файл формата 1 (до БД v3): нет алиасов и ИИ-полей.
+        // Файл формата 1 (до БД v3): нет алиасов, частей и ИИ-полей.
         val json = kotlinx.serialization.json.Json { encodeDefaults = true }
         val legacyText = json.encodeToString(BackupSnapshot.serializer(), current)
             .replace(Regex(""","merchantAliases":\[[^\]]*\]"""), "")
+            .replace(Regex(""","transactionSplits":\[[^\]]*\]"""), "")
             .replace(Regex(""","(aiParsed|aiCategory|aiAttemptedAt)":(true|false|null|\d+)"""), "")
-            .replace(""""schemaVersion":2""", """"schemaVersion":1""")
-            .replace(""""dbVersion":3""", """"dbVersion":2""")
+            .replace(""""schemaVersion":3""", """"schemaVersion":1""")
+            .replace(""""dbVersion":4""", """"dbVersion":2""")
         assertThat(legacyText).doesNotContain("merchantAliases")
+        assertThat(legacyText).doesNotContain("transactionSplits")
         val legacy = kotlinx.serialization.json.Json.decodeFromString(BackupSnapshot.serializer(), legacyText)
         assertThat(legacy.schemaVersion).isEqualTo(1)
 
@@ -138,6 +146,29 @@ class DatabaseBackupTest {
         val restored = DatabaseBackup(target, fixedClock()).snapshot()
         assertThat(restored.transactions.map { it.amountMinor }).isEqualTo(current.transactions.map { it.amountMinor })
         assertThat(restored.merchantAliases).isEmpty()
+        assertThat(restored.transactionSplits).isEmpty()
+    }
+
+    @Test
+    fun restore_ofFormat2Snapshot_withoutSplits_works() = runTest {
+        populate(source)
+        val current = DatabaseBackup(source, fixedClock()).snapshot()
+        assertThat(current.transactionSplits).hasSize(1)
+        // Файл формата 2 (БД v3): алиасы и ИИ-поля есть, разбиения по чеку ещё нет.
+        val json = kotlinx.serialization.json.Json { encodeDefaults = true }
+        val legacyText = json.encodeToString(BackupSnapshot.serializer(), current)
+            .replace(Regex(""","transactionSplits":\[[^\]]*\]"""), "")
+            .replace(""""schemaVersion":3""", """"schemaVersion":2""")
+            .replace(""""dbVersion":4""", """"dbVersion":3""")
+        val legacy = kotlinx.serialization.json.Json.decodeFromString(BackupSnapshot.serializer(), legacyText)
+        assertThat(legacy.schemaVersion).isEqualTo(2)
+        assertThat(legacy.transactionSplits).isEmpty()
+
+        DatabaseBackup(target, fixedClock()).restore(legacy)
+        val restored = DatabaseBackup(target, fixedClock()).snapshot()
+        assertThat(restored.transactions).isEqualTo(current.transactions)
+        assertThat(restored.merchantAliases).isEqualTo(current.merchantAliases)
+        assertThat(restored.transactionSplits).isEmpty()
     }
 
     @Test
@@ -157,6 +188,7 @@ class DatabaseBackupTest {
             "known_balances" to KnownBalanceRow.serializer(),
             "subscriptions" to SubscriptionRow.serializer(),
             "merchant_alias" to MerchantAliasRow.serializer(),
+            "transaction_split" to TransactionSplitRow.serializer(),
         )
         for (table in tables) {
             val columns = sql.query("PRAGMA table_info(`$table`)").use { c -> c.count }
@@ -184,6 +216,9 @@ class DatabaseBackupTest {
         )
 
         val purchase = db.transactionDao().insertIgnore(tx(dedupKey = "sms:1:0", amountMinor = 150_000, categoryId = groceries))
+        db.transactionSplitDao().insertAll(
+            listOf(TransactionSplitEntity(parentId = purchase, categoryId = userCategory, amountMinor = 100_000, label = "Кофе, сироп")),
+        )
         db.transactionDao().insertIgnore(
             tx(dedupKey = "sms:2:0", amountMinor = 20_000, direction = Direction.REFUND, kind = Kind.REFUND, linked = purchase),
         )

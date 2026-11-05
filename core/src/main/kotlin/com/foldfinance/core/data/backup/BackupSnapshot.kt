@@ -12,7 +12,8 @@ import kotlinx.serialization.Serializable
  *
  * @property format идентификатор формата, всегда [FORMAT_ID].
  * @property schemaVersion версия формата снимка ([SCHEMA_VERSION]): 1 — БД v1–v2, 2 — БД v3 (алиасы мерчантов,
- *   ИИ-флаги). Файлы формата 1 читаются: новые поля получают значения по умолчанию.
+ *   ИИ-флаги), 3 — БД v4 (разбиение операций по чеку). Файлы форматов 1 и 2 читаются: новые поля
+ *   получают значения по умолчанию.
  * @property dbVersion версия схемы БД, из которой сделан снимок.
  * @property exportedAtMillis момент экспорта, epoch millis UTC.
  */
@@ -31,13 +32,15 @@ data class BackupSnapshot(
     val subscriptions: List<SubscriptionRow>,
     /** С формата 2 (БД v3); в старых файлах отсутствует — пусто. */
     val merchantAliases: List<MerchantAliasRow> = emptyList(),
+    /** С формата 3 (БД v4); в старых файлах отсутствует — пусто. */
+    val transactionSplits: List<TransactionSplitRow> = emptyList(),
 ) {
     /** Сколько записей в снимке — для сообщения «Восстановлено N операций». */
     val transactionCount: Int get() = transactions.size
 
     companion object {
         const val FORMAT_ID: String = "foldfinance-backup"
-        const val SCHEMA_VERSION: Int = 2
+        const val SCHEMA_VERSION: Int = 3
     }
 }
 
@@ -160,4 +163,14 @@ data class MerchantAliasRow(
     val categoryConfirmed: Boolean = false,
     val aiCheckedAt: Long? = null,
     val updatedAt: Long,
+)
+
+/** Строка таблицы `transaction_split` (с БД v4). */
+@Serializable
+data class TransactionSplitRow(
+    val id: Long,
+    val parentId: Long,
+    val categoryId: Long? = null,
+    val amountMinor: Long,
+    val label: String? = null,
 )

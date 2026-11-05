@@ -42,6 +42,7 @@ class DatabaseBackup @Inject constructor(
             knownBalances = sql.rows("SELECT * FROM known_balances ORDER BY id") { readBalance() },
             subscriptions = sql.rows("SELECT * FROM subscriptions ORDER BY id") { readSubscription() },
             merchantAliases = sql.rows("SELECT * FROM merchant_alias ORDER BY merchant_key") { readAlias() },
+            transactionSplits = sql.rows("SELECT * FROM transaction_split ORDER BY id") { readSplit() },
         )
     }
 
@@ -70,6 +71,7 @@ class DatabaseBackup @Inject constructor(
             snapshot.knownBalances.forEach { sql.put("known_balances", it.values()) }
             snapshot.subscriptions.forEach { sql.put("subscriptions", it.values()) }
             snapshot.merchantAliases.forEach { sql.put("merchant_alias", it.values()) }
+            snapshot.transactionSplits.forEach { sql.put("transaction_split", it.values()) }
 
             CategorySeeder.seed(db.categoryDao())
         }
@@ -78,6 +80,7 @@ class DatabaseBackup @Inject constructor(
     companion object {
         /** Таблицы данных в порядке удаления (сначала зависимые). */
         val TABLES_DELETE_ORDER: List<String> = listOf(
+            "transaction_split",
             "merchant_alias",
             "known_balances",
             "raw_messages",
@@ -317,4 +320,20 @@ private fun MerchantAliasRow.values() = ContentValues().apply {
     put("category_confirmed", categoryConfirmed.int())
     put("ai_checked_at", aiCheckedAt)
     put("updated_at", updatedAt)
+}
+
+private fun Cursor.readSplit() = TransactionSplitRow(
+    id = long("id"),
+    parentId = long("parent_id"),
+    categoryId = longOrNull("category_id"),
+    amountMinor = long("amount_minor"),
+    label = strOrNull("label"),
+)
+
+private fun TransactionSplitRow.values() = ContentValues().apply {
+    put("id", id)
+    put("parent_id", parentId)
+    put("category_id", categoryId)
+    put("amount_minor", amountMinor)
+    put("label", label)
 }

@@ -12,7 +12,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Миграции по экспортированным схемам (`core/schemas`): v1 открывается, v1 → v2 сохраняет данные.
+ * Миграции по экспортированным схемам (`core/schemas`): v1 открывается, каждая миграция сохраняет данные.
  *
  * Используется вариант helper'а с [AndroidSQLiteDriver]: вариант с `SupportSQLiteOpenHelper`
  * в Room 2.8 под Robolectric на Windows не совпадает по пути файла БД.
@@ -107,6 +107,59 @@ class MigrationTest {
                 assertThat(stmt.getText(0)).isEqualTo("Пятёрочка")
                 assertThat(stmt.isNull(1)).isTrue()
                 assertThat(stmt.getLong(2)).isEqualTo(0L)
+            }
+        } finally {
+            connection.close()
+        }
+    }
+
+    @Test
+    fun migration3to4_addsSplitTable_cascadesWithParent_andKeepsData() {
+        helper.createDatabase(3).apply {
+            prepare("INSERT INTO categories (id, `key`, name, icon_key, is_system, sort_order) VALUES (7, 'groceries', 'Продукты', 'shopping_basket', 1, 0)")
+                .use { it.step() }
+            prepare(
+                """
+                INSERT INTO transactions (id, occurred_at, amount_minor, currency, direction, parsed_direction, kind,
+                    merchant, confidence, needs_review, source, dedup_key, search_text, user_edited, op_index,
+                    created_at, updated_at, review_confirmed, category_id, ai_parsed, ai_category)
+                VALUES (1, 1000, 150000, 'RUB', 'EXPENSE', 'EXPENSE', 'PURCHASE', 'PYATEROCHKA 1234', 0.9, 0, 'SMS',
+                    'SMS:42#0', 'pyaterochka 1234', 0, 0, 1000, 1000, 0, 7, 1, 0)
+                """.trimIndent(),
+            ).use { it.step() }
+            close()
+        }
+
+        val connection = helper.runMigrationsAndValidate(4, listOf(FoldFinanceDatabase.MIGRATION_3_4))
+        try {
+            connection.prepare("SELECT amount_minor, category_id, ai_parsed FROM transactions WHERE id = 1").use { stmt ->
+                assertThat(stmt.step()).isTrue()
+                assertThat(stmt.getLong(0)).isEqualTo(150_000L)
+                assertThat(stmt.getLong(1)).isEqualTo(7L)
+                assertThat(stmt.getLong(2)).isEqualTo(1L)
+            }
+            connection.prepare("SELECT COUNT(*) FROM transaction_split").use { stmt ->
+                assertThat(stmt.step()).isTrue()
+                assertThat(stmt.getLong(0)).isEqualTo(0L)
+            }
+            connection.prepare("PRAGMA foreign_keys = ON").use { it.step() }
+            connection.prepare(
+                "INSERT INTO transaction_split (parent_id, category_id, amount_minor, label) VALUES (1, 7, 100000, 'Хлеб')",
+            ).use { it.step() }
+            // Удаление категории: часть остаётся без категории.
+            connection.prepare("UPDATE transactions SET category_id = NULL WHERE id = 1").use { it.step() }
+            connection.prepare("DELETE FROM categories WHERE id = 7").use { it.step() }
+            connection.prepare("SELECT category_id, amount_minor, label FROM transaction_split").use { stmt ->
+                assertThat(stmt.step()).isTrue()
+                assertThat(stmt.isNull(0)).isTrue()
+                assertThat(stmt.getLong(1)).isEqualTo(100_000L)
+                assertThat(stmt.getText(2)).isEqualTo("Хлеб")
+            }
+            // Удаление операции удаляет её части.
+            connection.prepare("DELETE FROM transactions WHERE id = 1").use { it.step() }
+            connection.prepare("SELECT COUNT(*) FROM transaction_split").use { stmt ->
+                assertThat(stmt.step()).isTrue()
+                assertThat(stmt.getLong(0)).isEqualTo(0L)
             }
         } finally {
             connection.close()

@@ -33,6 +33,8 @@ enum class Source { SMS, PUSH, MANUAL }
  * @property merchantDisplayName понятное имя мерчанта (`YANDEX*GO*TAXI` → «Яндекс Go») из таблицы
  *   алиасов: переименование пользователем приоритетнее имени от модели. `null` — алиаса нет.
  *   [merchant] остаётся как в сообщении: по нему работают поиск и правила категорий.
+ * @property splits части операции по категориям (разбиение по чеку); пусто — операция целиком в
+ *   [categoryId]. Сумма частей не больше [amountMinor], остаток — в [categoryId].
  */
 data class Transaction(
     val id: Long = 0,
@@ -56,12 +58,28 @@ data class Transaction(
     val aiParsed: Boolean = false,
     val aiCategory: Boolean = false,
     val merchantDisplayName: String? = null,
+    val splits: List<TransactionSplit> = emptyList(),
 ) {
     val money: Money get() = Money(amountMinor, currency)
+
+    /** Часть суммы, не распределённая по [splits]: остаётся в категории операции. */
+    val unsplitAmountMinor: Long get() = amountMinor - splits.fold(0L) { acc, s -> Math.addExact(acc, s.amountMinor) }
 
     /** Что показывать в списках, аналитике и подписках: отображаемое имя, иначе мерчант из сообщения. */
     val displayMerchant: String? get() = merchantDisplayName ?: merchant
 }
+
+/**
+ * Часть операции, разбитой по чеку: [amountMinor] операции [parentId] относится к [categoryId]
+ * (`null` — без категории). [label] — что вошло в часть (строки чека), для показа.
+ */
+data class TransactionSplit(
+    val id: Long = 0,
+    val parentId: Long,
+    val categoryId: Long?,
+    val amountMinor: Long,
+    val label: String? = null,
+)
 
 /** Статус разбора исходного сообщения. */
 enum class ParseStatus { PARSED, UNCERTAIN, NOT_FINANCIAL, FAILED }

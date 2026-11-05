@@ -14,6 +14,7 @@ import com.foldfinance.core.data.db.dao.MerchantRuleDao
 import com.foldfinance.core.data.db.dao.RawMessageDao
 import com.foldfinance.core.data.db.dao.SubscriptionDao
 import com.foldfinance.core.data.db.dao.TransactionDao
+import com.foldfinance.core.data.db.dao.TransactionSplitDao
 import com.foldfinance.core.data.ingest.IngestObserver
 import com.foldfinance.core.data.ingest.IngestRepository
 import com.foldfinance.core.data.ingest.IngestRepositoryImpl
@@ -31,6 +32,8 @@ import com.foldfinance.core.data.repository.SubscriptionRepository
 import com.foldfinance.core.data.repository.SubscriptionRepositoryImpl
 import com.foldfinance.core.data.repository.TransactionRepository
 import com.foldfinance.core.data.repository.TransactionRepositoryImpl
+import com.foldfinance.core.data.repository.TransactionSplitRepository
+import com.foldfinance.core.data.repository.TransactionSplitRepositoryImpl
 import com.foldfinance.core.data.repository.UnrecognizedMessagesRepository
 import com.foldfinance.core.data.repository.UnrecognizedMessagesRepositoryImpl
 import com.foldfinance.core.data.security.DatabaseKeyManager
@@ -93,6 +96,7 @@ object DaoModule {
     @Provides fun knownBalanceDao(db: FoldFinanceDatabase): KnownBalanceDao = db.knownBalanceDao()
     @Provides fun subscriptionDao(db: FoldFinanceDatabase): SubscriptionDao = db.subscriptionDao()
     @Provides fun merchantAliasDao(db: FoldFinanceDatabase): MerchantAliasDao = db.merchantAliasDao()
+    @Provides fun transactionSplitDao(db: FoldFinanceDatabase): TransactionSplitDao = db.transactionSplitDao()
 }
 
 @Module
@@ -127,6 +131,7 @@ abstract class RepositoryModule {
     @Binds abstract fun ingest(impl: IngestRepositoryImpl): IngestRepository
     @Binds abstract fun unrecognized(impl: UnrecognizedMessagesRepositoryImpl): UnrecognizedMessagesRepository
     @Binds abstract fun merchantAliases(impl: MerchantAliasRepositoryImpl): MerchantAliasRepository
+    @Binds abstract fun transactionSplits(impl: TransactionSplitRepositoryImpl): TransactionSplitRepository
 
     /** Наблюдатели приёма (`:app` добавляет запуск дообработки локальной моделью); может быть пусто. */
     @Multibinds abstract fun ingestObservers(): Set<IngestObserver>

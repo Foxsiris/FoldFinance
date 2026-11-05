@@ -8,6 +8,7 @@ import com.foldfinance.core.data.db.entity.MerchantRuleEntity
 import com.foldfinance.core.data.db.entity.RawMessageEntity
 import com.foldfinance.core.data.db.entity.SubscriptionEntity
 import com.foldfinance.core.data.db.entity.TransactionEntity
+import com.foldfinance.core.data.db.entity.TransactionSplitEntity
 import com.foldfinance.core.model.Card
 import com.foldfinance.core.model.Category
 import com.foldfinance.core.model.KnownBalance
@@ -18,9 +19,16 @@ import com.foldfinance.core.model.MerchantRule
 import com.foldfinance.core.model.RawMessage
 import com.foldfinance.core.model.Subscription
 import com.foldfinance.core.model.Transaction
+import com.foldfinance.core.model.TransactionSplit
 
-/** @param displayName отображаемое имя мерчанта из `merchant_alias` (см. [aliasDisplayNames]). */
-internal fun TransactionEntity.toModel(displayName: String? = null): Transaction = Transaction(
+/**
+ * @param displayName отображаемое имя мерчанта из `merchant_alias` (см. [aliasDisplayNames]).
+ * @param splits части операции из `transaction_split`.
+ */
+internal fun TransactionEntity.toModel(
+    displayName: String? = null,
+    splits: List<TransactionSplit> = emptyList(),
+): Transaction = Transaction(
     id = id,
     occurredAt = occurredAt,
     amountMinor = amountMinor,
@@ -42,7 +50,20 @@ internal fun TransactionEntity.toModel(displayName: String? = null): Transaction
     aiParsed = aiParsed,
     aiCategory = aiCategory,
     merchantDisplayName = displayName,
+    splits = splits,
 )
+
+internal fun TransactionSplitEntity.toModel(): TransactionSplit = TransactionSplit(
+    id = id,
+    parentId = parentId,
+    categoryId = categoryId,
+    amountMinor = amountMinor,
+    label = label,
+)
+
+/** Части операций по id родителя. */
+internal fun List<TransactionSplitEntity>.byParent(): Map<Long, List<TransactionSplit>> =
+    groupBy({ it.parentId }, { it.toModel() })
 
 internal fun RawMessageEntity.toModel(): RawMessage = RawMessage(
     id = id,
@@ -123,13 +144,16 @@ internal fun List<MerchantAliasEntity>.aliasDisplayNames(): Map<String, String> 
     mapNotNull { a -> (a.userName ?: a.aiName)?.let { a.merchantKey to it } }.toMap()
 
 /**
- * Операции с отображаемыми именами мерчантов. Канонический ключ считается один раз на мерчанта.
+ * Операции с отображаемыми именами мерчантов и частями разбиения. Канонический ключ считается один
+ * раз на мерчанта.
  */
-internal fun List<TransactionEntity>.toModels(displayNames: Map<String, String>): List<Transaction> {
-    if (displayNames.isEmpty()) return map { it.toModel() }
+internal fun List<TransactionEntity>.toModels(
+    displayNames: Map<String, String>,
+    splits: Map<Long, List<TransactionSplit>> = emptyMap(),
+): List<Transaction> {
     val keys = HashMap<String, String>()
     return map { e ->
-        val name = e.merchant?.let { m -> displayNames[keys.getOrPut(m) { MerchantNormalizer.canonical(m) }] }
-        e.toModel(name)
+        val name = if (displayNames.isEmpty()) null else e.merchant?.let { m -> displayNames[keys.getOrPut(m) { MerchantNormalizer.canonical(m) }] }
+        e.toModel(name, splits[e.id].orEmpty())
     }
 }

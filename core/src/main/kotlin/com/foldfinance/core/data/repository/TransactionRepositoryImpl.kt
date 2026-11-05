@@ -6,6 +6,7 @@ import com.foldfinance.core.data.db.FoldFinanceDatabase
 import com.foldfinance.core.data.db.TextNorm
 import com.foldfinance.core.data.db.entity.TransactionEntity
 import com.foldfinance.core.data.db.aliasDisplayNames
+import com.foldfinance.core.data.db.byParent
 import com.foldfinance.core.data.db.toModel
 import com.foldfinance.core.data.db.toModels
 import com.foldfinance.core.domain.category.MerchantNormalizer
@@ -13,15 +14,18 @@ import com.foldfinance.core.di.DataClock
 import com.foldfinance.core.model.RawMessage
 import com.foldfinance.core.model.Source
 import com.foldfinance.core.model.Transaction
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import java.time.Clock
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class TransactionRepositoryImpl @Inject constructor(
     private val db: FoldFinanceDatabase,
@@ -31,19 +35,46 @@ class TransactionRepositoryImpl @Inject constructor(
     private val dao = db.transactionDao()
     private val rawDao = db.rawMessageDao()
     private val aliasDao = db.merchantAliasDao()
+    private val splitDao = db.transactionSplitDao()
 
     /** Ключ мерчанта → отображаемое имя; меняется только при изменении таблицы алиасов. */
     private val displayNames: Flow<Map<String, String>> =
         aliasDao.observeAll().map { it.aliasDisplayNames() }.distinctUntilChanged()
 
-    override fun observe(filter: TransactionFilter): Flow<List<Transaction>> =
-        combine(dao.observeByQuery(buildQuery(filter)), displayNames) { list, names -> list.toModels(names) }
+    /** Части разбиения по id операции; меняется только при изменении таблицы частей. */
+    private val splits = splitDao.observeAll().map { it.byParent() }.distinctUntilChanged()
+
+    /**
+     * Поиск ([TransactionFilter.query]) работает по сырому названию и заметке (`search_text`), а
+     * также по отображаемому имени мерчанта: если имя какого-то алиаса содержит запрос, текстовое
+     * условие проверяется в Kotlin (сырое название или имя), остальные условия фильтра — в SQL.
+     */
+    override fun observe(filter: TransactionFilter): Flow<List<Transaction>> {
+        val needle = TextNorm.normalize(filter.query)
+        return displayNames.flatMapLatest { names ->
+            val keys = if (needle == null) emptySet() else matchingAliasKeys(names, needle)
+            val rows = if (keys.isEmpty()) {
+                dao.observeByQuery(buildQuery(filter))
+            } else {
+                val canonical = HashMap<String, String>()
+                dao.observeByQuery(buildQuery(filter.copy(query = null))).map { list ->
+                    list.filter { e ->
+                        needle!! in e.searchText ||
+                            e.merchant?.let { m -> canonical.getOrPut(m) { MerchantNormalizer.canonical(m) } in keys } == true
+                    }
+                }
+            }
+            combine(rows, splits) { list, parts -> list.toModels(names, parts) }
+        }
+    }
 
     override fun observeById(id: Long): Flow<Transaction?> =
-        combine(dao.observeById(id), displayNames) { e, names -> e?.let { listOf(it).toModels(names).single() } }
+        combine(dao.observeById(id), displayNames, splitDao.observeByParent(id)) { e, names, parts ->
+            e?.let { listOf(it).toModels(names, mapOf(id to parts.map { p -> p.toModel() })).single() }
+        }
 
     override fun observeReviewQueue(): Flow<List<Transaction>> =
-        combine(dao.observeReviewQueue(), displayNames) { list, names -> list.toModels(names) }
+        combine(dao.observeReviewQueue(), displayNames, splits) { list, names, parts -> list.toModels(names, parts) }
 
     override fun observeReviewCount(): Flow<Int> = dao.observeReviewCount()
 
@@ -86,6 +117,9 @@ class TransactionRepositoryImpl @Inject constructor(
         db.withTransaction {
             val current = dao.getById(transaction.id)
                 ?: throw NoSuchElementException("transaction ${transaction.id} not found")
+            // Новая сумма меньше разбиения по чеку — разбиение больше не сходится, снимаем его.
+            val splitTotal = splitDao.getByParent(transaction.id).fold(0L) { acc, p -> Math.addExact(acc, p.amountMinor) }
+            if (splitTotal > transaction.amountMinor) splitDao.deleteByParent(transaction.id)
             dao.update(
                 current.copy(
                     occurredAt = transaction.occurredAt,
@@ -137,6 +171,10 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     internal companion object {
+        /** Ключи алиасов, чьё отображаемое имя содержит [needle] (уже нормализованный [TextNorm]). */
+        fun matchingAliasKeys(names: Map<String, String>, needle: String): Set<String> =
+            names.filterValues { name -> TextNorm.normalize(name)?.contains(needle) == true }.keys
+
         /** Динамический SELECT по фильтру; все значения — через параметры, без конкатенации ввода. */
         fun buildQuery(filter: TransactionFilter): SimpleSQLiteQuery {
             val where = mutableListOf<String>()

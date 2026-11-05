@@ -18,6 +18,7 @@ import com.foldfinance.core.data.db.dao.MerchantRuleDao
 import com.foldfinance.core.data.db.dao.RawMessageDao
 import com.foldfinance.core.data.db.dao.SubscriptionDao
 import com.foldfinance.core.data.db.dao.TransactionDao
+import com.foldfinance.core.data.db.dao.TransactionSplitDao
 import com.foldfinance.core.data.db.entity.CardEntity
 import com.foldfinance.core.data.db.entity.CategoryEntity
 import com.foldfinance.core.data.db.entity.KnownBalanceEntity
@@ -26,6 +27,7 @@ import com.foldfinance.core.data.db.entity.MerchantRuleEntity
 import com.foldfinance.core.data.db.entity.RawMessageEntity
 import com.foldfinance.core.data.db.entity.SubscriptionEntity
 import com.foldfinance.core.data.db.entity.TransactionEntity
+import com.foldfinance.core.data.db.entity.TransactionSplitEntity
 
 /**
  * Локальная БД приложения. На устройстве открывается через SQLCipher
@@ -41,6 +43,7 @@ import com.foldfinance.core.data.db.entity.TransactionEntity
         KnownBalanceEntity::class,
         SubscriptionEntity::class,
         MerchantAliasEntity::class,
+        TransactionSplitEntity::class,
     ],
     version = FoldFinanceDatabase.VERSION,
     exportSchema = true,
@@ -55,9 +58,10 @@ abstract class FoldFinanceDatabase : RoomDatabase() {
     abstract fun knownBalanceDao(): KnownBalanceDao
     abstract fun subscriptionDao(): SubscriptionDao
     abstract fun merchantAliasDao(): MerchantAliasDao
+    abstract fun transactionSplitDao(): TransactionSplitDao
 
     companion object {
-        const val VERSION: Int = 3
+        const val VERSION: Int = 4
         const val NAME: String = "foldfinance.db"
 
         /** v2: `transactions.review_confirmed` — подтверждение пользователя переживает перепарсинг. */
@@ -90,8 +94,27 @@ abstract class FoldFinanceDatabase : RoomDatabase() {
             override fun migrate(connection: SQLiteConnection) = statements.forEach { connection.execSQL(it) }
         }
 
+        /**
+         * v4 (разбиение по чеку): таблица `transaction_split` — части операции по категориям.
+         * Существующие операции не меняются.
+         */
+        val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+            private val statements = listOf(
+                "CREATE TABLE IF NOT EXISTS `transaction_split` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`parent_id` INTEGER NOT NULL, `category_id` INTEGER, `amount_minor` INTEGER NOT NULL, `label` TEXT, " +
+                    "FOREIGN KEY(`parent_id`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                    "FOREIGN KEY(`category_id`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+                "CREATE INDEX IF NOT EXISTS `index_transaction_split_parent_id` ON `transaction_split` (`parent_id`)",
+                "CREATE INDEX IF NOT EXISTS `index_transaction_split_category_id` ON `transaction_split` (`category_id`)",
+            )
+
+            override fun migrate(db: SupportSQLiteDatabase) = statements.forEach { db.execSQL(it) }
+
+            override fun migrate(connection: SQLiteConnection) = statements.forEach { connection.execSQL(it) }
+        }
+
         /** Все миграции по порядку версий. */
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
         /**
          * Собрать БД.
