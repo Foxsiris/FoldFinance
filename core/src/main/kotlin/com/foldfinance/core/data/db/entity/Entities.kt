@@ -14,7 +14,7 @@ import com.foldfinance.parser.Kind
 import com.foldfinance.parser.MessageChannel
 import java.time.Instant
 
-// Room-сущности схемы v2. Любое изменение колонок/индексов = новая версия БД + миграция + тест.
+// Room-сущности схемы v3. Любое изменение колонок/индексов = новая версия БД + миграция + тест.
 
 /**
  * Операция.
@@ -27,7 +27,9 @@ import java.time.Instant
  * - [merchantNorm], [searchText] — нормализованные (нижний регистр, ё→е) строки для поиска и сравнения:
  *   встроенный `lower()`/`LIKE` SQLite не работают с кириллицей;
  * - [reviewConfirmed] (v2) — пользователь подтвердил операцию в очереди проверки: перепарсинг не
- *   возвращает её в очередь, пока разобранные значения (сумма, валюта, направление, вид) не изменились.
+ *   возвращает её в очередь, пока разобранные значения (сумма, валюта, направление, вид) не изменились;
+ * - [aiParsed] (v3) — операция извлечена локальной моделью; [aiCategory] (v3) — категорию предложила
+ *   модель и пользователь её ещё не подтвердил.
  */
 @Entity(
     tableName = "transactions",
@@ -81,6 +83,8 @@ data class TransactionEntity(
     @ColumnInfo(name = "created_at") val createdAt: Instant,
     @ColumnInfo(name = "updated_at") val updatedAt: Instant,
     @ColumnInfo(name = "review_confirmed", defaultValue = "0") val reviewConfirmed: Boolean = false,
+    @ColumnInfo(name = "ai_parsed", defaultValue = "0") val aiParsed: Boolean = false,
+    @ColumnInfo(name = "ai_category", defaultValue = "0") val aiCategory: Boolean = false,
 )
 
 /**
@@ -90,6 +94,7 @@ data class TransactionEntity(
  * существующая операция из другого канала. [userDeleted] — пользователь удалил операцию из
  * этого сообщения: перепарсинг не должен её воскрешать; у нераспознанного сообщения — пользователь
  * скрыл его из раздела «Не распознано».
+ * [aiAttemptedAt] (v3) — когда сообщение уже отдавали локальной модели (повторно не отдаём).
  */
 @Entity(
     tableName = "raw_messages",
@@ -122,6 +127,7 @@ data class RawMessageEntity(
     @ColumnInfo(name = "parser_id") val parserId: String?,
     @ColumnInfo(name = "transaction_id") val transactionId: Long?,
     @ColumnInfo(name = "user_deleted") val userDeleted: Boolean = false,
+    @ColumnInfo(name = "ai_attempted_at") val aiAttemptedAt: Instant? = null,
 )
 
 @Entity(
@@ -219,4 +225,37 @@ data class SubscriptionEntity(
     @ColumnInfo(name = "next_charge_at") val nextChargeAt: Instant,
     val status: SubscriptionStatus,
     @ColumnInfo(name = "category_id") val categoryId: Long?,
+)
+
+/**
+ * Алиас мерчанта (v3): понятное имя и кэш ответа локальной модели — модель спрашивается один раз
+ * на мерчанта.
+ *
+ * - [merchantKey] — `MerchantNormalizer.canonical` сырого названия (`PYATEROCHKA 1234` и `Пятёрочка`
+ *   дают один ключ);
+ * - [aiName] — имя от модели, [userName] — имя, заданное пользователем (приоритетнее);
+ * - [aiCategoryId] — категория, предложенная моделью; [categoryConfirmed] — пользователь её подтвердил;
+ * - [aiCheckedAt] — когда спрашивали модель (`null` — ещё не спрашивали; строка могла появиться из-за
+ *   переименования пользователем).
+ */
+@Entity(
+    tableName = "merchant_alias",
+    foreignKeys = [
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["ai_category_id"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
+    ],
+    indices = [Index(value = ["ai_category_id"])],
+)
+data class MerchantAliasEntity(
+    @PrimaryKey @ColumnInfo(name = "merchant_key") val merchantKey: String,
+    @ColumnInfo(name = "ai_name") val aiName: String?,
+    @ColumnInfo(name = "user_name") val userName: String?,
+    @ColumnInfo(name = "ai_category_id") val aiCategoryId: Long?,
+    @ColumnInfo(name = "category_confirmed", defaultValue = "0") val categoryConfirmed: Boolean = false,
+    @ColumnInfo(name = "ai_checked_at") val aiCheckedAt: Instant?,
+    @ColumnInfo(name = "updated_at") val updatedAt: Instant,
 )

@@ -13,6 +13,7 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.foldfinance.core.data.db.dao.CardDao
 import com.foldfinance.core.data.db.dao.CategoryDao
 import com.foldfinance.core.data.db.dao.KnownBalanceDao
+import com.foldfinance.core.data.db.dao.MerchantAliasDao
 import com.foldfinance.core.data.db.dao.MerchantRuleDao
 import com.foldfinance.core.data.db.dao.RawMessageDao
 import com.foldfinance.core.data.db.dao.SubscriptionDao
@@ -20,6 +21,7 @@ import com.foldfinance.core.data.db.dao.TransactionDao
 import com.foldfinance.core.data.db.entity.CardEntity
 import com.foldfinance.core.data.db.entity.CategoryEntity
 import com.foldfinance.core.data.db.entity.KnownBalanceEntity
+import com.foldfinance.core.data.db.entity.MerchantAliasEntity
 import com.foldfinance.core.data.db.entity.MerchantRuleEntity
 import com.foldfinance.core.data.db.entity.RawMessageEntity
 import com.foldfinance.core.data.db.entity.SubscriptionEntity
@@ -38,6 +40,7 @@ import com.foldfinance.core.data.db.entity.TransactionEntity
         CardEntity::class,
         KnownBalanceEntity::class,
         SubscriptionEntity::class,
+        MerchantAliasEntity::class,
     ],
     version = FoldFinanceDatabase.VERSION,
     exportSchema = true,
@@ -51,9 +54,10 @@ abstract class FoldFinanceDatabase : RoomDatabase() {
     abstract fun cardDao(): CardDao
     abstract fun knownBalanceDao(): KnownBalanceDao
     abstract fun subscriptionDao(): SubscriptionDao
+    abstract fun merchantAliasDao(): MerchantAliasDao
 
     companion object {
-        const val VERSION: Int = 2
+        const val VERSION: Int = 3
         const val NAME: String = "foldfinance.db"
 
         /** v2: `transactions.review_confirmed` — подтверждение пользователя переживает перепарсинг. */
@@ -65,8 +69,29 @@ abstract class FoldFinanceDatabase : RoomDatabase() {
             override fun migrate(connection: SQLiteConnection) = connection.execSQL(sql)
         }
 
+        /**
+         * v3 (локальный ИИ): таблица `merchant_alias` (понятные имена мерчантов и кэш ответов модели),
+         * `transactions.ai_parsed` / `ai_category`, `raw_messages.ai_attempted_at`. Данные не меняются.
+         */
+        val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            private val statements = listOf(
+                "CREATE TABLE IF NOT EXISTS `merchant_alias` (`merchant_key` TEXT NOT NULL, `ai_name` TEXT, " +
+                    "`user_name` TEXT, `ai_category_id` INTEGER, `category_confirmed` INTEGER NOT NULL DEFAULT 0, " +
+                    "`ai_checked_at` INTEGER, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`merchant_key`), " +
+                    "FOREIGN KEY(`ai_category_id`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+                "CREATE INDEX IF NOT EXISTS `index_merchant_alias_ai_category_id` ON `merchant_alias` (`ai_category_id`)",
+                "ALTER TABLE transactions ADD COLUMN ai_parsed INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE transactions ADD COLUMN ai_category INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE raw_messages ADD COLUMN ai_attempted_at INTEGER",
+            )
+
+            override fun migrate(db: SupportSQLiteDatabase) = statements.forEach { db.execSQL(it) }
+
+            override fun migrate(connection: SQLiteConnection) = statements.forEach { connection.execSQL(it) }
+        }
+
         /** Все миграции по порядку версий. */
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
         /**
          * Собрать БД.

@@ -4,6 +4,7 @@ import com.foldfinance.core.data.T0
 import com.foldfinance.core.data.db.FoldFinanceDatabase
 import com.foldfinance.core.data.db.entity.CardEntity
 import com.foldfinance.core.data.db.entity.KnownBalanceEntity
+import com.foldfinance.core.data.db.entity.MerchantAliasEntity
 import com.foldfinance.core.data.db.entity.MerchantRuleEntity
 import com.foldfinance.core.data.db.entity.RawMessageEntity
 import com.foldfinance.core.data.db.entity.SubscriptionEntity
@@ -118,6 +119,28 @@ class DatabaseBackupTest {
     /** Снимок покрывает все таблицы данных и все их колонки: новая колонка без правки бэкапа уронит тест. */
     @OptIn(ExperimentalSerializationApi::class)
     @Test
+    fun restore_ofFormat1Snapshot_withoutAiFields_works() = runTest {
+        populate(source)
+        val current = DatabaseBackup(source, fixedClock()).snapshot()
+        assertThat(current.merchantAliases).hasSize(1)
+        // Файл формата 1 (до БД v3): нет алиасов и ИИ-полей.
+        val json = kotlinx.serialization.json.Json { encodeDefaults = true }
+        val legacyText = json.encodeToString(BackupSnapshot.serializer(), current)
+            .replace(Regex(""","merchantAliases":\[[^\]]*\]"""), "")
+            .replace(Regex(""","(aiParsed|aiCategory|aiAttemptedAt)":(true|false|null|\d+)"""), "")
+            .replace(""""schemaVersion":2""", """"schemaVersion":1""")
+            .replace(""""dbVersion":3""", """"dbVersion":2""")
+        assertThat(legacyText).doesNotContain("merchantAliases")
+        val legacy = kotlinx.serialization.json.Json.decodeFromString(BackupSnapshot.serializer(), legacyText)
+        assertThat(legacy.schemaVersion).isEqualTo(1)
+
+        DatabaseBackup(target, fixedClock()).restore(legacy)
+        val restored = DatabaseBackup(target, fixedClock()).snapshot()
+        assertThat(restored.transactions.map { it.amountMinor }).isEqualTo(current.transactions.map { it.amountMinor })
+        assertThat(restored.merchantAliases).isEmpty()
+    }
+
+    @Test
     fun snapshot_coversEverySchemaTableAndColumn() {
         val sql = source.openHelper.writableDatabase
         val tables = sql.query("SELECT name FROM sqlite_master WHERE type = 'table'").use { c ->
@@ -133,6 +156,7 @@ class DatabaseBackupTest {
             "cards" to CardRow.serializer(),
             "known_balances" to KnownBalanceRow.serializer(),
             "subscriptions" to SubscriptionRow.serializer(),
+            "merchant_alias" to MerchantAliasRow.serializer(),
         )
         for (table in tables) {
             val columns = sql.query("PRAGMA table_info(`$table`)").use { c -> c.count }
@@ -147,6 +171,17 @@ class DatabaseBackupTest {
         db.merchantRuleDao().insert(MerchantRuleEntity(merchantPattern = "пятерочка", categoryId = groceries, createdAt = T0))
         db.cardDao().upsert(CardEntity(mask = "*1234", label = "Зарплатная", isOwn = true))
         db.cardDao().upsert(CardEntity(mask = "*9876", label = null, isOwn = false))
+        db.merchantAliasDao().upsert(
+            MerchantAliasEntity(
+                merchantKey = "piaterochka",
+                aiName = "Пятёрочка",
+                userName = null,
+                aiCategoryId = groceries,
+                categoryConfirmed = true,
+                aiCheckedAt = T0,
+                updatedAt = T0,
+            ),
+        )
 
         val purchase = db.transactionDao().insertIgnore(tx(dedupKey = "sms:1:0", amountMinor = 150_000, categoryId = groceries))
         db.transactionDao().insertIgnore(

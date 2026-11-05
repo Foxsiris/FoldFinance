@@ -104,6 +104,8 @@ dependencies {
     implementation(libs.glance.material3)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.timber)
+    // Локальный ИИ: инференс идёт в системном процессе AICore, сеть приложению не нужна.
+    implementation(libs.mlkit.genai.prompt)
 
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.junit)

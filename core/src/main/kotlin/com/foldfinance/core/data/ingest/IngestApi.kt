@@ -84,6 +84,15 @@ interface IngestRepository {
     suspend fun recordFailed(input: IncomingMessage): IngestOutcome
 }
 
+/**
+ * Наблюдатель приёма: вызывается после записи каждого сообщения (вне транзакции БД). Точка
+ * подключения фоновой дообработки локальной моделью — `:app` ставит задачу, если сообщение не
+ * распознано или ушло на проверку. Не должен бросать исключения и не должен блокировать поток.
+ */
+fun interface IngestObserver {
+    fun onIngested(outcome: IngestOutcome)
+}
+
 /** Построение `sourceKey` и хешей текста. */
 object SourceKeys {
     /**

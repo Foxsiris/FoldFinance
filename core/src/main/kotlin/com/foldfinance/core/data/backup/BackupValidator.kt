@@ -106,6 +106,13 @@ object BackupValidator {
             check(b.rawMessageId == null || b.rawMessageId in rawIds, "$at.rawMessageId")
         }
 
+        snapshot.merchantAliases.unique("merchantAliases.merchantKey") { it.merchantKey }
+        snapshot.merchantAliases.forEachIndexed { i, a ->
+            val at = "merchantAliases[$i]"
+            check(a.merchantKey.isNotBlank(), "$at.merchantKey")
+            check(a.aiCategoryId == null || a.aiCategoryId in categoryIds, "$at.aiCategoryId")
+        }
+
         snapshot.subscriptions.uniqueIds("subscriptions") { it.id }
         snapshot.subscriptions.forEachIndexed { i, s ->
             val at = "subscriptions[$i]"

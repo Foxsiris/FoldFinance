@@ -103,11 +103,11 @@ interface TransactionDao {
         to: Long,
     ): TransactionEntity?
 
-    @Query("UPDATE transactions SET category_id = :categoryId, user_edited = 1, updated_at = :now WHERE id IN (:ids)")
+    @Query("UPDATE transactions SET category_id = :categoryId, user_edited = 1, ai_category = 0, updated_at = :now WHERE id IN (:ids)")
     suspend fun setCategory(ids: List<Long>, categoryId: Long?, now: Long): Int
 
     /** Подтверждение пользователя: из очереди проверки, и перепарсинг не вернёт обратно (см. `review_confirmed`). */
-    @Query("UPDATE transactions SET needs_review = 0, review_confirmed = 1, updated_at = :now WHERE id IN (:ids)")
+    @Query("UPDATE transactions SET needs_review = 0, review_confirmed = 1, ai_category = 0, updated_at = :now WHERE id IN (:ids)")
     suspend fun confirmReview(ids: List<Long>, now: Long): Int
 
     @Query("DELETE FROM transactions WHERE id = :id")
@@ -116,7 +116,7 @@ interface TransactionDao {
     /** Применить правило мерчанта к прошлым операциям, кроме правленых вручную. */
     @Query(
         """
-        UPDATE transactions SET category_id = :categoryId, updated_at = :now
+        UPDATE transactions SET category_id = :categoryId, ai_category = 0, updated_at = :now
         WHERE user_edited = 0 AND merchant_norm LIKE :likePattern ESCAPE '\'
         """,
     )
@@ -133,4 +133,31 @@ interface TransactionDao {
 
     @Query("UPDATE transactions SET direction = :direction, updated_at = :now WHERE id = :id")
     suspend fun setDirection(id: Long, direction: Direction, now: Long)
+
+    /** Сырые названия мерчантов операций из сообщений (ручные не нормализуем — их ввёл пользователь). */
+    @Query("SELECT DISTINCT merchant FROM transactions WHERE merchant IS NOT NULL AND source != 'MANUAL'")
+    suspend fun getDistinctMerchants(): List<String>
+
+    /**
+     * Операции, которым можно назначить категорию, предложенную моделью: не правлены и не подтверждены
+     * пользователем, расход или возврат без привязанной покупки, категория «Другое» (или нет).
+     */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE user_edited = 0 AND review_confirmed = 0 AND merchant IS NOT NULL AND linked_transaction_id IS NULL
+          AND direction IN ('EXPENSE', 'REFUND') AND (category_id IS NULL OR category_id = :otherId)
+        """,
+    )
+    suspend fun getAiRecategorizable(otherId: Long?): List<TransactionEntity>
+
+    /** Последние ручные назначения категорий пользователем — примеры для модели. */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE user_edited = 1 AND merchant IS NOT NULL AND category_id IS NOT NULL
+        ORDER BY updated_at DESC, id DESC LIMIT :limit
+        """,
+    )
+    suspend fun getUserCategoryExamples(limit: Int): List<TransactionEntity>
 }

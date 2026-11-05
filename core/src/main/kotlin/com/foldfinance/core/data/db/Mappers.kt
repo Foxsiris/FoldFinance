@@ -3,6 +3,7 @@ package com.foldfinance.core.data.db
 import com.foldfinance.core.data.db.entity.CardEntity
 import com.foldfinance.core.data.db.entity.CategoryEntity
 import com.foldfinance.core.data.db.entity.KnownBalanceEntity
+import com.foldfinance.core.data.db.entity.MerchantAliasEntity
 import com.foldfinance.core.data.db.entity.MerchantRuleEntity
 import com.foldfinance.core.data.db.entity.RawMessageEntity
 import com.foldfinance.core.data.db.entity.SubscriptionEntity
@@ -10,12 +11,16 @@ import com.foldfinance.core.data.db.entity.TransactionEntity
 import com.foldfinance.core.model.Card
 import com.foldfinance.core.model.Category
 import com.foldfinance.core.model.KnownBalance
+import com.foldfinance.core.model.MerchantAlias
+import com.foldfinance.core.model.AliasSource
+import com.foldfinance.core.domain.category.MerchantNormalizer
 import com.foldfinance.core.model.MerchantRule
 import com.foldfinance.core.model.RawMessage
 import com.foldfinance.core.model.Subscription
 import com.foldfinance.core.model.Transaction
 
-internal fun TransactionEntity.toModel(): Transaction = Transaction(
+/** @param displayName отображаемое имя мерчанта из `merchant_alias` (см. [aliasDisplayNames]). */
+internal fun TransactionEntity.toModel(displayName: String? = null): Transaction = Transaction(
     id = id,
     occurredAt = occurredAt,
     amountMinor = amountMinor,
@@ -34,6 +39,9 @@ internal fun TransactionEntity.toModel(): Transaction = Transaction(
     userEdited = userEdited,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    aiParsed = aiParsed,
+    aiCategory = aiCategory,
+    merchantDisplayName = displayName,
 )
 
 internal fun RawMessageEntity.toModel(): RawMessage = RawMessage(
@@ -47,6 +55,7 @@ internal fun RawMessageEntity.toModel(): RawMessage = RawMessage(
     parseStatus = parseStatus,
     parserVersion = parserVersion,
     transactionId = transactionId,
+    parserId = parserId,
 )
 
 internal fun CategoryEntity.toModel(): Category = Category(
@@ -99,3 +108,28 @@ internal fun Subscription.toEntity(): SubscriptionEntity = SubscriptionEntity(
     status = status,
     categoryId = categoryId,
 )
+
+internal fun MerchantAliasEntity.toModel(): MerchantAlias = MerchantAlias(
+    merchantKey = merchantKey,
+    displayName = userName ?: aiName,
+    source = if (userName != null) AliasSource.USER else AliasSource.AI,
+    aiCategoryId = aiCategoryId,
+    categoryConfirmed = categoryConfirmed,
+    updatedAt = updatedAt,
+)
+
+/** Ключ → отображаемое имя (имя пользователя приоритетнее имени модели); строки без имени пропускаются. */
+internal fun List<MerchantAliasEntity>.aliasDisplayNames(): Map<String, String> =
+    mapNotNull { a -> (a.userName ?: a.aiName)?.let { a.merchantKey to it } }.toMap()
+
+/**
+ * Операции с отображаемыми именами мерчантов. Канонический ключ считается один раз на мерчанта.
+ */
+internal fun List<TransactionEntity>.toModels(displayNames: Map<String, String>): List<Transaction> {
+    if (displayNames.isEmpty()) return map { it.toModel() }
+    val keys = HashMap<String, String>()
+    return map { e ->
+        val name = e.merchant?.let { m -> displayNames[keys.getOrPut(m) { MerchantNormalizer.canonical(m) }] }
+        e.toModel(name)
+    }
+}

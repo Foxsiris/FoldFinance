@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки локального ИИ (ai/**, ui/ai/settings). -->
+<resources>
+    <string name="ai_settings_title">Локальный ИИ</string>
+    <string name="ai_settings_toggle">Локальный ИИ</string>
+    <string name="ai_settings_toggle_body">Gemini Nano на этом телефоне: разбирает сообщения банка, которые не распознались, даёт продавцам понятные имена и предлагает категории. Всё обрабатывается на телефоне, без интернета: у приложения нет доступа в сеть.</string>
+    <string name="ai_settings_privacy">Модель скачивает и обновляет система (AICore). Тексты сообщений никуда не отправляются.</string>
+
+    <string name="ai_status_checking">Проверяем модель…</string>
+    <string name="ai_status_ready">Модель готова</string>
+    <string name="ai_status_downloadable">Модель не скачана</string>
+    <string name="ai_status_downloading">Модель скачивается…</string>
+    <string name="ai_status_downloading_progress">Скачано %1$s из %2$s</string>
+    <string name="ai_status_downloading_bytes">Скачано %1$s</string>
+    <string name="ai_status_disabled">ИИ выключен — приложение работает как раньше</string>
+    <string name="ai_status_not_supported">Модель на этом телефоне недоступна</string>
+    <string name="ai_status_needs_update">Нужно обновить систему или AICore</string>
+    <string name="ai_status_download_failed">Не удалось скачать модель</string>
+    <string name="ai_status_no_space">Не хватает места для модели</string>
+    <string name="ai_status_error">Модель недоступна (%1$s)</string>
+
+    <string name="ai_action_download">Скачать модель</string>
+    <string name="ai_action_retry">Повторить загрузку</string>
+
+    <!-- Пометки для экранов операций (используются агентом дизайна). -->
+    <string name="ai_badge_parsed">Разобрано ИИ</string>
+    <string name="ai_badge_parsed_body">Операцию извлекла локальная модель; сумма и карта сверены с текстом сообщения.</string>
+    <string name="ai_badge_category">Категорию предложил ИИ</string>
+</resources>

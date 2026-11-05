@@ -11,7 +11,8 @@ import kotlinx.serialization.Serializable
  * остались верными.
  *
  * @property format идентификатор формата, всегда [FORMAT_ID].
- * @property schemaVersion версия формата снимка ([SCHEMA_VERSION]).
+ * @property schemaVersion версия формата снимка ([SCHEMA_VERSION]): 1 — БД v1–v2, 2 — БД v3 (алиасы мерчантов,
+ *   ИИ-флаги). Файлы формата 1 читаются: новые поля получают значения по умолчанию.
  * @property dbVersion версия схемы БД, из которой сделан снимок.
  * @property exportedAtMillis момент экспорта, epoch millis UTC.
  */
@@ -28,13 +29,15 @@ data class BackupSnapshot(
     val rawMessages: List<RawMessageRow>,
     val knownBalances: List<KnownBalanceRow>,
     val subscriptions: List<SubscriptionRow>,
+    /** С формата 2 (БД v3); в старых файлах отсутствует — пусто. */
+    val merchantAliases: List<MerchantAliasRow> = emptyList(),
 ) {
     /** Сколько записей в снимке — для сообщения «Восстановлено N операций». */
     val transactionCount: Int get() = transactions.size
 
     companion object {
         const val FORMAT_ID: String = "foldfinance-backup"
-        const val SCHEMA_VERSION: Int = 1
+        const val SCHEMA_VERSION: Int = 2
     }
 }
 
@@ -67,6 +70,10 @@ data class TransactionRow(
     val updatedAt: Long,
     /** С БД v2; в снимках v1 отсутствует — `false`. */
     val reviewConfirmed: Boolean = false,
+    /** С БД v3: операцию извлекла локальная модель. */
+    val aiParsed: Boolean = false,
+    /** С БД v3: категорию предложила модель, пользователь не подтвердил. */
+    val aiCategory: Boolean = false,
 )
 
 /** Строка таблицы `raw_messages` (текст сообщения банка — только внутри зашифрованного файла). */
@@ -85,6 +92,8 @@ data class RawMessageRow(
     val parserId: String? = null,
     val transactionId: Long? = null,
     val userDeleted: Boolean,
+    /** С БД v3: когда сообщение отдавали локальной модели, epoch millis. */
+    val aiAttemptedAt: Long? = null,
 )
 
 /** Строка таблицы `categories`. */
@@ -139,4 +148,16 @@ data class SubscriptionRow(
     val nextChargeAt: Long,
     val status: String,
     val categoryId: Long? = null,
+)
+
+/** Строка таблицы `merchant_alias` (с БД v3). */
+@Serializable
+data class MerchantAliasRow(
+    val merchantKey: String,
+    val aiName: String? = null,
+    val userName: String? = null,
+    val aiCategoryId: Long? = null,
+    val categoryConfirmed: Boolean = false,
+    val aiCheckedAt: Long? = null,
+    val updatedAt: Long,
 )

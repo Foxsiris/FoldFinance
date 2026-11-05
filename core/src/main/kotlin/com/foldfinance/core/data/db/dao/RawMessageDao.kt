@@ -52,6 +52,37 @@ interface RawMessageDao {
     suspend fun countStale(currentVersion: Int): Int
 
     /**
+     * Кандидаты для локальной модели: regex-парсер не уверен или счёл сообщение не операцией, модели
+     * сообщение ещё не отдавали, пользователь его не скрыл/не удалял. Порциями по возрастанию id;
+     * окончательный отбор — `AiFallbackPolicy` в Kotlin.
+     */
+    @Query(
+        """
+        SELECT * FROM raw_messages
+        WHERE parse_status IN ('UNCERTAIN', 'NOT_FINANCIAL') AND ai_attempted_at IS NULL AND user_deleted = 0
+          AND id > :afterId
+        ORDER BY id ASC LIMIT :limit
+        """,
+    )
+    suspend fun getAiCandidates(afterId: Long, limit: Int): List<RawMessageEntity>
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM raw_messages
+        WHERE parse_status IN ('UNCERTAIN', 'NOT_FINANCIAL') AND ai_attempted_at IS NULL AND user_deleted = 0
+        """,
+    )
+    suspend fun countAiCandidates(): Int
+
+    /** Сообщение отдавали модели (или решили не отдавать) — больше не кандидат. */
+    @Query("UPDATE raw_messages SET ai_attempted_at = :at WHERE id = :id")
+    suspend fun markAiAttempted(id: Long, at: Long)
+
+    /** Только версия парсера: разбор моделью сохраняется, если новая версия regex по-прежнему не справляется. */
+    @Query("UPDATE raw_messages SET parser_version = :version WHERE id = :id")
+    suspend fun setParserVersion(id: Long, version: Int)
+
+    /**
      * Сбойное сообщение («ядовитое»: запись его разбора падает): статус FAILED и версия [version],
      * чтобы перепарсинг не спотыкался о него до следующей версии парсера.
      */
