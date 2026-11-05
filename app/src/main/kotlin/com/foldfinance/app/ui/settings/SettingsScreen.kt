@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Category
@@ -91,7 +92,7 @@ interface SettingsActions {
  *   Без явного выбора справа открыт первый раздел.
  *
  * Чужие блоки встраиваются слотами: [ingestSection] — «Доступы и источники» (ingest),
- * [categories] — управление категориями, [diagnostics] — debug-экран окна.
+ * [aiSection] — «Локальный ИИ», [categories] — управление категориями, [diagnostics] — debug-экран окна.
  */
 @Composable
 fun SettingsScreen(
@@ -102,6 +103,7 @@ fun SettingsScreen(
     panes: List<SettingsPane> = SettingsPane.visible(),
     layout: AppLayout = LocalAppLayout.current,
     ingestSection: @Composable () -> Unit = {},
+    aiSection: @Composable () -> Unit = {},
     categories: @Composable (onBack: () -> Unit) -> Unit = {},
     diagnostics: @Composable (onBack: () -> Unit) -> Unit = {},
     onOpenSubscriptions: (() -> Unit)? = null,
@@ -130,7 +132,7 @@ fun SettingsScreen(
             )
         } else {
             BackHandler(onBack = back)
-            PaneHost(state, selected, actions, ingestSection, categories, onBack = back, modifier = modifier)
+            PaneHost(state, selected, actions, ingestSection, aiSection, categories, onBack = back, modifier = modifier)
         }
     } else {
         val shown = selected ?: panes.first()
@@ -145,7 +147,7 @@ fun SettingsScreen(
                     SettingsList(state, panes, selected = shown, twoPane = true, onSelect = actions::selectPane)
                 }
             },
-            second = { PaneHost(state, shown, actions, ingestSection, categories, onBack = null) },
+            second = { PaneHost(state, shown, actions, ingestSection, aiSection, categories, onBack = null) },
         )
     }
 }
@@ -232,6 +234,7 @@ private fun PaneHost(
     pane: SettingsPane,
     actions: SettingsActions,
     ingestSection: @Composable () -> Unit,
+    aiSection: @Composable () -> Unit,
     categories: @Composable (onBack: () -> Unit) -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
@@ -281,6 +284,7 @@ private fun PaneHost(
                 SettingsPane.SECURITY -> SecurityPane(state, actions)
                 SettingsPane.BACKUP -> BackupPane(state, actions)
                 SettingsPane.APPEARANCE -> AppearancePane(state, actions)
+                SettingsPane.AI -> aiSection()
                 SettingsPane.CATEGORIES, SettingsPane.DIAGNOSTICS -> Unit
             }
         }
@@ -292,6 +296,7 @@ internal fun SettingsPane.titleRes(): Int = when (this) {
     SettingsPane.CARDS -> R.string.settings_pane_cards
     SettingsPane.CURRENCY -> R.string.settings_pane_currency
     SettingsPane.CATEGORIES -> R.string.settings_pane_categories
+    SettingsPane.AI -> R.string.ai_settings_title
     SettingsPane.SECURITY -> R.string.settings_pane_security
     SettingsPane.BACKUP -> R.string.settings_pane_backup
     SettingsPane.APPEARANCE -> R.string.settings_pane_appearance
@@ -303,6 +308,7 @@ private fun SettingsPane.icon(): ImageVector = when (this) {
     SettingsPane.CARDS -> Icons.Outlined.CreditCard
     SettingsPane.CURRENCY -> Icons.Outlined.CurrencyExchange
     SettingsPane.CATEGORIES -> Icons.Outlined.Category
+    SettingsPane.AI -> Icons.Outlined.AutoAwesome
     SettingsPane.SECURITY -> Icons.Outlined.Lock
     SettingsPane.BACKUP -> Icons.Outlined.Backup
     SettingsPane.APPEARANCE -> Icons.Outlined.Palette
@@ -321,6 +327,7 @@ private fun paneSummary(pane: SettingsPane, state: SettingsUiState): String? = w
     }
     SettingsPane.CURRENCY -> currencyName(state.settings.defaultCurrency)
     SettingsPane.CATEGORIES -> stringResource(R.string.settings_summary_categories)
+    SettingsPane.AI -> stringResource(R.string.ai_settings_summary)
     SettingsPane.SECURITY -> when {
         !state.settings.lockEnabled -> stringResource(R.string.settings_summary_lock_off)
         state.deviceAuth != DeviceAuthStatus.AVAILABLE -> stringResource(R.string.settings_summary_lock_unprotected)

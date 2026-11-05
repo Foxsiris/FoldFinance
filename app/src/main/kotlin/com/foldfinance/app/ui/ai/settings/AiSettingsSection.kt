@@ -1,15 +1,22 @@
 package com.foldfinance.app.ui.ai.settings
 
 import android.text.format.Formatter
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,6 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -28,6 +38,12 @@ import com.foldfinance.app.ai.AiStatus
 import com.foldfinance.app.ai.LocalAi
 import com.foldfinance.app.ai.backfill.AiBackfillScheduler
 import com.foldfinance.app.prefs.AppPreferences
+import com.foldfinance.app.ui.components.ListGroup
+import com.foldfinance.app.ui.components.ListGroupDivider
+import com.foldfinance.app.ui.settings.SettingsActionRow
+import com.foldfinance.app.ui.settings.SettingsIntro
+import com.foldfinance.app.ui.settings.SettingsSwitchRow
+import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -89,7 +105,10 @@ fun AiSettingsSection(modifier: Modifier = Modifier, viewModel: AiSettingsViewMo
     AiSettingsContent(state = state, onEnabledChange = viewModel::setEnabled, onDownload = viewModel::download, modifier = modifier)
 }
 
-/** Без ViewModel — для превью и скриншот-тестов. */
+/**
+ * Без ViewModel — для превью и скриншот-тестов. Оформление как у остальных разделов настроек:
+ * группа с переключателем, статусом модели и действием загрузки, под ней — пояснение.
+ */
 @Composable
 fun AiSettingsContent(
     state: AiSettingsState,
@@ -97,44 +116,44 @@ fun AiSettingsContent(
     onDownload: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(R.string.ai_settings_toggle), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    stringResource(R.string.ai_settings_toggle_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        ListGroup(Modifier.fillMaxWidth()) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.ai_settings_toggle),
+                body = stringResource(R.string.ai_settings_toggle_body),
+                checked = state.enabled,
+                onCheckedChange = onEnabledChange,
+            )
+            ListGroupDivider(startInset = 16.dp)
+            StatusLine(state.enabled, state.status)
+            if (state.canDownload) {
+                ListGroupDivider()
+                val retry = state.status is AiStatus.Unavailable
+                SettingsActionRow(
+                    icon = Icons.Outlined.Download,
+                    title = stringResource(if (retry) R.string.ai_action_retry else R.string.ai_action_download),
+                    body = stringResource(R.string.ai_action_download_body),
+                    enabled = true,
+                    onClick = onDownload,
                 )
             }
-            Switch(checked = state.enabled, onCheckedChange = onEnabledChange)
         }
-
-        StatusLine(state.enabled, state.status)
-
-        if (state.canDownload) {
-            FilledTonalButton(onClick = onDownload) {
-                val retry = state.status is AiStatus.Unavailable
-                Text(stringResource(if (retry) R.string.ai_action_retry else R.string.ai_action_download))
-            }
-        }
-
-        Text(
-            stringResource(R.string.ai_settings_privacy),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        SettingsIntro(stringResource(R.string.ai_settings_privacy))
     }
 }
 
 @Composable
 private fun StatusLine(enabled: Boolean, status: AiStatus) {
     val context = LocalContext.current
-    Column(modifier = Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val palette = FoldFinanceTheme.palette
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         val text = when {
             !enabled -> stringResource(R.string.ai_status_disabled)
             else -> when (status) {
@@ -156,16 +175,27 @@ private fun StatusLine(enabled: Boolean, status: AiStatus) {
                 is AiStatus.Unavailable -> unavailableText(status.reason)
             }
         }
-        Text(text, style = MaterialTheme.typography.bodyLarge)
+        val ready = enabled && status == AiStatus.Ready
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(8.dp)
+                    .background(if (ready) palette.income else palette.textDisabled, CircleShape),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(text, style = MaterialTheme.typography.bodyLarge, color = palette.text)
+        }
         if (enabled && status is AiStatus.Downloading) {
             val total = status.totalBytes
             if (total != null && total > 0) {
                 LinearProgressIndicator(
                     progress = { (status.bytesDownloaded.toFloat() / total).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth(),
+                    color = palette.saffron,
+                    trackColor = palette.surfaceRaised,
                 )
-            } else {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            } else if (!FoldFinanceTheme.reducedMotion) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = palette.saffron, trackColor = palette.surfaceRaised)
             }
         }
     }

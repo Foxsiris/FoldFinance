@@ -665,7 +665,7 @@ private fun DayOperationRow(state: AnalyticsUiState, tx: Transaction, withDate: 
             Box(Modifier.size(10.dp).background(visual.color, FoldShapes.pill))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(tx.merchant ?: visual.name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(tx.displayMerchant ?: visual.name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     visual.name + " · " + AnalyticsFormat.operationTime(tx.occurredAt, state.period.zone, withDate),
                     style = FoldTextStyles.caption,

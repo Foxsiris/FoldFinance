@@ -3,6 +3,7 @@ package com.foldfinance.app.ui.history
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.foldfinance.app.ai.features.query.ChatScope
 import com.foldfinance.app.prefs.AppPreferences
 import com.foldfinance.app.prefs.AppSettings
 import com.foldfinance.app.ui.transaction.CategoryEditor
@@ -75,15 +76,25 @@ data class HistoryFilter(
     val isNarrowed: Boolean
         get() = query.isNotBlank() || hasCategoryFilter || directions.isNotEmpty() || period != HistoryPeriod.ALL || hasAmountFilter
 
+    /** Calendar period of the preset at [now] in [zone]; `null` — all time. */
+    fun periodAt(now: Instant, zone: ZoneId): Period? = when (period) {
+        HistoryPeriod.ALL -> null
+        HistoryPeriod.TODAY -> Period.containing(PeriodType.DAY, now, zone)
+        HistoryPeriod.WEEK -> Period.containing(PeriodType.WEEK, now, zone)
+        HistoryPeriod.MONTH -> Period.containing(PeriodType.MONTH, now, zone)
+        HistoryPeriod.YEAR -> Period.containing(PeriodType.YEAR, now, zone)
+    }
+
+    /**
+     * What the chat next to the list asks about: the period of the filter and its category when
+     * exactly one is chosen. Questions that name their own period or category override it.
+     */
+    fun chatScope(now: Instant, zone: ZoneId): ChatScope =
+        ChatScope(period = periodAt(now, zone), categoryId = categoryIds.singleOrNull()?.takeIf { !uncategorized })
+
     /** Repository filter for the moment [now] in [zone] (period presets are calendar periods). */
     fun toRepositoryFilter(now: Instant, zone: ZoneId): TransactionFilter {
-        val period: Period? = when (period) {
-            HistoryPeriod.ALL -> null
-            HistoryPeriod.TODAY -> Period.containing(PeriodType.DAY, now, zone)
-            HistoryPeriod.WEEK -> Period.containing(PeriodType.WEEK, now, zone)
-            HistoryPeriod.MONTH -> Period.containing(PeriodType.MONTH, now, zone)
-            HistoryPeriod.YEAR -> Period.containing(PeriodType.YEAR, now, zone)
-        }
+        val period: Period? = periodAt(now, zone)
         return TransactionFilter(
             from = period?.start,
             to = period?.endExclusive,
@@ -151,6 +162,16 @@ class HistoryViewModel @Inject constructor(
     val filter: StateFlow<HistoryFilter> = handle.getStateFlow(KEY_FILTER, "")
         .map(::decode)
         .stateIn(viewModelScope, SharingStarted.Eagerly, decode(handle[KEY_FILTER] ?: ""))
+
+    /**
+     * The right pane of the inner screen shows the chat instead of the detail («Деталь / Чат»).
+     * In [SavedStateHandle]: survives folding and recreation.
+     */
+    val chatShown: StateFlow<Boolean> = handle.getStateFlow(KEY_CHAT, false)
+
+    fun showChat(show: Boolean) {
+        handle[KEY_CHAT] = show
+    }
 
     /** Operations hidden while their deletion can still be undone. */
     val pendingDeletion: StateFlow<Set<Long>> = deletion.pending
@@ -267,6 +288,7 @@ class HistoryViewModel @Inject constructor(
     companion object {
         const val KEY_FILTER = "history.filter"
         const val KEY_RULE = "history.rulePrompt"
+        const val KEY_CHAT = "history.chatShown"
         private const val SEARCH_DEBOUNCE_MS = 250L
     }
 }

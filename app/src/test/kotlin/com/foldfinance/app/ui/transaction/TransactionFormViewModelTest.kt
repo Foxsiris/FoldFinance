@@ -8,6 +8,8 @@ import com.foldfinance.app.ui.fakes.FakeTransactionRepository
 import com.foldfinance.app.ui.fakes.SampleData
 import com.foldfinance.app.ui.fakes.fakePreferences
 import com.foldfinance.app.prefs.AppPreferences
+import com.foldfinance.app.ai.features.voice.VoiceDraft
+import com.foldfinance.app.ui.ai.voice.toTransactionDraft
 import com.foldfinance.core.model.Source
 import com.foldfinance.parser.Direction
 import com.google.common.truth.Truth.assertThat
@@ -59,6 +61,44 @@ class TransactionFormViewModelTest {
             assertThat(state.draft.categoryId).isEqualTo(3L)
             assertThat(state.draft.merchant).isEqualTo("Пятёрочка")
         }
+    }
+
+    @Test fun `voice prefill opens the add form, survives recreation, typing clears the check flag`() = runTest {
+        val handle = SavedStateHandle()
+        val first = vm(handle)
+        val voice = VoiceDraft(
+            transcript = "кофе двести пятьдесят наличными",
+            amountMinor = 25_000,
+            currency = "RUB",
+            direction = Direction.EXPENSE,
+            merchant = "Кофе",
+            categoryId = 5L,
+            isCash = true,
+            uncertain = true,
+        )
+        first.openAdd(voice.toTransactionDraft("Наличные"))
+
+        val restored = vm(SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) }))
+        val state = restored.state.value
+        assertThat(state.mode).isEqualTo(FormMode.Add)
+        assertThat(state.draft.amountMinor).isEqualTo(25_000L)
+        assertThat(state.draft.merchant).isEqualTo("Кофе")
+        assertThat(state.draft.note).isEqualTo("Наличные")
+        assertThat(state.draft.categoryId).isEqualTo(5L)
+        assertThat(state.draft.amountUncertain).isTrue()
+
+        restored.press(KeypadKey.Digit(0))
+        assertThat(restored.state.value.draft.amountUncertain).isFalse()
+        assertThat(restored.state.value.draft.amountMinor).isEqualTo(250_000L)
+    }
+
+    @Test fun `voice prefill replaces the input of an open add form`() {
+        val vm = vm(SavedStateHandle())
+        vm.openAdd()
+        vm.type("99")
+        vm.openAdd(TransactionDraft(amountText = "250", merchant = "Кофе"))
+        assertThat(vm.state.value.draft.amountText).isEqualTo("250")
+        assertThat(vm.state.value.draft.merchant).isEqualTo("Кофе")
     }
 
     @Test fun `opening add again keeps the draft, closing drops it`() {

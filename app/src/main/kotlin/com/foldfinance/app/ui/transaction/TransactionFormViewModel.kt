@@ -35,6 +35,8 @@ import javax.inject.Inject
  * @property amountText keypad text (`"1240,5"`), see [AmountEntry]; never a `Double`.
  * @property direction `Direction.name`.
  * @property occurredAtMillis chosen date and time; `null` — «сейчас», taken at save.
+ * @property amountUncertain the amount came from voice and the parsers disagreed: the form asks to
+ *   check it (never a silent guess); typing on the keypad clears it.
  */
 @Serializable
 data class TransactionDraft(
@@ -45,6 +47,7 @@ data class TransactionDraft(
     val merchant: String = "",
     val note: String = "",
     val occurredAtMillis: Long? = null,
+    val amountUncertain: Boolean = false,
 ) {
     val directionValue: Direction get() = Direction.valueOf(direction)
     val amountMinor: Long get() = AmountEntry.toMinor(amountText, MoneyFormat.fractionDigits(currency))
@@ -130,6 +133,17 @@ class TransactionFormViewModel @Inject constructor(
         handle[KEY_MODE] = MODE_ADD
     }
 
+    /**
+     * Open the add form prefilled with [prefill] (voice input). Replaces the input of an add form
+     * that is already open: the user asked for this draft just now. Kept in [SavedStateHandle] like
+     * any draft, so it survives folding.
+     */
+    override fun openAdd(prefill: TransactionDraft) {
+        handle[KEY_DRAFT] = encode(prefill.copy(currency = prefill.currency.ifBlank { defaultCurrency.value }))
+        handle[KEY_EDIT_ID] = 0L
+        handle[KEY_MODE] = MODE_ADD
+    }
+
     /** Open the editor for [transactionId], prefilled from the database. Re-opening the same one keeps the draft. */
     fun openEdit(transactionId: Long) {
         if (handle.get<String>(KEY_MODE) == MODE_EDIT && handle.get<Long>(KEY_EDIT_ID) == transactionId) return
@@ -159,7 +173,9 @@ class TransactionFormViewModel @Inject constructor(
         handle[KEY_DRAFT] = ""
     }
 
-    override fun press(key: KeypadKey) = edit { it.copy(amountText = AmountEntry.press(it.amountText, key, MoneyFormat.fractionDigits(it.currency))) }
+    override fun press(key: KeypadKey) = edit {
+        it.copy(amountText = AmountEntry.press(it.amountText, key, MoneyFormat.fractionDigits(it.currency)), amountUncertain = false)
+    }
 
     override fun setDirection(direction: Direction) = edit { it.copy(direction = direction.name) }
 

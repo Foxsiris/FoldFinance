@@ -83,4 +83,12 @@
     <string name="tx_keypad_decimal">Запятая</string>
     <string name="tx_keypad_backspace">Стереть</string>
     <string name="tx_add">Добавить</string>
+    <string name="tx_split_title">Разбивка по чеку</string>
+    <string name="tx_split_rest">Остаток</string>
+    <string name="tx_merchant_rename">Переименовать продавца</string>
+    <string name="tx_merchant_rename_title">Имя продавца</string>
+    <string name="tx_merchant_rename_body">В сообщениях банка: %1$s. Новое имя видно в списках, аналитике и подписках; поиск и правила работают по-прежнему.</string>
+    <string name="tx_merchant_rename_field">Название</string>
+    <string name="tx_merchant_rename_save">Сохранить</string>
+    <string name="tx_merchant_rename_reset">Исходное имя</string>
 </resources>

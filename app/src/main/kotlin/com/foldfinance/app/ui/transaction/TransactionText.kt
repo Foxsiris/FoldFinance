@@ -43,10 +43,14 @@ fun dayTitle(date: LocalDate, today: LocalDate): String = when (date) {
     )
 }
 
-/** What the list shows as the title of an operation: the merchant, or what kind of operation it is. */
+/**
+ * What the list shows as the title of an operation: the merchant's display name
+ * ([Transaction.displayMerchant]: the user's or the model's name, else the raw one), or what kind of
+ * operation it is. Search and category rules keep working on the raw name.
+ */
 @Composable
 @ReadOnlyComposable
-fun Transaction.title(): String = merchant?.takeIf { it.isNotBlank() } ?: stringResource(
+fun Transaction.title(): String = displayMerchant?.takeIf { it.isNotBlank() } ?: stringResource(
     when {
         direction == Direction.INTERNAL_TRANSFER -> R.string.tx_title_internal_transfer
         kind == Kind.TRANSFER && direction == Direction.INCOME -> R.string.tx_title_transfer_in

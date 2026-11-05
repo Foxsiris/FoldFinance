@@ -60,7 +60,7 @@ sealed interface Anomaly {
 /** Facts of an anomaly for the model (placeholders) and the template text. Values formatted by Kotlin. */
 fun Anomaly.facts(): List<Fact> {
     val tx = transaction
-    val merchant = Fact("merchant", tx.merchant ?: (this as? Anomaly.PriceIncrease)?.subscription?.merchant.orEmpty())
+    val merchant = Fact("merchant", tx.displayMerchant ?: (this as? Anomaly.PriceIncrease)?.subscription?.merchant.orEmpty())
     val amount = Fact("amount", FactFormat.money(tx.amountMinor, tx.currency))
     return when (this) {
         is Anomaly.UnusualAmount -> listOf(

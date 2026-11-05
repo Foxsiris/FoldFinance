@@ -39,6 +39,7 @@ class SubscriptionsViewModelTest {
         subscriptions = subscriptions,
         refresh = RefreshSubscriptionsUseCase(transactions, subscriptions, ScreenshotClock),
         categories = FakeCategoryRepository(),
+        aliases = com.foldfinance.app.ui.fakes.FakeMerchantAliasRepository(),
         clock = ScreenshotClock,
     )
 

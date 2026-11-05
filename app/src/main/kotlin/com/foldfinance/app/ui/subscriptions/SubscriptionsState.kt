@@ -3,6 +3,7 @@ package com.foldfinance.app.ui.subscriptions
 import androidx.compose.runtime.Immutable
 import com.foldfinance.core.domain.subscriptions.SubscriptionCosts
 import com.foldfinance.core.domain.subscriptions.SubscriptionDetector
+import com.foldfinance.core.domain.category.MerchantNormalizer
 import com.foldfinance.core.model.Category
 import com.foldfinance.core.model.Subscription
 import com.foldfinance.core.model.SubscriptionPeriod
@@ -79,6 +80,7 @@ const val UPCOMING_DAYS: Long = 30
  * Pure state builder.
  *
  * @param month calendar month; clamped to `[current month, +12]`.
+ * @param displayNames canonical merchant key → display name (`merchant_alias`).
  */
 fun buildSubscriptionsState(
     subscriptions: List<Subscription>,
@@ -88,9 +90,12 @@ fun buildSubscriptionsState(
     month: YearMonth,
     selectedDate: LocalDate?,
     calendarExpanded: Boolean,
+    displayNames: Map<String, String> = emptyMap(),
 ): SubscriptionsUiState {
     val byId = categories.associateBy { it.id }
-    fun item(s: Subscription): SubscriptionItem {
+    fun item(raw: Subscription): SubscriptionItem {
+        // Shown under the merchant's display name; actions go by id, the raw name stays in the database.
+        val s = displayNames[MerchantNormalizer.canonical(raw.merchant)]?.let { raw.copy(merchant = it) } ?: raw
         val last = s.lastChargeAt.atZone(zone).toLocalDate()
         val anchor = s.nextChargeAt.atZone(zone).toLocalDate()
         return SubscriptionItem(

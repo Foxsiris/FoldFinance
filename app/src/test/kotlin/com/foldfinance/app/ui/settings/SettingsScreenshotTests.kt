@@ -4,7 +4,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.foldfinance.app.DeviceConfigs
 import com.foldfinance.app.backup.BackupError
 import com.foldfinance.app.captureInAllConfigs
+import com.foldfinance.app.ai.AiStatus
 import com.foldfinance.app.ui.Shell
+import com.foldfinance.app.ui.ai.settings.AiSettingsContent
+import com.foldfinance.app.ui.ai.settings.AiSettingsState
 import com.foldfinance.app.ui.shell.Section
 import com.foldfinance.app.prefs.AppSettings
 import com.foldfinance.app.prefs.RelockTimeout
@@ -84,6 +87,32 @@ class SettingsScreenshotTests {
             state = sample.copy(settings = sample.settings.copy(themeMode = ThemeMode.DARK)),
             selected = SettingsPane.APPEARANCE,
             actions = SettingsActions.None,
+        )
+    }
+
+    /** «Локальный ИИ»: модель скачивается — статус, прогресс; блок ИИ встроен слотом, как в приложении. */
+    @Test fun localAi() = captureInAllConfigs("settings_ai") {
+        SettingsScreen(
+            state = sample,
+            selected = SettingsPane.AI,
+            actions = SettingsActions.None,
+            aiSection = {
+                AiSettingsContent(
+                    state = AiSettingsState(enabled = true, status = AiStatus.Downloading(640L * 1024 * 1024, 1_536L * 1024 * 1024)),
+                    onEnabledChange = {},
+                    onDownload = {},
+                )
+            },
+        )
+    }
+
+    /** Модель можно скачать: строка-действие «Скачать модель». */
+    @Test fun localAiDownloadable() = captureInAllConfigs("settings_ai_downloadable", configs = listOf(DeviceConfigs.Outer)) {
+        SettingsScreen(
+            state = sample,
+            selected = SettingsPane.AI,
+            actions = SettingsActions.None,
+            aiSection = { AiSettingsContent(AiSettingsState(enabled = true, status = AiStatus.Downloadable), {}, {}) },
         )
     }
 

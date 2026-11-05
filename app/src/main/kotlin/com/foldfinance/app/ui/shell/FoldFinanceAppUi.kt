@@ -56,6 +56,12 @@ import com.foldfinance.app.ui.theme.FoldMotion
 import com.foldfinance.app.ui.theme.FoldShapes
 import com.foldfinance.app.ui.theme.FoldTextStyles
 import com.foldfinance.app.ui.transaction.TransactionFormViewModel
+import com.foldfinance.app.ui.transaction.MerchantRenameViewModel
+import com.foldfinance.app.ui.ai.AiHooks
+import com.foldfinance.app.ui.ai.LocalAiHooks
+import com.foldfinance.app.ui.ai.receipt.ReceiptScanButton
+import com.foldfinance.app.ui.ai.voice.VoiceAddButton
+import com.foldfinance.app.ui.ai.voice.toTransactionDraft
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
 import com.foldfinance.app.ui.transaction.LocalAppSnackbar
@@ -80,6 +86,16 @@ fun FoldFinanceAppUi(
     val pending by viewModel.pendingTransaction.collectAsStateWithLifecycle()
     // The app-wide add form (same instance as the screens' and the widget intent's): the rail's «+».
     val addForm: TransactionFormViewModel = hiltViewModel()
+    val merchantRename: MerchantRenameViewModel = hiltViewModel()
+    val cashNote = stringResource(R.string.aif_voice_cash_note)
+    // Local-model additions of the add form and the detail; each hides itself unless the model is ready.
+    val aiHooks = remember(merchantRename, cashNote) {
+        AiHooks(
+            voiceInput = { onDraft -> VoiceAddButton(onDraft = { voice -> onDraft(voice.toTransactionDraft(cashNote)) }) },
+            receiptButton = { tx -> ReceiptScanButton(tx) },
+            renameMerchant = merchantRename::rename,
+        )
+    }
     val sections = viewModel.visibleSections
     val navigation = remember(viewModel, pending) {
         object : ShellNavigation {
@@ -94,7 +110,7 @@ fun FoldFinanceAppUi(
     // before the sections' own handlers, so a detail or an open editor closes first.
     BackHandler(enabled = selected != sections.first()) { viewModel.select(sections.first()) }
 
-    CompositionLocalProvider(LocalShellNavigation provides navigation) {
+    CompositionLocalProvider(LocalShellNavigation provides navigation, LocalAiHooks provides aiHooks) {
         Box(modifier.fillMaxSize()) {
             if (onboarding != OnboardingState.Unknown) {
                 ShellScaffold(

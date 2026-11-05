@@ -1,5 +1,9 @@
 package com.foldfinance.app.ui.fakes
 
+import com.foldfinance.core.model.AliasSource
+import com.foldfinance.core.model.MerchantAlias
+import com.foldfinance.core.domain.category.MerchantNormalizer
+import com.foldfinance.core.data.repository.MerchantAliasRepository
 import com.foldfinance.core.data.repository.AddRuleResult
 import com.foldfinance.core.data.repository.BalanceRepository
 import com.foldfinance.core.data.repository.CategoryRepository
@@ -146,4 +150,22 @@ class FakeBalanceRepository(initial: List<KnownBalance> = emptyList()) : Balance
     val items = MutableStateFlow(initial)
     override fun observeLatest(): Flow<List<KnownBalance>> = items
     override fun observeLatest(cardMask: String): Flow<KnownBalance?> = items.map { l -> l.firstOrNull { it.cardMask == cardMask } }
+}
+
+class FakeMerchantAliasRepository(initial: List<MerchantAlias> = emptyList()) : MerchantAliasRepository {
+    val items = MutableStateFlow(initial)
+    val renames = mutableListOf<Pair<String, String?>>()
+    override fun observeAll(): Flow<List<MerchantAlias>> = items
+    override fun observeFor(merchant: String?): Flow<MerchantAlias?> =
+        items.map { l -> l.firstOrNull { it.merchantKey == MerchantNormalizer.canonical(merchant) } }
+    override suspend fun rename(merchant: String, displayName: String?): Boolean {
+        renames += merchant to displayName
+        val key = MerchantNormalizer.canonical(merchant)
+        if (key.isEmpty()) return false
+        items.update { l ->
+            l.filterNot { it.merchantKey == key } +
+                MerchantAlias(key, displayName, AliasSource.USER, aiCategoryId = null, categoryConfirmed = false, updatedAt = Instant.EPOCH)
+        }
+        return true
+    }
 }

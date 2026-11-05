@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** Разделы настроек в порядке списка. [DIAGNOSTICS] есть только в debug. */
-enum class SettingsPane { SOURCES, CARDS, CURRENCY, CATEGORIES, SECURITY, BACKUP, APPEARANCE, DIAGNOSTICS;
+enum class SettingsPane { SOURCES, CARDS, CURRENCY, CATEGORIES, AI, SECURITY, BACKUP, APPEARANCE, DIAGNOSTICS;
 
     companion object {
         fun visible(debug: Boolean = BuildConfig.DEBUG): List<SettingsPane> = entries.filter { debug || it != DIAGNOSTICS }

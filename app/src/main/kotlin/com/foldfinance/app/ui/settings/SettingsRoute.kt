@@ -20,6 +20,7 @@ import com.foldfinance.app.backup.BackupManager
 import com.foldfinance.app.ingest.debug.IngestDebugTools
 import com.foldfinance.app.prefs.RelockTimeout
 import com.foldfinance.app.prefs.ThemeMode
+import com.foldfinance.app.ui.ai.settings.AiSettingsSection
 import com.foldfinance.app.ui.categories.CategoriesRoute
 import com.foldfinance.app.ui.diagnostics.WindowDiagnosticsRoute
 import com.foldfinance.app.ui.onboarding.IngestSettingsSection
@@ -29,7 +30,7 @@ import java.time.LocalDate
 
 /**
  * «Настройки» — точка входа раздела: доступы и источники, мои карты, валюта, категории,
- * безопасность, резервная копия, оформление; в debug — «Диагностика окна».
+ * локальный ИИ, безопасность, резервная копия, оформление; в debug — «Диагностика окна».
  *
  * Выбор файла бэкапа — SAF (`CreateDocument` / `OpenDocument`); пароль спрашивается уже после
  * выбора файла и не сохраняется.
@@ -99,6 +100,7 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
                 IngestDebugTools()
             }
         },
+        aiSection = { AiSettingsSection() },
         categories = { onBack -> CategoriesRoute(onBack = onBack) },
         diagnostics = { onBack -> WindowDiagnosticsRoute(modifier, onBack = onBack) },
         onOpenSubscriptions = { shell.openSection(Section.Subscriptions) },

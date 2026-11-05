@@ -55,6 +55,25 @@ class ScreenViewModelsTest {
     ) =
         HistoryViewModel(handle, repo, FakeCategoryRepository(), rules, preferences, ScreenshotClock)
 
+    @Test fun `history chat pane choice survives recreation, chat scope follows the filter`() = runTest {
+        val handle = SavedStateHandle()
+        val first = history(handle)
+        assertThat(first.chatShown.value).isFalse()
+        first.showChat(true)
+        first.setPeriod(HistoryPeriod.MONTH)
+        val groceries = SampleData.categoryId("groceries")
+        first.toggleCategoryFilter(groceries)
+
+        val restored = history(handle.copy())
+        assertThat(restored.chatShown.value).isTrue()
+        val scope = restored.filter.value.chatScope(ScreenshotClock.instant(), ScreenshotClock.zone)
+        assertThat(scope.categoryId).isEqualTo(groceries)
+        assertThat(scope.period!!.startDate).isEqualTo(java.time.LocalDate.of(2026, 11, 1))
+        // Two categories or «без категории» — no single category for the chat.
+        restored.toggleUncategorized()
+        assertThat(restored.filter.value.chatScope(ScreenshotClock.instant(), ScreenshotClock.zone).categoryId).isNull()
+    }
+
     @Test fun `history filters, search and sort survive recreation`() = runTest {
         val handle = SavedStateHandle()
         val first = history(handle)

@@ -85,7 +85,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.foldfinance.app.R
+import com.foldfinance.app.ai.features.common.AiAvailability
+import com.foldfinance.app.ui.ai.chat.AiChatPane
+import com.foldfinance.app.ui.ai.chat.AiChatViewModel
 import com.foldfinance.app.ui.components.CategoryChip
+import com.foldfinance.app.ui.components.SegmentedControl
 import com.foldfinance.app.ui.components.EmptyState
 import com.foldfinance.app.ui.components.MoneyStyle
 import com.foldfinance.app.ui.components.MoneyText
@@ -130,6 +134,10 @@ const val HistoryEditorKey = "history.editor"
  * and the editors live in ViewModels with `SavedStateHandle`, the list scroll position is hoisted
  * here (outside the panes) and saveable. Folding with an open detail keeps the detail, «Назад»
  * then returns to the list; unfolding shows the list with the same operation on the right.
+ *
+ * Local model (inner screen): the right pane switches between the detail and the chat
+ * («Деталь / Чат», the choice in [SavedStateHandle]); the chat asks about the period and category
+ * of the current filter. Without a ready model there is no switch and the pane is the detail.
  */
 @Composable
 fun HistoryRoute(
@@ -140,6 +148,9 @@ fun HistoryRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val rulePrompt by viewModel.rulePrompt.collectAsStateWithLifecycle()
+    val chat: AiChatViewModel = hiltViewModel(key = AiChatViewModel.KEY)
+    val chatState by chat.state.collectAsStateWithLifecycle()
+    val chatShown by viewModel.chatShown.collectAsStateWithLifecycle()
     val editorState by editor.state.collectAsStateWithLifecycle()
     val addState by addForm.state.collectAsStateWithLifecycle()
     val navigator = rememberHistoryNavigator()
@@ -157,6 +168,7 @@ fun HistoryRoute(
     // «Обзор» asked to open an operation here.
     LaunchedEffect(shell.pendingTransactionId) {
         val id = shell.pendingTransactionId ?: return@LaunchedEffect
+        viewModel.showChat(false)
         navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
         shell.consumePendingTransaction()
     }
@@ -193,6 +205,16 @@ fun HistoryRoute(
         now = viewModel.now(),
         zone = viewModel.zone,
         modifier = modifier,
+        chatAvailable = chatState.availability == AiAvailability.Ready,
+        chatShown = chatShown,
+        onShowChat = viewModel::showChat,
+        chat = { m ->
+            AiChatPane(
+                scope = state.filter.chatScope(viewModel.now(), viewModel.zone),
+                modifier = m,
+                viewModel = chat,
+            )
+        },
     )
 
     rulePrompt?.let { prompt ->
@@ -269,6 +291,10 @@ fun HistoryScreen(
     zone: ZoneId,
     modifier: Modifier = Modifier,
     layout: AppLayout = LocalAppLayout.current,
+    chatAvailable: Boolean = false,
+    chatShown: Boolean = false,
+    onShowChat: (Boolean) -> Unit = {},
+    chat: @Composable (Modifier) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val twoPane = layout is AppLayout.Book
@@ -301,7 +327,11 @@ fun HistoryScreen(
                             selectedId = if (twoPane) selectedId else null,
                             twoPane = twoPane,
                             filterActions = filterActions,
-                            onOpen = { id -> scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) } },
+                            onOpen = { id ->
+                                // Opening an operation shows its detail, also when the chat was on.
+                                if (chatShown) onShowChat(false)
+                                scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) }
+                            },
                             onAdd = onAdd,
                             onDropOnCategory = onDropOnCategory,
                             now = now,
@@ -329,6 +359,10 @@ fun HistoryScreen(
                             zone = zone,
                             onBack = { scope.launch { navigator.navigateBack(BackNavigationBehavior.PopUntilScaffoldValueChange) } },
                             sharedHeader = { id -> sharedModifier(shared, visibility, "tx-$id", enabled = !twoPane && !reducedMotion) },
+                            chatAvailable = twoPane && chatAvailable,
+                            chatShown = chatShown,
+                            onShowChat = onShowChat,
+                            chat = chat,
                         )
                         }
                     }
@@ -593,55 +627,75 @@ private fun HistoryDetailPane(
     zone: ZoneId,
     onBack: () -> Unit,
     sharedHeader: @Composable (Long) -> Modifier,
+    chatAvailable: Boolean = false,
+    chatShown: Boolean = false,
+    onShowChat: (Boolean) -> Unit = {},
+    chat: @Composable (Modifier) -> Unit = {},
 ) {
     val reducedMotion = FoldFinanceTheme.reducedMotion
     val editing = contentKey != null && editorState.mode == FormMode.Edit(contentKey)
     val content = when {
         twoPane && addState.isOpen -> DetailContent.Add
         editing -> DetailContent.Edit
+        chatAvailable && chatShown -> DetailContent.Chat
         contentKey != null -> DetailContent.Detail
         else -> DetailContent.Hint
     }
     BackHandler(enabled = editing) { editorActions.close() }
     BackHandler(enabled = content == DetailContent.Add) { addActions.close() }
-    // Within the pane, switching between detail, editor and the add form fades (instant under reduced motion).
-    AnimatedContent(
-        targetState = content to contentKey,
-        transitionSpec = { fadeIn(FoldMotion.effects(reducedMotion)) togetherWith fadeOut(FoldMotion.effects(reducedMotion)) },
-        label = "historyDetail",
-        modifier = Modifier.fillMaxSize().testTag("history.detail"),
-    ) { (shown, key) ->
-        val padding = if (twoPane) PaddingValues(horizontal = 24.dp, vertical = 18.dp) else PaddingValues(horizontal = 20.dp, vertical = 8.dp)
-        when (shown) {
-            DetailContent.Add -> TransactionForm(addState, addActions, now, zone, Modifier.fillMaxSize(), fillHeight = true, contentPadding = padding)
-            DetailContent.Edit -> TransactionForm(editorState, editorActions, now, zone, Modifier.fillMaxSize(), fillHeight = true, contentPadding = padding)
-            DetailContent.Detail -> {
-                val data = key?.let { detail(it) }
-                if (data != null) {
-                    TransactionDetail(
-                        state = data,
-                        actions = detailActions,
-                        now = now,
-                        zone = zone,
-                        onBack = if (twoPane) null else onBack,
-                        headerModifier = sharedHeader(data.transaction.id),
-                        contentPadding = padding,
-                    )
-                } else {
-                    Box(Modifier.fillMaxSize())
+    // «Деталь / Чат» over the right pane: only with a ready model, not over the forms.
+    val showSwitch = chatAvailable && content != DetailContent.Add && content != DetailContent.Edit
+    Column(Modifier.fillMaxSize()) {
+        if (showSwitch) {
+            SegmentedControl(
+                labels = listOf(stringResource(R.string.history_pane_detail), stringResource(R.string.history_pane_chat)),
+                selected = if (content == DetailContent.Chat) 1 else 0,
+                onSelect = { onShowChat(it == 1) },
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 18.dp),
+                height = 40.dp,
+                description = stringResource(R.string.history_pane_switch),
+            )
+        }
+        // Within the pane, switching between detail, editor and the add form fades (instant under reduced motion).
+        AnimatedContent(
+            targetState = content to contentKey,
+            transitionSpec = { fadeIn(FoldMotion.effects(reducedMotion)) togetherWith fadeOut(FoldMotion.effects(reducedMotion)) },
+            label = "historyDetail",
+            modifier = Modifier.weight(1f).fillMaxWidth().testTag("history.detail"),
+        ) { (shown, key) ->
+            val padding = if (twoPane) PaddingValues(horizontal = 24.dp, vertical = 18.dp) else PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+            when (shown) {
+                DetailContent.Add -> TransactionForm(addState, addActions, now, zone, Modifier.fillMaxSize(), fillHeight = true, contentPadding = padding)
+                DetailContent.Edit -> TransactionForm(editorState, editorActions, now, zone, Modifier.fillMaxSize(), fillHeight = true, contentPadding = padding)
+                DetailContent.Detail -> {
+                    val data = key?.let { detail(it) }
+                    if (data != null) {
+                        TransactionDetail(
+                            state = data,
+                            actions = detailActions,
+                            now = now,
+                            zone = zone,
+                            onBack = if (twoPane) null else onBack,
+                            headerModifier = sharedHeader(data.transaction.id),
+                            contentPadding = padding,
+                        )
+                    } else {
+                        Box(Modifier.fillMaxSize())
+                    }
                 }
-            }
-            DetailContent.Hint -> Box(Modifier.fillMaxSize().padding(padding).padding(top = 72.dp)) {
-                EmptyState(
-                    title = stringResource(R.string.tx_select_hint_title),
-                    body = stringResource(R.string.tx_select_hint_body),
-                )
+                DetailContent.Hint -> Box(Modifier.fillMaxSize().padding(padding).padding(top = 72.dp)) {
+                    EmptyState(
+                        title = stringResource(R.string.tx_select_hint_title),
+                        body = stringResource(R.string.tx_select_hint_body),
+                    )
+                }
+                DetailContent.Chat -> chat(Modifier.fillMaxSize().padding(horizontal = 4.dp))
             }
         }
     }
 }
 
-private enum class DetailContent { Hint, Detail, Edit, Add }
+private enum class DetailContent { Hint, Detail, Edit, Add, Chat }
 
 /** Top half of tabletop: what the current filter adds up to — to look at, nothing to touch. */
 @Composable

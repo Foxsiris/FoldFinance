@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.foldfinance.app.ui.analytics.InsightsClock
 import com.foldfinance.core.data.repository.CategoryRepository
+import com.foldfinance.core.data.repository.MerchantAliasRepository
 import com.foldfinance.core.data.repository.SubscriptionRepository
 import com.foldfinance.core.data.subscriptions.RefreshSubscriptionsUseCase
 import com.foldfinance.core.model.SubscriptionStatus
@@ -13,6 +14,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.stateIn
 import java.time.Clock
@@ -32,8 +34,13 @@ class SubscriptionsViewModel @Inject constructor(
     private val subscriptions: SubscriptionRepository,
     private val refresh: RefreshSubscriptionsUseCase,
     categories: CategoryRepository,
+    aliases: MerchantAliasRepository,
     @InsightsClock private val clock: Clock,
 ) : ViewModel() {
+
+    private val displayNames = aliases.observeAll().map { list ->
+        list.mapNotNull { a -> a.displayName?.let { a.merchantKey to it } }.toMap()
+    }
 
     private val calendar = combine(
         savedStateHandle.getStateFlow<String?>(KEY_MONTH, null),
@@ -42,7 +49,7 @@ class SubscriptionsViewModel @Inject constructor(
     ) { month, day, expanded -> Triple(parseMonth(month), parseDate(day), expanded) }
 
     val state: StateFlow<SubscriptionsUiState> =
-        combine(subscriptions.observeAll(), categories.observeAll(), calendar) { subs, cats, (month, day, expanded) ->
+        combine(subscriptions.observeAll(), categories.observeAll(), calendar, displayNames) { subs, cats, (month, day, expanded), names ->
             buildSubscriptionsState(
                 subscriptions = subs,
                 categories = cats,
@@ -51,6 +58,7 @@ class SubscriptionsViewModel @Inject constructor(
                 month = month ?: YearMonth.from(today()),
                 selectedDate = day,
                 calendarExpanded = expanded,
+                displayNames = names,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SubscriptionsUiState(isLoading = true, today = today()))
 

@@ -65,6 +65,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.foldfinance.app.R
+import com.foldfinance.app.ai.features.query.ChatScope
+import com.foldfinance.app.ui.ai.anomalies.AnomaliesCard
+import com.foldfinance.app.ui.ai.chat.AiChatLauncher
+import com.foldfinance.app.ui.ai.chat.AiChatSheet
+import com.foldfinance.app.ui.ai.insight.MonthlyInsightCard
 import com.foldfinance.app.ui.components.AccentFab
 import com.foldfinance.app.ui.components.CategoryChip
 import com.foldfinance.app.ui.components.ChipStyle
@@ -144,6 +149,10 @@ val OverviewPeriods: List<Period> = listOf(Period.Week, Period.Month, Period.Yea
  *   right panel.
  * - Tabletop: «Потрачено» and the chart on top (to look at); period, category filters and the list
  *   in the bottom panel (to touch).
+ *
+ * Local model: the monthly summary and «Стоит проверить» follow the «Сегодня / На проверку» tiles
+ * outside and close the summary panel inside; «Спросить» sits next to search in the outer header
+ * and opens the chat as a sheet. All of it is absent unless the model is ready.
  */
 @Composable
 fun OverviewRoute(
@@ -176,7 +185,14 @@ fun OverviewRoute(
         now = viewModel.now(),
         zone = viewModel.zone,
         modifier = modifier,
+        aiCards = { cardModifier ->
+            MonthlyInsightCard(cardModifier)
+            AnomaliesCard(cardModifier)
+        },
+        chatAction = { m -> AiChatLauncher(m) },
     )
+    // The chat sheet of the outer screen; its open state lives in the chat ViewModel (SavedStateHandle).
+    if (LocalAppLayout.current is AppLayout.Compact) AiChatSheet(ChatScope())
 }
 
 @Composable
@@ -189,6 +205,8 @@ fun OverviewScreen(
     zone: ZoneId,
     modifier: Modifier = Modifier,
     layout: AppLayout = LocalAppLayout.current,
+    aiCards: @Composable (cardModifier: Modifier) -> Unit = {},
+    chatAction: @Composable (Modifier) -> Unit = {},
 ) {
     if (state.loading) {
         Box(modifier.fillMaxSize())
@@ -198,7 +216,7 @@ fun OverviewScreen(
     BackHandler(enabled = addState.isOpen && layout !is AppLayout.Compact) { addActions.close() }
     when (layout) {
         is AppLayout.Compact -> {
-            CompactOverview(state, actions, zone, modifier)
+            CompactOverview(state, actions, zone, modifier, aiCards, chatAction)
             TransactionFormSheet(addState, addActions, now, zone)
         }
         is AppLayout.Book -> TwoPane(
@@ -212,7 +230,7 @@ fun OverviewScreen(
                             .padding(horizontal = 22.dp, vertical = 22.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        SummaryPanelContent(state, actions, zone)
+                        SummaryPanelContent(state, actions, zone, aiCards)
                     }
                 }
             },
@@ -296,7 +314,14 @@ fun OverviewScreen(
 // ---------------------------------------------------------------- Outer screen («Главная»)
 
 @Composable
-private fun CompactOverview(state: OverviewUiState, actions: OverviewActions, zone: ZoneId, modifier: Modifier) {
+private fun CompactOverview(
+    state: OverviewUiState,
+    actions: OverviewActions,
+    zone: ZoneId,
+    modifier: Modifier,
+    aiCards: @Composable (Modifier) -> Unit,
+    chatAction: @Composable (Modifier) -> Unit,
+) {
     val listState = rememberLazyListState()
     Box(modifier.fillMaxSize()) {
         if (!state.hasAnyTransactions) {
@@ -316,7 +341,7 @@ private fun CompactOverview(state: OverviewUiState, actions: OverviewActions, zo
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 104.dp),
         ) {
-            item(key = "header") { DateHeader(state, actions) }
+            item(key = "header") { DateHeader(state, actions, chatAction) }
             item(key = "spent") {
                 Column(Modifier.padding(top = 18.dp)) {
                     SpentBlock(state, label = stringResource(R.string.overview_spent_month), amountMinor = state.monthMinor, style = MoneyStyle.Display)
@@ -337,6 +362,8 @@ private fun CompactOverview(state: OverviewUiState, actions: OverviewActions, zo
                 )
             }
             item(key = "tiles") { TodayTiles(state, actions, Modifier.padding(top = 18.dp)) }
+            // Hidden cards draw nothing, so the column collapses to zero height without the model.
+            item(key = "ai") { Column { aiCards(Modifier.fillMaxWidth().padding(top = 10.dp)) } }
             if (state.balances.isNotEmpty()) {
                 item(key = "balances") { Balances(state.balances, state.today, zone, Modifier.padding(top = 14.dp)) }
             }
@@ -382,9 +409,9 @@ private fun CompactOverview(state: OverviewUiState, actions: OverviewActions, zo
     }
 }
 
-/** «Четверг, 5 ноября» / «Ноябрь» and the search button. */
+/** «Четверг, 5 ноября» / «Ноябрь», «Спросить» (local model) and the search button. */
 @Composable
-private fun DateHeader(state: OverviewUiState, actions: OverviewActions) {
+private fun DateHeader(state: OverviewUiState, actions: OverviewActions, chatAction: @Composable (Modifier) -> Unit = {}) {
     val palette = FoldFinanceTheme.palette
     val weekday = state.today.dayOfWeek.getDisplayName(TextStyle.FULL, RuLocale).replaceFirstChar { it.titlecase(RuLocale) }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -397,6 +424,7 @@ private fun DateHeader(state: OverviewUiState, actions: OverviewActions) {
             ScreenTitle(monthTitle(state.today))
         }
         if (state.hasAnyTransactions) {
+            chatAction(Modifier.padding(end = 8.dp))
             IconCircleButton(
                 icon = Icons.Outlined.Search,
                 contentDescription = stringResource(R.string.overview_search),
@@ -547,7 +575,12 @@ private fun OverviewEmptyState(onAdd: () -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SummaryPanelContent(state: OverviewUiState, actions: OverviewActions, zone: ZoneId) {
+private fun SummaryPanelContent(
+    state: OverviewUiState,
+    actions: OverviewActions,
+    zone: ZoneId,
+    aiCards: @Composable (Modifier) -> Unit = {},
+) {
     val palette = FoldFinanceTheme.palette
     // In a narrow panel the day range goes under the period chip instead of squeezing it.
     FlowRow(
@@ -584,6 +617,7 @@ private fun SummaryPanelContent(state: OverviewUiState, actions: OverviewActions
     )
     if (state.balances.isNotEmpty()) Balances(state.balances, state.today, zone)
     CategoryBreakdown(state, actions)
+    aiCards(Modifier.fillMaxWidth())
 }
 
 /** «Ноябрь 2026 ⌄»: the period of the overview, a tap opens the choice of week / month / year. */

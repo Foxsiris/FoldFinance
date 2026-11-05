@@ -80,14 +80,17 @@ object QueryEngine {
         is QueryCall.ListOps -> list(call, transactions, primaryCurrency)
     }
 
-    /** Operation passes the category/merchant filter. */
+    /** Operation passes the category/merchant filter (the raw name from the bank or the display name). */
     fun matches(tx: Transaction, category: Category?, merchant: String?): Boolean {
         if (category != null && tx.categoryId != category.id) return false
         if (merchant != null) {
-            val name = tx.merchant ?: return false
+            val names = listOfNotNull(tx.merchant, tx.merchantDisplayName)
+            if (names.isEmpty()) return false
             val plain = normKey(merchant)
             val canon = MerchantNormalizer.canonical(merchant)
-            val hit = normKey(name).contains(plain) || (canon.isNotEmpty() && MerchantNormalizer.canonical(name).contains(canon))
+            val hit = names.any { name ->
+                normKey(name).contains(plain) || (canon.isNotEmpty() && MerchantNormalizer.canonical(name).contains(canon))
+            }
             if (!hit) return false
         }
         return true
@@ -195,7 +198,7 @@ object QueryEngine {
     private fun merchantSums(txs: List<Transaction>): Map<String, Pair<String?, Long>> =
         txs.groupBy { MerchantNormalizer.canonical(it.merchant) }
             .mapValues { (_, list) ->
-                list.maxBy { it.occurredAt }.merchant to list.sumOf(AnalyticsCalculator::netExpenseContribution)
+                list.maxBy { it.occurredAt }.displayMerchant to list.sumOf(AnalyticsCalculator::netExpenseContribution)
             }
 
     private fun merchantRows(ops: List<Transaction>, codes: List<String>): List<AnswerRow> = codes.flatMap { code ->

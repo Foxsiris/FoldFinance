@@ -21,9 +21,12 @@
 
     <string name="ai_action_download">Скачать модель</string>
     <string name="ai_action_retry">Повторить загрузку</string>
+    <string name="ai_action_download_body">Загрузку ведёт система (AICore); можно уйти с экрана</string>
+    <string name="ai_settings_summary">Модель на телефоне, без интернета</string>
 
     <!-- Пометки для экранов операций (используются агентом дизайна). -->
     <string name="ai_badge_parsed">Разобрано ИИ</string>
     <string name="ai_badge_parsed_body">Операцию извлекла локальная модель; сумма и карта сверены с текстом сообщения.</string>
     <string name="ai_badge_category">Категорию предложил ИИ</string>
+    <string name="ai_voice_check_amount">Проверьте сумму: распознано голосом</string>
 </resources>

@@ -48,6 +48,8 @@ import com.foldfinance.app.ai.features.voice.VoiceDraft
 import com.foldfinance.app.ai.features.voice.VoiceParser
 import com.foldfinance.app.prefs.AppPreferences
 import com.foldfinance.app.ui.format.MoneyFormat
+import com.foldfinance.app.ui.components.IconCircleButton
+import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
 import com.foldfinance.app.ui.transaction.AmountEntry
 import com.foldfinance.app.ui.transaction.TransactionDraft
@@ -147,15 +149,16 @@ fun VoiceAddButton(
     if (availability != AiAvailability.Ready || !deviceSupports) return
     // Without the Russian on-device model the button goes; the error explaining why stays open.
     if (!languageMissing) {
-        FilledTonalIconButton(
+        IconCircleButton(
+            icon = Icons.Outlined.Mic,
+            contentDescription = stringResource(R.string.aif_voice_button),
             onClick = {
                 val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
                 if (granted) start() else showRationale = true
             },
-            modifier = modifier.size(56.dp),
-        ) {
-            Icon(Icons.Outlined.Mic, contentDescription = stringResource(R.string.aif_voice_button))
-        }
+            modifier = modifier,
+            tint = FoldFinanceTheme.palette.accentContent,
+        )
     }
 
     if (showRationale) {
@@ -248,4 +251,5 @@ fun VoiceDraft.toTransactionDraft(cashNote: String): TransactionDraft = Transact
     categoryId = categoryId,
     merchant = merchant.orEmpty(),
     note = if (isCash) cashNote else "",
+    amountUncertain = uncertain,
 )

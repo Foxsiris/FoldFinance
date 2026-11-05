@@ -63,12 +63,14 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.foldfinance.app.R
+import com.foldfinance.app.ui.ai.LocalAiHooks
 import com.foldfinance.app.ui.components.CategoryChip
 import com.foldfinance.app.ui.components.IconCircleButton
 import com.foldfinance.app.ui.components.MoneyStyle
@@ -98,6 +100,9 @@ interface TransactionFormActions {
     fun setOccurredAt(instant: Instant)
     fun save()
     fun close()
+
+    /** Replace the draft with [prefill] in add mode (voice input). No-op by default (previews). */
+    fun openAdd(prefill: TransactionDraft) = Unit
 }
 
 /** Text field of the form opened by its chip. */
@@ -147,6 +152,12 @@ fun TransactionForm(
                 color = palette.text,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
+            // Voice cash input (local model + on-device speech): hidden unless the model is ready.
+            val voice = LocalAiHooks.current.voiceInput
+            if (state.mode == FormMode.Add && voice != null) {
+                voice { prefill -> actions.openAdd(prefill) }
+                Spacer(Modifier.width(8.dp))
+            }
             IconCircleButton(
                 icon = Icons.Outlined.Close,
                 contentDescription = stringResource(R.string.tx_form_close),
@@ -162,6 +173,15 @@ fun TransactionForm(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             AmountDisplay(text = draft.amountText, currency = draft.currency, direction = draft.directionValue)
+            if (draft.amountUncertain) {
+                Text(
+                    stringResource(R.string.ai_voice_check_amount),
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.review,
+                    textAlign = TextAlign.Center,
+                )
+            }
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),

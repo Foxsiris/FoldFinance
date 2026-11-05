@@ -44,4 +44,7 @@
         <item quantity="many">%d операций</item>
         <item quantity="other">%d операции</item>
     </plurals>
+    <string name="history_pane_detail">Деталь</string>
+    <string name="history_pane_chat">Чат</string>
+    <string name="history_pane_switch">Правая панель</string>
 </resources>

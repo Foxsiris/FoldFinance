@@ -29,6 +29,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -37,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.foldfinance.app.R
+import com.foldfinance.app.ui.ai.LocalAiHooks
 import com.foldfinance.app.ui.format.CardMaskFormat
 import com.foldfinance.app.ui.components.CategoryChip
 import com.foldfinance.app.ui.components.CategoryTile
@@ -113,6 +118,9 @@ fun TransactionDetail(
     val tx = state.transaction
     val today = now.atZone(zone).toLocalDate()
     val visual = categoryVisualOrNone(state.category)
+    val hooks = LocalAiHooks.current
+    val rename = hooks.renameMerchant.takeIf { tx.merchant != null }
+    var renaming by rememberSaveable(tx.id) { mutableStateOf(false) }
     Column(
         modifier
             .fillMaxSize()
@@ -128,6 +136,12 @@ fun TransactionDetail(
                 )
             }
             Spacer(Modifier.weight(1f))
+            // «Чек» (local model reads the receipt and splits the operation): only expenses, only
+            // when the model accepts images.
+            hooks.receiptButton?.let { receipt ->
+                receipt(tx)
+                Spacer(Modifier.width(8.dp))
+            }
             OutlineButton(
                 text = stringResource(R.string.tx_edit),
                 icon = Icons.Outlined.Edit,
@@ -147,17 +161,35 @@ fun TransactionDetail(
             }
         }
         Column(headerModifier.fillMaxWidth().padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            val renameLabel = stringResource(R.string.tx_merchant_rename)
+            Row(
+                Modifier
+                    .then(
+                        if (rename != null) {
+                            Modifier
+                                .clip(FoldShapes.chip)
+                                .clickable(role = Role.Button, onClickLabel = renameLabel) { renaming = true }
+                                .heightIn(min = 36.dp)
+                        } else {
+                            Modifier
+                        },
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Box(Modifier.size(10.dp).background(visual.color, FoldShapes.pill))
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = tx.title(),
-                    modifier = Modifier.semantics { heading() },
+                    modifier = Modifier.weight(1f, fill = false).semantics { heading() },
                     style = MaterialTheme.typography.bodyLarge,
                     color = palette.textSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (rename != null) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Outlined.Edit, contentDescription = null, tint = palette.textMuted, modifier = Modifier.size(16.dp))
+                }
             }
             MoneyText(
                 amountMinor = signedRowAmount(tx.amountMinor, tx.direction),
@@ -173,6 +205,8 @@ fun TransactionDetail(
                 PillTag(tx.direction.label(), color = palette.textSoft, container = palette.surfaceRaised)
                 PillTag(sourceSummary(tx, state.rawMessages), color = palette.textSoft, container = palette.surfaceRaised)
                 if (tx.needsReview) ReviewBadge()
+                if (tx.aiParsed) PillTag(stringResource(R.string.ai_badge_parsed), color = palette.textSoft, container = palette.surfaceRaised)
+                if (tx.aiCategory) PillTag(stringResource(R.string.ai_badge_category), color = palette.textSoft, container = palette.surfaceRaised)
             }
         }
 
@@ -191,6 +225,13 @@ fun TransactionDetail(
             FieldRow(stringResource(R.string.tx_category), visual.name)
             FieldRow(stringResource(R.string.tx_source), tx.source.label())
             HorizontalDivider(thickness = 1.dp, color = palette.seam)
+        }
+
+        if (tx.splits.isNotEmpty()) {
+            Spacer(Modifier.height(18.dp))
+            Overline(stringResource(R.string.tx_split_title))
+            Spacer(Modifier.height(6.dp))
+            SplitParts(tx, state)
         }
 
         Spacer(Modifier.height(18.dp))
@@ -220,6 +261,9 @@ fun TransactionDetail(
                 RawMessageCard(raw, tx.source, zone)
                 Spacer(Modifier.height(10.dp))
             }
+            if (tx.aiParsed) {
+                Text(stringResource(R.string.ai_badge_parsed_body), style = FoldTextStyles.caption, color = palette.textMuted)
+            }
         }
 
         Spacer(Modifier.height(14.dp))
@@ -234,6 +278,61 @@ fun TransactionDetail(
             Text(note, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
         }
         Spacer(Modifier.height(24.dp))
+    }
+
+    if (renaming && rename != null) {
+        val raw = tx.merchant.orEmpty()
+        MerchantRenameDialog(
+            raw = raw,
+            current = tx.displayMerchant.orEmpty(),
+            onSave = { name ->
+                renaming = false
+                rename(raw, name)
+            },
+            onDismiss = { renaming = false },
+        )
+    }
+}
+
+/**
+ * Parts of an operation split by a receipt: category, what went into it, the amount; the rest of
+ * the operation stays in its own category. Amounts come from the database, sums are Kotlin's.
+ */
+@Composable
+private fun SplitParts(tx: Transaction, state: TransactionDetailState) {
+    val palette = FoldFinanceTheme.palette
+    val byId = state.categories.associateBy { it.id }
+    Column {
+        tx.splits.forEach { part ->
+            val visual = categoryVisualOrNone(part.categoryId?.let(byId::get))
+            SplitRow(visual.color, visual.name, part.label, part.amountMinor, tx.currency)
+        }
+        val rest = tx.unsplitAmountMinor
+        if (rest > 0) {
+            val visual = categoryVisualOrNone(state.category)
+            SplitRow(visual.color, stringResource(R.string.tx_split_rest), visual.name, rest, tx.currency)
+        }
+        HorizontalDivider(thickness = 1.dp, color = palette.seam)
+    }
+}
+
+@Composable
+private fun SplitRow(color: androidx.compose.ui.graphics.Color, title: String, caption: String?, amountMinor: Long, currency: String) {
+    val palette = FoldFinanceTheme.palette
+    Column {
+        HorizontalDivider(thickness = 1.dp, color = palette.seam)
+        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(10.dp).background(color, FoldShapes.pill))
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (!caption.isNullOrBlank()) {
+                    Text(caption, style = FoldTextStyles.caption, color = palette.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            MoneyText(amountMinor = amountMinor, currency = currency, style = MoneyStyle.Inline)
+        }
     }
 }
 
