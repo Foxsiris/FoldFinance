@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Виджеты — размеры и состояния</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0E0E10}
+a{color:#F5F5F3}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1060px; height: 1140px; box-sizing: border-box; background: #0E0E10; color: #F5F5F3; font-family: system-ui, 'Roboto', sans-serif; font-variant-numeric: tabular-nums; padding: 40px; display: flex; flex-direction: column; gap: 28px">
+  <div style="display: flex; align-items: baseline; justify-content: space-between; height: 40px">
+    <h1 style="margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.02em">Виджеты</h1>
+    <span style="font-size: 13px; color: #8A8A92">4×3 · 4×2 · 4×1 · 2×2 — сетка рабочего стола внешнего экрана</span>
+  </div>
+
+  <sc-for list="{{themes}}" as="th" hint-placeholder-count="2">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <span style="font-size: 12px; color: #A1A1A8; letter-spacing: 0.04em; text-transform: uppercase">{{th.label}}</span>
+      <div style="background: {{th.panel}}; border-radius: 28px; padding: 24px; display: flex; gap: 28px; align-items: flex-start">
+
+        <div style="width: 352px; height: 260px; box-sizing: border-box; border-radius: 28px; background: {{th.bg}}; color: {{th.fg}}; padding: 18px; display: flex; flex-direction: column; flex: none">
+          <div style="display: flex; justify-content: space-between; font-size: 13px; color: {{th.fg2}}">
+            <span>Ноябрь · потрачено</span><span>сегодня 1&nbsp;840 ₽</span>
+          </div>
+          <span style="font-size: 38px; font-weight: 600; letter-spacing: -0.035em; line-height: 1; margin-top: 8px">23&nbsp;640 ₽</span>
+          <span style="font-size: 13px; color: {{th.inc}}; margin-top: 6px">+95&nbsp;000 ₽ доход</span>
+          <div style="display: flex; align-items: flex-end; gap: 3px; height: 64px; margin-top: auto" aria-hidden="true">
+            <sc-for list="{{th.bars}}" as="b" hint-placeholder-count="30">
+              <div style="flex: 1; height: {{b.h}}px; border-radius: 2px; background: {{b.c}}"></div>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 14px">
+            <button style="flex: 1; height: 44px; border: none; border-radius: 14px; background: {{th.amberBg}}; color: {{th.amber}}; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="6" width="16" height="13" rx="3"></rect><path d="m9 12.5 2 2 4-4"></path></svg>3 на проверку</button>
+            <button style="flex: 1; height: 44px; border: none; border-radius: 14px; background: {{accent}}; color: #0B0B0C; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Добавить</button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; flex: none">
+          <div style="width: 352px; height: 170px; box-sizing: border-box; border-radius: 28px; background: {{th.bg}}; color: {{th.fg}}; padding: 16px; display: flex; gap: 12px">
+            <div style="flex: 1; display: flex; flex-direction: column; min-width: 0">
+              <span style="font-size: 12.5px; color: {{th.fg2}}">Сегодня</span>
+              <span style="font-size: 30px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; margin-top: 4px">1&nbsp;840 ₽</span>
+              <span style="font-size: 13px; color: {{th.fg2}}; margin-top: 4px">месяц 23&nbsp;640 ₽</span>
+              <div style="display: flex; align-items: flex-end; gap: 2px; height: 30px; margin-top: auto" aria-hidden="true">
+                <sc-for list="{{th.bars}}" as="b" hint-placeholder-count="30">
+                  <div style="flex: 1; height: {{b.hs}}px; border-radius: 2px; background: {{b.c}}"></div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="width: 108px; display: flex; flex-direction: column; gap: 8px; flex: none">
+              <button style="height: 74px; border: none; border-radius: 18px; background: {{th.amberBg}}; color: {{th.amber}}; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 0 14px; gap: 2px"><span style="font-size: 24px; font-weight: 700; line-height: 1">3</span><span style="font-size: 12px; font-weight: 500">на проверку</span></button>
+              <button aria-label="Добавить операцию" style="height: 56px; border: none; border-radius: 18px; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+            </div>
+          </div>
+
+          <div style="width: 352px; height: 80px; box-sizing: border-box; border-radius: 24px; background: {{th.bg}}; color: {{th.fg}}; padding: 0 12px 0 18px; display: flex; align-items: center; gap: 14px">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 11.5px; color: {{th.fg2}}">Сегодня</span>
+              <span style="font-size: 19px; font-weight: 600; letter-spacing: -0.02em">1&nbsp;840 ₽</span>
+            </div>
+            <div style="width: 1px; height: 32px; background: {{th.line}}"></div>
+            <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+              <span style="font-size: 11.5px; color: {{th.fg2}}">Месяц</span>
+              <span style="font-size: 19px; font-weight: 600; letter-spacing: -0.02em">23&nbsp;640 ₽</span>
+            </div>
+            <button aria-label="3 операции на проверку" style="width: 44px; height: 44px; border: none; border-radius: 22px; background: {{th.amberBg}}; color: {{th.amber}}; font-size: 16px; font-weight: 700; padding: 0">3</button>
+            <button aria-label="Добавить операцию" style="width: 52px; height: 52px; border: none; border-radius: 18px; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+          </div>
+        </div>
+
+        <div style="width: 170px; height: 170px; box-sizing: border-box; border-radius: 28px; background: {{th.bg}}; color: {{th.fg}}; padding: 16px; display: flex; flex-direction: column; flex: none">
+          <span style="font-size: 12.5px; color: {{th.fg2}}">Сегодня</span>
+          <span style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; margin-top: 4px">1&nbsp;840 ₽</span>
+          <span style="font-size: 12px; color: {{th.fg2}}; margin-top: 4px">месяц 23&nbsp;640 ₽</span>
+          <div style="display: flex; gap: 8px; margin-top: auto">
+            <button aria-label="3 операции на проверку" style="flex: 1; height: 44px; border: none; border-radius: 14px; background: {{th.amberBg}}; color: {{th.amber}}; font-size: 15px; font-weight: 700; padding: 0">3</button>
+            <button aria-label="Добавить операцию" style="width: 44px; height: 44px; border: none; border-radius: 14px; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <span style="font-size: 12px; color: #A1A1A8; letter-spacing: 0.04em; text-transform: uppercase">Состояния · скрытые суммы · только проверка · нет данных</span>
+    <div style="background: #2B2E36; border-radius: 28px; padding: 24px; display: flex; gap: 28px; align-items: flex-start">
+
+      <div style="width: 352px; height: 170px; box-sizing: border-box; border-radius: 28px; background: #121215; color: #F5F5F3; padding: 16px; display: flex; gap: 12px; flex: none">
+        <div style="flex: 1; display: flex; flex-direction: column; min-width: 0">
+          <span style="font-size: 12.5px; color: #A1A1A8; display: flex; align-items: center; gap: 6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 9 6 9 6a16 16 0 0 1-2.7 3.2M6.4 7.4C4.3 9 3 12 3 12s4 6 9 6c1.4 0 2.7-.4 3.9-1"></path></svg>Суммы скрыты</span>
+          <span style="font-size: 30px; font-weight: 600; letter-spacing: 0.08em; line-height: 1.1; margin-top: 4px; color: #D6D6DA">••••&nbsp;₽</span>
+          <span style="font-size: 13px; color: #8A8A92; margin-top: 4px">Откройте приложение, чтобы увидеть</span>
+          <div style="display: flex; align-items: flex-end; gap: 2px; height: 30px; margin-top: auto" aria-hidden="true">
+            <sc-for list="{{hiddenBars}}" as="b" hint-placeholder-count="30">
+              <div style="flex: 1; height: 4px; border-radius: 2px; background: #26262C"></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="width: 108px; display: flex; flex-direction: column; gap: 8px; flex: none">
+          <button style="height: 74px; border: none; border-radius: 18px; background: #FFB54726; color: #FFB547; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 0 14px; gap: 2px"><span style="font-size: 24px; font-weight: 700; line-height: 1">3</span><span style="font-size: 12px; font-weight: 500">на проверку</span></button>
+          <button aria-label="Добавить операцию" style="height: 56px; border: none; border-radius: 18px; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+        </div>
+      </div>
+
+      <div style="width: 170px; height: 170px; box-sizing: border-box; border-radius: 28px; background: #121215; color: #F5F5F3; padding: 16px; display: flex; flex-direction: column; flex: none">
+        <span style="font-size: 12.5px; color: #A1A1A8">На проверку</span>
+        <span style="font-size: 48px; font-weight: 700; line-height: 1; color: #FFB547; margin-top: 6px">3</span>
+        <span style="font-size: 12px; color: #8A8A92; margin-top: 4px">операции ждут решения</span>
+        <button style="margin-top: auto; height: 44px; border: 1px solid #FFB54766; border-radius: 14px; background: none; color: #FFB547; font-size: 14px; font-weight: 600">Разобрать</button>
+      </div>
+
+      <div style="width: 170px; height: 170px; box-sizing: border-box; border-radius: 28px; background: #121215; color: #F5F5F3; padding: 16px; display: flex; flex-direction: column; flex: none">
+        <span style="width: 40px; height: 40px; border-radius: 13px; background: #1E1E23; color: #A1A1A8; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg></span>
+        <span style="font-size: 15px; font-weight: 600; margin-top: 12px">Пока нет операций</span>
+        <span style="font-size: 12px; color: #A1A1A8; margin-top: 4px; line-height: 1.35">Разрешите доступ к SMS в приложении</span>
+        <button style="margin-top: auto; height: 44px; border: none; border-radius: 14px; background: #1E1E23; color: #F5F5F3; font-size: 14px; font-weight: 500">Настроить</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D2F65A","options":["#D2F65A","#A9C8FF","#FFB38A","#8EF0C8"]},"$preview":{"width":1060,"height":1140}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#D2F65A';
+    const vals = [6420, 2310, 9870, 3200, 1840];
+    const max = 9870;
+    const mkBars = (past, empty) => {
+      const out = [];
+      for (let i = 0; i < 30; i++) {
+        if (i < vals.length) {
+          out.push({ h: Math.max(4, Math.round(vals[i] / max * 64)), hs: Math.max(3, Math.round(vals[i] / max * 30)), c: i === vals.length - 1 ? accent : past });
+        } else {
+          out.push({ h: 3, hs: 3, c: empty });
+        }
+      }
+      return out;
+    };
+    return {
+      accent,
+      themes: [
+        { label: 'Тёмная тема', panel: '#2B2E36', bg: '#121215', fg: '#F5F5F3', fg2: '#A1A1A8', line: '#2A2A30', inc: '#7FE0A8', amber: '#FFB547', amberBg: '#FFB54726', bars: mkBars('#3A3A42', '#222227') },
+        { label: 'Светлая тема', panel: '#D5D8DE', bg: '#F6F6F3', fg: '#121214', fg2: '#5E5E66', line: '#DEDED8', inc: '#1B7F50', amber: '#8A5200', amberBg: '#FFB5473D', bars: mkBars('#C4C4C0', '#E6E6E1') }
+      ],
+      hiddenBars: new Array(30).fill(0)
+    };
+  }
+}
+</script>
+</body>
+</html>

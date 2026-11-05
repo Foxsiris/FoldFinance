@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Обзор — внутренний экран</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08080A}
+a{color:#F5F5F3}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1000px; height: 750px; box-sizing: border-box; background: #08080A; color: #F5F5F3; font-family: 'Onest', system-ui, sans-serif; font-variant-numeric: tabular-nums; display: flex; padding: 16px 8px 16px 0; gap: 0; overflow: hidden">
+
+  <nav aria-label="Разделы" style="width: 88px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 8px">
+    <button aria-label="Добавить операцию" style="width: 56px; height: 56px; border-radius: 18px; border: none; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 10px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+    <button aria-current="page" style="background: none; border: none; color: #F5F5F3; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; padding: 0">
+      <span style="width: 56px; height: 32px; border-radius: 16px; background: {{accentSoft}}; color: {{accent}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="2"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="2"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="2"></rect></svg></span>Обзор
+    </button>
+    <a href="History.dc.html" style="text-decoration: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span>История
+    </a>
+    <a href="Analytics.dc.html" style="text-decoration: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19V12M9.5 19V5M14.5 19v-8M19.5 19V9"></path></svg></span>Аналитика
+    </a>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; position: relative"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="6" width="16" height="13" rx="3"></rect><path d="M7 3.5h10"></path><path d="m9 12.5 2 2 4-4"></path></svg><span style="position: absolute; top: 0; right: 9px; min-width: 18px; height: 18px; border-radius: 9px; background: #FFB547; color: #0B0B0C; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #08080A">3</span></span>Проверка
+    </button>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg></span>Настройки
+    </button>
+  </nav>
+
+  <section aria-label="Сводка" style="width: 404px; flex: none; background: #111114; border-radius: 28px; padding: 22px 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <button style="height: 36px; border: none; background: #1A1A1E; color: #F5F5F3; border-radius: 12px; padding: 0 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px">Ноябрь 2026<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <span style="font-size: 12.5px; color: #8A8A92">1–5 ноября</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; color: #A1A1A8">Потрачено</span>
+      <div style="font-size: 50px; font-weight: 600; letter-spacing: -0.045em; line-height: 1">23&nbsp;640<span style="color: #6E6E76; font-weight: 500; margin-left: 6px">₽</span></div>
+      <div style="display: flex; gap: 6px; font-size: 13px">
+        <span style="color: #7FE0A8; font-weight: 500">+95&nbsp;000 ₽</span>
+        <span style="color: #8A8A92">доход · по известным операциям</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: flex-end; gap: 4px; height: 120px">
+        <sc-for list="{{days}}" as="d" hint-placeholder-count="30">
+          <div style="flex: 1; height: {{d.h}}px; border-radius: 4px; background: {{d.base}}; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden">
+            <div style="height: {{d.part}}px; background: #9BDB6A"></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: #8A8A92">
+        <span>1</span><span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; min-height: 0">
+      <div style="display: flex; align-items: baseline; justify-content: space-between">
+        <span style="font-size: 15px; font-weight: 600">Категории</span>
+        <span style="font-size: 12.5px; color: #8A8A92">Нажмите, чтобы отфильтровать</span>
+      </div>
+      <div style="display: flex; gap: 3px; height: 8px" aria-hidden="true">
+        <sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+          <div style="flex: {{c.share}}; background: {{c.color}}; border-radius: 4px"></div>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+          <button aria-pressed="{{c.pressed}}" style="height: 42px; border-radius: 14px; border: 1px solid {{c.border}}; background: {{c.bg}}; color: #F5F5F3; display: flex; align-items: center; gap: 12px; padding: 0 10px; text-align: left">
+            <span style="width: 10px; height: 10px; border-radius: 5px; background: {{c.color}}; flex: none"></span>
+            <span style="font-size: 14px; font-weight: 500; flex: 1">{{c.name}}</span>
+            <span style="font-size: 12.5px; color: #8A8A92; width: 40px; text-align: right">{{c.pct}}</span>
+            <span style="font-size: 14px; font-weight: 600; width: 84px; text-align: right">{{c.amt}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <div style="width: 16px; flex: none" aria-hidden="true"></div>
+
+  <section aria-label="Операции" style="flex: 1; min-width: 0; background: #111114; border-radius: 28px; padding: 22px 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Операции</h2>
+      <div style="display: flex; gap: 8px">
+        <button aria-label="Поиск" style="width: 44px; height: 44px; border-radius: 22px; border: none; background: #1A1A1E; color: #F5F5F3; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></button>
+        <button aria-label="Фильтры" style="width: 44px; height: 44px; border-radius: 22px; border: none; background: #1A1A1E; color: #F5F5F3; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"></path></svg></button>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+      <button style="height: 34px; border-radius: 12px; border: 1px solid {{accentLine}}; background: {{accentSoft}}; color: #F5F5F3; padding: 0 8px 0 12px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #9BDB6A"></span>Продукты<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="Снять фильтр" role="img"><path d="M7 7l10 10M17 7 7 17"></path></svg></button>
+      <span style="height: 34px; border-radius: 12px; background: #1A1A1E; color: #D6D6DA; padding: 0 12px; font-size: 13px; display: flex; align-items: center">Ноябрь</span>
+      <span style="font-size: 13px; color: #8A8A92; margin-left: auto">5 операций · 6&nbsp;180 ₽</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <div style="display: flex; flex-direction: column">
+          <div style="display: flex; justify-content: space-between; align-items: center; height: 34px; font-size: 12px; color: #8A8A92; letter-spacing: 0.04em; text-transform: uppercase">
+            <span>{{g.label}}</span><span>{{g.sum}}</span>
+          </div>
+          <sc-for list="{{g.items}}" as="t" hint-placeholder-count="1">
+            <div style="display: flex; align-items: center; gap: 14px; height: 58px">
+              <div style="width: 42px; height: 42px; border-radius: 14px; background: #9BDB6A26; color: #9BDB6A; display: flex; align-items: center; justify-content: center; flex: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11h10.2L20 8H6.2"></path><circle cx="9" cy="19.5" r="1.3"></circle><circle cx="17" cy="19.5" r="1.3"></circle></svg></div>
+              <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0">
+                <span style="font-size: 15px; font-weight: 500">{{t.name}}</span>
+                <span style="font-size: 12.5px; color: #8A8A92">{{t.sub}}</span>
+              </div>
+              <span style="font-size: 15px; font-weight: 600">{{t.amt}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D2F65A","options":["#D2F65A","#A9C8FF","#FFB38A","#8EF0C8"]},"$preview":{"width":1000,"height":750}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#D2F65A';
+    const nb = ' ';
+    const money = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, nb) + ' ₽';
+    const totals = [6420, 2310, 9870, 3200, 1840];
+    const groceries = [1280, 0, 2160, 1240, 1500];
+    const max = 9870, H = 120;
+    const days = [];
+    for (let i = 0; i < 30; i++) {
+      if (i < totals.length) {
+        days.push({ h: Math.round(totals[i] / max * H), part: Math.round(groceries[i] / max * H), base: '#2C2C33' });
+      } else {
+        days.push({ h: 4, part: 0, base: '#1E1E23' });
+      }
+    }
+    const catDefs = [
+      ['Коммуналка', 7450, '#4FD1C5', 31],
+      ['Продукты', 6180, '#9BDB6A', 26],
+      ['Рестораны', 3920, '#FF9B73', 17],
+      ['Транспорт', 2140, '#6AA8FF', 9],
+      ['Другое', 2160, '#6E6E76', 9],
+      ['Подписки', 1790, '#B49BFF', 8]
+    ];
+    const cats = catDefs.map(([name, amt, color, pct]) => {
+      const on = name === 'Продукты';
+      return {
+        name, color, share: pct, pct: pct + '%', amt: money(amt),
+        pressed: on ? 'true' : 'false',
+        bg: on ? '#1C1C21' : 'transparent',
+        border: on ? accent + '66' : 'transparent'
+      };
+    });
+    const groups = [
+      { label: 'Сегодня', sum: money(1500), items: [{ name: 'Пятёрочка', sub: 'Карта *1234 · 14:05 · SMS + push', amt: '−' + money(1500) }] },
+      { label: 'Вчера, 4 ноября', sum: money(1240), items: [{ name: 'ВкусВилл', sub: 'Карта *1234 · 19:02 · SMS', amt: '−' + money(1240) }] },
+      { label: '3 ноября', sum: money(2160), items: [{ name: 'Перекрёсток', sub: 'Карта *5678 · 18:30 · push', amt: '−' + money(2160) }] },
+      { label: '1 ноября', sum: money(1280), items: [
+        { name: 'Магнит', sub: 'Карта *1234 · 21:40 · SMS', amt: '−410 ₽' },
+        { name: 'Пятёрочка', sub: 'Карта *1234 · 12:15 · SMS', amt: '−870 ₽' }
+      ] }
+    ];
+    return { accent, accentSoft: accent + '24', accentLine: accent + '66', days, cats, groups };
+  }
+}
+</script>
+</body>
+</html>

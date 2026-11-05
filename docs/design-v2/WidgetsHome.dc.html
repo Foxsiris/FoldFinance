@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Виджеты на рабочем столе внешнего экрана</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#1B1E25}
+a{color:#F5F5F3}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 400px; height: 640px; box-sizing: border-box; background: #1B1E25; color: #F5F5F3; font-family: system-ui, 'Roboto', sans-serif; font-variant-numeric: tabular-nums; position: relative; overflow: hidden; padding: 56px 24px 24px; display: flex; flex-direction: column; gap: 16px">
+  <div style="position: absolute; width: 420px; height: 420px; border-radius: 210px; background: #22262F; right: -180px; top: -120px" aria-hidden="true"></div>
+  <div style="position: absolute; width: 300px; height: 300px; border-radius: 150px; background: #1F232B; left: -140px; bottom: 60px" aria-hidden="true"></div>
+
+  <div style="position: relative; width: 352px; height: 170px; box-sizing: border-box; border-radius: 28px; background: #121215; padding: 16px; display: flex; gap: 12px; flex: none">
+    <div style="flex: 1; display: flex; flex-direction: column; min-width: 0">
+      <span style="font-size: 12.5px; color: #A1A1A8">Сегодня</span>
+      <span style="font-size: 30px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; margin-top: 4px">1&nbsp;840 ₽</span>
+      <span style="font-size: 13px; color: #A1A1A8; margin-top: 4px">месяц 23&nbsp;640 ₽</span>
+      <div style="display: flex; align-items: flex-end; gap: 2px; height: 30px; margin-top: auto" aria-hidden="true">
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="30">
+          <div style="flex: 1; height: {{b.h}}px; border-radius: 2px; background: {{b.c}}"></div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="width: 108px; display: flex; flex-direction: column; gap: 8px; flex: none">
+      <a href="Review.dc.html" style="height: 74px; border-radius: 18px; background: #FFB54726; color: #FFB547; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 0 14px; gap: 2px; text-decoration: none"><span style="font-size: 24px; font-weight: 700; line-height: 1">3</span><span style="font-size: 12px; font-weight: 500">на проверку</span></a>
+      <a href="Add.dc.html" aria-label="Добавить операцию" style="height: 56px; border-radius: 18px; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; text-decoration: none"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></a>
+    </div>
+  </div>
+
+  <div style="position: relative; display: flex; gap: 12px; flex: none">
+    <div style="width: 170px; height: 170px; box-sizing: border-box; border-radius: 28px; background: #121215; padding: 16px; display: flex; flex-direction: column; flex: none">
+      <span style="font-size: 12.5px; color: #A1A1A8">На проверку</span>
+      <span style="font-size: 48px; font-weight: 700; line-height: 1; color: #FFB547; margin-top: 6px">3</span>
+      <span style="font-size: 12px; color: #8A8A92; margin-top: 4px">операции ждут решения</span>
+      <a href="Review.dc.html" style="margin-top: auto; height: 44px; border: 1px solid #FFB54766; border-radius: 14px; color: #FFB547; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; text-decoration: none; box-sizing: border-box">Разобрать</a>
+    </div>
+    <div style="flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 12px 10px" aria-hidden="true">
+      <div style="width: 56px; height: 56px; border-radius: 18px; background: #2E323C; justify-self: center"></div>
+      <div style="width: 56px; height: 56px; border-radius: 18px; background: #2E323C; justify-self: center"></div>
+      <div style="width: 56px; height: 56px; border-radius: 18px; background: #2E323C; justify-self: center"></div>
+      <div style="width: 56px; height: 56px; border-radius: 18px; background: #2E323C; justify-self: center"></div>
+    </div>
+  </div>
+
+  <div style="position: relative; width: 352px; height: 80px; box-sizing: border-box; border-radius: 24px; background: #121215; padding: 0 12px 0 18px; display: flex; align-items: center; gap: 14px; flex: none">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11.5px; color: #A1A1A8">Сегодня</span>
+      <span style="font-size: 19px; font-weight: 600; letter-spacing: -0.02em">1&nbsp;840 ₽</span>
+    </div>
+    <div style="width: 1px; height: 32px; background: #2A2A30"></div>
+    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+      <span style="font-size: 11.5px; color: #A1A1A8">Месяц</span>
+      <span style="font-size: 19px; font-weight: 600; letter-spacing: -0.02em">23&nbsp;640 ₽</span>
+    </div>
+    <a href="Review.dc.html" aria-label="3 операции на проверку" style="width: 44px; height: 44px; border-radius: 22px; background: #FFB54726; color: #FFB547; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">3</a>
+    <a href="Add.dc.html" aria-label="Добавить операцию" style="width: 52px; height: 52px; border-radius: 18px; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></a>
+  </div>
+
+  <div style="position: relative; margin-top: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0 8px" aria-hidden="true">
+    <div style="width: 56px; height: 56px; border-radius: 18px; background: #2E323C; justify-self: center"></div>
+    <div style="width: 56px; height: 56px; border-radius: 18px; background: #2E323C; justify-self: center"></div>
+    <div style="width: 56px; height: 56px; border-radius: 18px; background: #2E323C; justify-self: center"></div>
+    <div style="width: 56px; height: 56px; border-radius: 18px; background: #2E323C; justify-self: center"></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D2F65A","options":["#D2F65A","#A9C8FF","#FFB38A","#8EF0C8"]},"$preview":{"width":400,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#D2F65A';
+    const vals = [6420, 2310, 9870, 3200, 1840];
+    const bars = [];
+    for (let i = 0; i < 30; i++) {
+      bars.push(i < vals.length
+        ? { h: Math.max(3, Math.round(vals[i] / 9870 * 30)), c: i === vals.length - 1 ? accent : '#3A3A42' }
+        : { h: 3, c: '#222227' });
+    }
+    return { accent, bars };
+  }
+}
+</script>
+</body>
+</html>

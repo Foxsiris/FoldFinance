@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Проверка — внешний экран</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08080A}
+a{color:#F5F5F3}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 400px; height: 640px; box-sizing: border-box; background: #08080A; color: #F5F5F3; font-family: 'Onest', system-ui, sans-serif; font-variant-numeric: tabular-nums; position: relative; overflow: hidden; display: flex; flex-direction: column">
+
+  <div style="padding: 36px 20px 0; display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.03em">Проверка</h1>
+        <span style="font-size: 13px; font-weight: 500; color: #FFB547; background: #FFB5471F; padding: 6px 12px; border-radius: 999px">{{counter}}</span>
+      </div>
+      <span style="font-size: 13px; color: #8A8A92">Вправо — подтвердить · влево — сменить категорию</span>
+    </div>
+
+    <sc-if value="{{notDone}}" hint-placeholder-val="{{true}}">
+      <div style="position: relative; height: 340px">
+        <sc-if value="{{hasThird}}" hint-placeholder-val="{{true}}">
+          <div style="position: absolute; left: 24px; right: 24px; top: 24px; bottom: -16px; border-radius: 30px; background: #0F0F12; border: 1px solid #18181C"></div>
+        </sc-if>
+        <sc-if value="{{hasSecond}}" hint-placeholder-val="{{true}}">
+          <div style="position: absolute; left: 12px; right: 12px; top: 12px; bottom: -8px; border-radius: 30px; background: #121215; border: 1px solid #1C1C21"></div>
+        </sc-if>
+        <div style="position: absolute; inset: 0; border-radius: 30px; background: #17171B; border: 1px solid #25252B; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 40px rgba(0,0,0,0.45)">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <span style="font-size: 12px; font-weight: 500; color: #FFB547; background: #FFB54724; padding: 5px 10px; border-radius: 999px">{{card.reason}}</span>
+            <span style="font-size: 12px; font-weight: 500; color: #A1A1A8; background: #222227; padding: 5px 10px; border-radius: 999px">{{card.src}}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 17px; font-weight: 500; color: #D6D6DA">{{card.name}}</span>
+            <span style="font-size: 42px; font-weight: 600; letter-spacing: -0.04em; line-height: 1">{{card.amt}}</span>
+            <span style="font-size: 13px; color: #8A8A92">{{card.meta}}</span>
+          </div>
+          <div style="background: #0E0E11; border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 11.5px; color: #8A8A92; letter-spacing: 0.04em; text-transform: uppercase">Исходный текст</span>
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; line-height: 1.45; color: #C9C9CF">{{card.raw}}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto">
+            <span style="font-size: 13px; color: #A1A1A8">{{card.question}}</span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <sc-for list="{{chips}}" as="c" hint-placeholder-count="3">
+                <button onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="height: 36px; padding: 0 14px; border-radius: 12px; border: 1px solid {{c.border}}; background: {{c.bg}}; color: {{c.fg}}; font-size: 13.5px; font-weight: 500">{{c.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+      <div style="height: 340px; border-radius: 30px; background: #131316; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; box-sizing: border-box">
+        <span style="width: 64px; height: 64px; border-radius: 32px; background: {{accentSoft}}; color: {{accent}}; display: flex; align-items: center; justify-content: center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+        <span style="font-size: 20px; font-weight: 600">Всё разобрано</span>
+        <span style="font-size: 13.5px; color: #8A8A92; max-width: 240px">Новые неуверенные операции появятся здесь автоматически</span>
+        <button onClick="{{reset}}" style="margin-top: 6px; height: 44px; padding: 0 18px; border-radius: 14px; border: 1px solid #2A2A30; background: none; color: #F5F5F3; font-size: 14px">Показать снова</button>
+      </div>
+    </sc-if>
+
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; padding: 6px 12px 0">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <button onClick="{{next}}" aria-label="Сменить категорию" style="width: 64px; height: 64px; border-radius: 32px; border: 1px solid #2E2E35; background: #131316; color: #F5F5F3; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12V4.5H11l9.5 9.5-7.5 7.5z"></path><circle cx="7.8" cy="8.8" r="1.4"></circle></svg></button>
+        <span style="font-size: 12px; color: #A1A1A8">Категория</span>
+      </div>
+      <button onClick="{{next}}" style="height: 44px; margin-top: 10px; padding: 0 16px; border: none; background: none; color: #8A8A92; font-size: 13.5px">Пропустить</button>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <button onClick="{{next}}" aria-label="Подтвердить" style="width: 64px; height: 64px; border-radius: 32px; border: none; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 10px 28px rgba(0,0,0,0.5)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></button>
+        <span style="font-size: 12px; color: #A1A1A8">Подтвердить</span>
+      </div>
+    </div>
+  </div>
+
+  <nav aria-label="Разделы" style="height: 78px; flex: none; background: #0E0E10; border-top: 1px solid #1A1A1E; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 8px 4px 12px; box-sizing: border-box">
+    <a href="Main.dc.html" style="text-decoration: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="2"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="2"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="2"></rect></svg></span>Обзор
+    </a>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span>История
+    </button>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19V12M9.5 19V5M14.5 19v-8M19.5 19V9"></path></svg></span>Аналитика
+    </button>
+    <button aria-current="page" style="background: none; border: none; color: #F5F5F3; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; padding: 0">
+      <span style="width: 56px; height: 32px; border-radius: 16px; background: {{accentSoft}}; color: {{accent}}; display: flex; align-items: center; justify-content: center; position: relative"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="6" width="16" height="13" rx="3"></rect><path d="M7 3.5h10"></path><path d="m9 12.5 2 2 4-4"></path></svg><sc-if value="{{notDone}}" hint-placeholder-val="{{true}}"><span style="position: absolute; top: 0; right: 9px; min-width: 18px; height: 18px; border-radius: 9px; background: #FFB547; color: #0B0B0C; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #0E0E10">{{left}}</span></sc-if></span>Проверка
+    </button>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg></span>Настройки
+    </button>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D2F65A","options":["#D2F65A","#A9C8FF","#FFB38A","#8EF0C8"]},"$preview":{"width":400,"height":640}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { idx: 0, picks: {} };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#D2F65A';
+    const nb = ' ';
+    const items = [
+      { reason: 'Неуверенный тип', src: 'SMS · 900', name: 'Перевод по СБП', amt: '3' + nb + '500 ₽', meta: 'Карта *1234 · сегодня, 12:41', raw: 'Перевод 3500р Карта*1234 получатель И. П.', question: 'Это расход или перевод себе?', cats: ['Переводы', 'Перевод себе', 'Другое'] },
+      { reason: 'Нет категории', src: 'PUSH · банк', name: 'OOO TORGSERVIS', amt: '890 ₽', meta: 'Карта *1234 · вчера, 19:20', raw: 'Покупка 890р Карта*1234 OOO TORGSERVIS', question: 'Куда отнести?', cats: ['Рестораны', 'Покупки', 'Другое'] },
+      { reason: 'Неуверенная сумма', src: 'SMS · 900', name: 'Списание в валюте', amt: '12,50 $', meta: 'Карта *1234 · 3 ноября · без курса', raw: 'Списание 12.50 USD Карта*1234 ...', question: 'Похоже на подписку', cats: ['Подписки', 'Покупки', 'Другое'] }
+    ];
+    const idx = this.state.idx;
+    const done = idx >= items.length;
+    const card = done ? items[items.length - 1] : items[idx];
+    const picked = this.state.picks[idx] ?? 0;
+    const chips = card.cats.map((label, i) => {
+      const on = i === picked;
+      return {
+        label,
+        pressed: on ? 'true' : 'false',
+        bg: on ? accent + '2E' : 'transparent',
+        fg: on ? accent : '#D6D6DA',
+        border: on ? accent + '66' : '#2E2E35',
+        pick: () => this.setState({ picks: Object.assign({}, this.state.picks, { [idx]: i }) })
+      };
+    });
+    const remaining = items.length - idx;
+    return {
+      accent,
+      accentSoft: accent + '2E',
+      card,
+      chips,
+      done,
+      notDone: !done,
+      hasSecond: remaining > 1,
+      hasThird: remaining > 2,
+      left: String(Math.max(0, remaining)),
+      counter: done ? 'Готово' : (idx + 1) + ' из ' + items.length,
+      next: () => this.setState({ idx: Math.min(items.length, this.state.idx + 1) }),
+      reset: () => this.setState({ idx: 0, picks: {} })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Дизайн-система FoldFinance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08080A}
+a{color:#F5F5F3}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 1000px; height: 820px; box-sizing: border-box; background: #08080A; color: #F5F5F3; font-family: 'Onest', system-ui, sans-serif; font-variant-numeric: tabular-nums; padding: 40px; display: flex; flex-direction: column; gap: 28px">
+  <div style="display: flex; align-items: baseline; justify-content: space-between">
+    <h1 style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.03em">Obsidian</h1>
+    <span style="font-size: 13px; color: #8A8A92">FoldFinance · тёмная тема · токены для Compose-темы</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; flex: 1; min-height: 0">
+    <div style="display: flex; flex-direction: column; gap: 22px">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; color: #8A8A92; letter-spacing: 0.04em; text-transform: uppercase">{{g.title}}</span>
+          <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px">
+            <sc-for list="{{g.items}}" as="s" hint-placeholder-count="5">
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <div style="height: 44px; border-radius: 12px; background: {{s.hex}}; border: 1px solid #2A2A30"></div>
+                <span style="font-size: 12px; font-weight: 500">{{s.name}}</span>
+                <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: #8A8A92">{{s.hex}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 22px">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 12px; color: #8A8A92; letter-spacing: 0.04em; text-transform: uppercase">Типографика · Onest + JetBrains Mono</span>
+        <div style="display: flex; flex-direction: column; gap: 0; border-top: 1px solid #1E1E23">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1E1E23"><span style="font-size: 48px; font-weight: 600; letter-spacing: -0.045em; line-height: 1">23&nbsp;640 ₽</span><span style="font-size: 12px; color: #8A8A92">Сумма · 48–60 / 600 / −4.5%</span></div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1E1E23"><span style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Операции</span><span style="font-size: 12px; color: #8A8A92">Заголовок · 22 / 600</span></div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1E1E23"><span style="font-size: 15px; font-weight: 500">Пятёрочка</span><span style="font-size: 12px; color: #8A8A92">Строка · 15 / 500</span></div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1E1E23"><span style="font-size: 12.5px; color: #8A8A92">Продукты · *1234 · 14:05</span><span style="font-size: 12px; color: #8A8A92">Подпись · 12.5 / 400</span></div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1E1E23"><span style="font-size: 12px; color: #8A8A92; letter-spacing: 0.04em; text-transform: uppercase">Сегодня, 5 ноября</span><span style="font-size: 12px; color: #8A8A92">Надпись · 12 / caps +4%</span></div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1E1E23"><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: #C9C9CF">Покупка 1500р Карта*1234</span><span style="font-size: 12px; color: #8A8A92">Исходный текст · mono 12</span></div>
+        </div>
+        <span style="font-size: 12px; color: #8A8A92">Цифры всегда табличные (tnum), пробел-разделитель — неразрывный.</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 12px; color: #8A8A92; letter-spacing: 0.04em; text-transform: uppercase">Форма и касание</span>
+        <div style="display: flex; gap: 12px; align-items: flex-end">
+          <sc-for list="{{radii}}" as="r" hint-placeholder-count="5">
+            <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+              <div style="width: 64px; height: 64px; background: #1A1A1E; border: 1px solid #2A2A30; border-radius: {{r.v}}px"></div>
+              <span style="font-size: 12px; font-weight: 500">{{r.v}}</span>
+              <span style="font-size: 11px; color: #8A8A92">{{r.use}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font-size: 12px; color: #8A8A92">Тач-цель ≥ 44 dp; главные действия на внешнем экране — 56–64 dp в нижней трети. Зазор у шарнира — 16 dp.</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D2F65A","options":["#D2F65A","#A9C8FF","#FFB38A","#8EF0C8"]},"$preview":{"width":1000,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#D2F65A';
+    const sw = (name, hex) => ({ name, hex });
+    return {
+      groups: [
+        { title: 'Поверхности', items: [sw('Фон', '#08080A'), sw('Панель', '#111114'), sw('Карточка', '#17171B'), sw('Поле', '#1A1A1E'), sw('Линия', '#2A2A30')] },
+        { title: 'Текст', items: [sw('Основной', '#F5F5F3'), sw('Вторичный', '#A1A1A8'), sw('Подпись', '#8A8A92'), sw('Отключён', '#6E6E76'), sw('На акценте', '#0B0B0C')] },
+        { title: 'Смысл', items: [sw('Акцент', accent), sw('Доход', '#7FE0A8'), sw('Проверка', '#FFB547'), sw('Рост расходов', '#FFB38A'), sw('Удаление', '#FF8A80')] },
+        { title: 'Категории', items: [sw('Продукты', '#9BDB6A'), sw('Рестораны', '#FF9B73'), sw('Транспорт', '#6AA8FF'), sw('Коммуналка', '#4FD1C5'), sw('Подписки', '#B49BFF'), sw('Развлечения', '#FF7EB3'), sw('Покупки', '#E8B07A'), sw('Здоровье', '#F0EDE6'), sw('Переводы', '#9AA3B2'), sw('Другое', '#6E6E76')] }
+      ],
+      radii: [
+        { v: 12, use: 'чипы' }, { v: 16, use: 'клавиши' }, { v: 22, use: 'FAB' }, { v: 24, use: 'плитки' }, { v: 28, use: 'панели' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

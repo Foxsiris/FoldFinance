@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>История — внутренний экран</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08080A}
+a{color:#F5F5F3}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+input::placeholder{color:#8A8A92}
+</style>
+</helmet>
+<div style="width: 1000px; height: 750px; box-sizing: border-box; background: #08080A; color: #F5F5F3; font-family: 'Onest', system-ui, sans-serif; font-variant-numeric: tabular-nums; display: flex; padding: 16px 8px 16px 0; overflow: hidden">
+
+  <nav aria-label="Разделы" style="width: 88px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 8px">
+    <button aria-label="Добавить операцию" style="width: 56px; height: 56px; border-radius: 18px; border: none; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; padding: 0; margin-bottom: 10px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+    <a href="Overview.dc.html" style="text-decoration: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="2"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="2"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="2"></rect></svg></span>Обзор
+    </a>
+    <button aria-current="page" style="background: none; border: none; color: #F5F5F3; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; padding: 0">
+      <span style="width: 56px; height: 32px; border-radius: 16px; background: {{accentSoft}}; color: {{accent}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span>История
+    </button>
+    <a href="Analytics.dc.html" style="text-decoration: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19V12M9.5 19V5M14.5 19v-8M19.5 19V9"></path></svg></span>Аналитика
+    </a>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; position: relative"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="6" width="16" height="13" rx="3"></rect><path d="M7 3.5h10"></path><path d="m9 12.5 2 2 4-4"></path></svg><span style="position: absolute; top: 0; right: 9px; min-width: 18px; height: 18px; border-radius: 9px; background: #FFB547; color: #0B0B0C; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #08080A">3</span></span>Проверка
+    </button>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg></span>Настройки
+    </button>
+  </nav>
+
+  <section aria-label="Список операций" style="width: 404px; flex: none; background: #111114; border-radius: 28px; padding: 22px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; overflow: hidden">
+    <h1 style="margin: 0 8px; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">История</h1>
+    <label style="height: 44px; border-radius: 14px; background: #1A1A1E; display: flex; align-items: center; gap: 10px; padding: 0 14px; color: #A1A1A8; flex: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Поиск</span>
+      <input type="search" placeholder="Мерчант, сумма, карта" style="flex: 1; min-width: 0; border: none; background: none; outline: none; color: #F5F5F3; font-size: 14px">
+    </label>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap; flex: none">
+      <button style="height: 34px; border-radius: 12px; border: 1px solid {{accentLine}}; background: {{accentSoft}}; color: #F5F5F3; padding: 0 10px 0 12px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 4px">Ноябрь<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <button style="height: 34px; border-radius: 12px; border: 1px solid #2A2A30; background: none; color: #D6D6DA; padding: 0 10px 0 12px; font-size: 13px; display: flex; align-items: center; gap: 4px">Категория<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <button style="height: 34px; border-radius: 12px; border: 1px solid #2A2A30; background: none; color: #D6D6DA; padding: 0 10px 0 12px; font-size: 13px; display: flex; align-items: center; gap: 4px">Тип<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <button style="height: 34px; border-radius: 12px; border: 1px solid #2A2A30; background: none; color: #D6D6DA; padding: 0 10px 0 12px; font-size: 13px; display: flex; align-items: center; gap: 4px">Сумма<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <button aria-label="Сортировка: по дате" style="height: 34px; width: 34px; border-radius: 12px; border: 1px solid #2A2A30; background: none; color: #D6D6DA; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M13 6h8M13 12h6M13 18h4"></path></svg></button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; overflow: hidden">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+        <div style="display: flex; flex-direction: column">
+          <div style="height: 32px; display: flex; align-items: center; padding: 0 10px; font-size: 12px; color: #8A8A92; letter-spacing: 0.04em; text-transform: uppercase">{{g.label}}</div>
+          <sc-for list="{{g.items}}" as="t" hint-placeholder-count="4">
+            <button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="height: 58px; border-radius: 16px; border: none; background: {{t.rowBg}}; color: #F5F5F3; display: flex; align-items: center; gap: 12px; padding: 0 10px; text-align: left; flex: none">
+              <span style="width: 40px; height: 40px; border-radius: 13px; background: {{t.iconBg}}; color: {{t.color}}; display: flex; align-items: center; justify-content: center; flex: none">
+                <sc-if value="{{t.cart}}" hint-placeholder-val="{{true}}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11h10.2L20 8H6.2"></path><circle cx="9" cy="19.5" r="1.3"></circle><circle cx="17" cy="19.5" r="1.3"></circle></svg></sc-if>
+                <sc-if value="{{t.cup}}" hint-placeholder-val="{{false}}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"></path><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"></path><path d="M9 3v3M12.5 3v3"></path></svg></sc-if>
+                <sc-if value="{{t.inc}}" hint-placeholder-val="{{false}}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 7 7 17"></path><path d="M7 9v8h8"></path></svg></sc-if>
+                <sc-if value="{{t.bus}}" hint-placeholder-val="{{false}}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14M8.5 21l1-4M15.5 21l-1-4"></path></svg></sc-if>
+                <sc-if value="{{t.refund}}" hint-placeholder-val="{{false}}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"></path></svg></sc-if>
+                <sc-if value="{{t.swap}}" hint-placeholder-val="{{false}}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h15l-3.5-3.5"></path><path d="M20 16H5l3.5 3.5"></path></svg></sc-if>
+              </span>
+              <span style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0">
+                <span style="font-size: 14.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.name}}</span>
+                <span style="font-size: 12px; color: #8A8A92; white-space: nowrap">{{t.sub}}</span>
+              </span>
+              <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px">
+                <span style="font-size: 14.5px; font-weight: 600; color: {{t.amtColor}}; white-space: nowrap">{{t.amt}}</span>
+                <span style="font-size: 11.5px; color: {{t.tagColor}}; white-space: nowrap">{{t.tag}}</span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <div style="width: 16px; flex: none" aria-hidden="true"></div>
+
+  <section aria-label="Детали операции" style="flex: 1; min-width: 0; background: #111114; border-radius: 28px; padding: 22px 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+    <div style="display: flex; justify-content: flex-end; gap: 8px">
+      <button style="height: 40px; border-radius: 14px; border: 1px solid #2A2A30; background: none; color: #F5F5F3; padding: 0 14px; font-size: 13.5px; font-weight: 500; display: flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Изменить</button>
+      <button aria-label="Удалить операцию" style="width: 40px; height: 40px; border-radius: 14px; border: 1px solid #2A2A30; background: none; color: #FF8A80; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"></path></svg></button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 15px; color: #A1A1A8; display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{sel.color}}"></span>{{sel.name}}</span>
+      <span style="font-size: 46px; font-weight: 600; letter-spacing: -0.045em; line-height: 1.05; color: {{sel.amtColor}}">{{sel.amt}}</span>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px">
+        <sc-for list="{{sel.chips}}" as="c" hint-placeholder-count="3">
+          <span style="font-size: 12px; font-weight: 500; color: #D6D6DA; background: #1E1E23; padding: 5px 10px; border-radius: 999px">{{c}}</span>
+        </sc-for>
+      </div>
+      <sc-if value="{{sel.hasNote}}" hint-placeholder-val="{{false}}">
+        <span style="font-size: 13px; color: #A1A1A8; line-height: 1.45; margin-top: 4px">{{sel.note}}</span>
+      </sc-if>
+    </div>
+
+    <div style="display: flex; flex-direction: column">
+      <sc-for list="{{sel.fields}}" as="f" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; justify-content: space-between; min-height: 42px; border-top: 1px solid #1E1E23; gap: 16px">
+          <span style="font-size: 13.5px; color: #8A8A92">{{f.k}}</span>
+          <span style="font-size: 14px; font-weight: 500; text-align: right">{{f.v}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 12px; color: #8A8A92; letter-spacing: 0.04em; text-transform: uppercase">{{sel.rawTitle}}</span>
+      <sc-for list="{{sel.raws}}" as="r" hint-placeholder-count="1">
+        <div style="background: #0B0B0D; border: 1px solid #1E1E23; border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 12px; color: #A1A1A8; font-weight: 500">{{r.h}}</span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; line-height: 1.5; color: #C9C9CF">{{r.t}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D2F65A","options":["#D2F65A","#A9C8FF","#FFB38A","#8EF0C8"]},"$preview":{"width":1000,"height":750}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 0 };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#D2F65A';
+    const nb = ' ';
+    const W = '#F5F5F3', MUTE = '#8A8A92', INC = '#7FE0A8';
+    const ops = [
+      { day: 0, name: 'Пятёрочка', sub: 'Продукты · 14:05', amt: '−1' + nb + '500 ₽', color: '#9BDB6A', cart: true, tag: '*1234',
+        chips: ['Расход', 'Покупка', 'SMS + push'],
+        fields: [['Дата и время', '5 ноября, 14:05'], ['Карта', '*1234'], ['Категория', 'Продукты'], ['Остаток *1234 на 14:05', '10' + nb + '234,56 ₽']],
+        rawTitle: 'Исходные сообщения · объединены (±3 мин)',
+        raws: [{ h: 'SMS · 900 · 14:05:12', t: 'Покупка 1500р Карта*1234 PYATEROCHKA Баланс: 10 234,56р' }, { h: 'Push · банковское приложение · 14:05:14', t: 'Покупка 1 500 ₽, PYATEROCHKA, карта *1234' }] },
+      { day: 0, name: 'Кофейня', sub: 'Рестораны · 10:12', amt: '−278 ₽', color: '#FF9B73', cup: true, tag: '*1234',
+        chips: ['Расход', 'Покупка', 'SMS'],
+        fields: [['Дата и время', '5 ноября, 10:12'], ['Карта', '*1234'], ['Категория', 'Рестораны'], ['Остаток *1234 на 10:12', '11' + nb + '734,56 ₽']],
+        rawTitle: 'Исходное сообщение', raws: [{ h: 'SMS · 900 · 10:12:40', t: 'Покупка 278р Карта*1234 KOFEYNYA Баланс: 11 734,56р' }] },
+      { day: 0, name: 'Зарплата', sub: 'Доход · 09:00', amt: '+95' + nb + '000 ₽', amtColor: INC, color: INC, inc: true, tag: '*5678',
+        chips: ['Доход', 'Зачисление', 'Push'],
+        fields: [['Дата и время', '5 ноября, 09:00'], ['Карта', '*5678 · моя карта'], ['Категория', 'Доход']],
+        rawTitle: 'Исходное сообщение', raws: [{ h: 'Push · банковское приложение · 09:00:03', t: 'Зачисление 95 000 ₽ на карту *5678' }] },
+      { day: 0, name: 'Метро', sub: 'Транспорт · 08:41', amt: '−62 ₽', color: '#6AA8FF', bus: true, tag: '*1234',
+        chips: ['Расход', 'Покупка', 'SMS'],
+        fields: [['Дата и время', '5 ноября, 08:41'], ['Карта', '*1234'], ['Категория', 'Транспорт'], ['Остаток *1234 на 08:41', '12' + nb + '012,56 ₽']],
+        rawTitle: 'Исходное сообщение', raws: [{ h: 'SMS · 900 · 08:41:07', t: 'Покупка 62р Карта*1234 METRO Баланс: 12 012,56р' }] },
+      { day: 1, name: 'ВкусВилл', sub: 'Продукты · 19:02', amt: '−1' + nb + '240 ₽', color: '#9BDB6A', cart: true, tag: '*1234',
+        chips: ['Расход', 'Покупка', 'SMS'],
+        fields: [['Дата и время', '4 ноября, 19:02'], ['Карта', '*1234'], ['Категория', 'Продукты']],
+        rawTitle: 'Исходное сообщение', raws: [{ h: 'SMS · 900 · 19:02:55', t: 'Покупка 1240р Карта*1234 VKUSVILL' }] },
+      { day: 1, name: 'Возврат · Ozon', sub: 'Покупки · 15:30', amt: '+1' + nb + '290 ₽', amtColor: '#D6D6DA', color: '#E8B07A', refund: true, tag: 'возврат', tagColor: '#E8B07A',
+        chips: ['Возврат', 'Связан с покупкой 28 октября', 'SMS'],
+        note: 'Возврат уменьшает расходы категории «Покупки» и не считается доходом.',
+        fields: [['Дата и время', '4 ноября, 15:30'], ['Карта', '*1234'], ['Категория', 'Покупки']],
+        rawTitle: 'Исходное сообщение', raws: [{ h: 'SMS · 900 · 15:30:21', t: 'Возврат 1290р Карта*1234 OZON' }] },
+      { day: 1, name: 'Перевод себе', sub: '*1234 → *5678 · 11:05', amt: '5' + nb + '000 ₽', amtColor: MUTE, color: '#9AA3B2', swap: true, tag: 'не в итогах', tagColor: MUTE,
+        chips: ['Перевод между своими картами'],
+        note: 'Обе карты отмечены как ваши — операция не входит ни в доходы, ни в расходы.',
+        fields: [['Дата и время', '4 ноября, 11:05'], ['Откуда', '*1234'], ['Куда', '*5678 · моя карта']],
+        rawTitle: 'Исходные сообщения', raws: [{ h: 'SMS · 900 · 11:05:44', t: 'Перевод 5000р Карта*1234 на карту *5678' }] }
+    ];
+    const sel = this.state.sel;
+    const rows = ops.map((o, i) => Object.assign({ cart: false, cup: false, inc: false, bus: false, refund: false, swap: false, amtColor: W, tagColor: MUTE }, o, {
+      iconBg: o.color + '26',
+      rowBg: i === sel ? '#1E1E24' : 'transparent',
+      pressed: i === sel ? 'true' : 'false',
+      pick: () => this.setState({ sel: i })
+    }));
+    const s = rows[sel];
+    return {
+      accent,
+      accentSoft: accent + '24',
+      accentLine: accent + '66',
+      groups: [
+        { label: 'Сегодня, 5 ноября', items: rows.filter((r) => r.day === 0) },
+        { label: 'Вчера, 4 ноября', items: rows.filter((r) => r.day === 1) }
+      ],
+      sel: {
+        name: s.name, amt: s.amt, amtColor: s.amtColor, color: s.color, chips: s.chips,
+        hasNote: !!s.note, note: s.note || '',
+        fields: s.fields.map(([k, v]) => ({ k, v })),
+        rawTitle: s.rawTitle, raws: s.raws
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Главная — внешний экран</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#08080A}
+a{color:#F5F5F3}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 400px; height: 640px; box-sizing: border-box; background: #08080A; color: #F5F5F3; font-family: 'Onest', system-ui, sans-serif; font-variant-numeric: tabular-nums; position: relative; overflow: hidden; display: flex; flex-direction: column">
+
+  <div style="padding: 36px 20px 0; display: flex; flex-direction: column; gap: 18px; flex: 1; min-height: 0; overflow: hidden">
+
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 13px; color: #A1A1A8">Четверг, 5 ноября</span>
+        <span style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Ноябрь</span>
+      </div>
+      <button aria-label="Поиск" style="width: 44px; height: 44px; border-radius: 22px; border: none; background: #151518; color: #F5F5F3; display: flex; align-items: center; justify-content: center; padding: 0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      </button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; color: #A1A1A8">Потрачено за месяц</span>
+      <div style="font-size: 48px; font-weight: 600; letter-spacing: -0.045em; line-height: 1">23&nbsp;640<span style="color: #6E6E76; font-weight: 500; margin-left: 6px">₽</span></div>
+      <div style="display: flex; gap: 6px; font-size: 13px; align-items: baseline">
+        <span style="color: #7FE0A8; font-weight: 500">+95&nbsp;000 ₽</span>
+        <span style="color: #8A8A92">доход · по известным операциям</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: flex-end; gap: 4px; height: 44px" aria-hidden="true">
+      <sc-for list="{{days}}" as="d" hint-placeholder-count="30">
+        <div style="flex: 1; height: {{d.h}}px; border-radius: 3px; background: {{d.c}}"></div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div style="background: #131316; border-radius: 24px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12.5px; color: #A1A1A8">Сегодня</span>
+        <span style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em">1&nbsp;840 ₽</span>
+        <span style="font-size: 12px; color: #8A8A92">3 расхода</span>
+      </div>
+      <a href="Review.dc.html" style="background: #131316; border-radius: 24px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: #F5F5F3">
+        <span style="font-size: 12.5px; color: #A1A1A8; display: flex; align-items: center; gap: 6px"><span style="width: 7px; height: 7px; border-radius: 4px; background: #FFB547"></span>На проверку</span>
+        <span style="font-size: 22px; font-weight: 600; color: #FFB547">3</span>
+        <span style="font-size: 12px; color: #8A8A92">Разобрать свайпом →</span>
+      </a>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <div style="display: flex; align-items: center; justify-content: space-between; height: 32px">
+        <span style="font-size: 15px; font-weight: 600">Последние</span>
+        <button style="border: none; background: none; color: {{accent}}; font-size: 13.5px; font-weight: 500; padding: 8px 0 8px 12px">Все</button>
+      </div>
+      <sc-for list="{{recent}}" as="t" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 12px; height: 58px">
+          <div style="width: 42px; height: 42px; border-radius: 14px; background: {{t.bg}}; color: {{t.color}}; display: flex; align-items: center; justify-content: center; flex: none">
+            <sc-if value="{{t.cart}}" hint-placeholder-val="{{true}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11h10.2L20 8H6.2"></path><circle cx="9" cy="19.5" r="1.3"></circle><circle cx="17" cy="19.5" r="1.3"></circle></svg></sc-if>
+            <sc-if value="{{t.cup}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"></path><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"></path><path d="M9 3v3M12.5 3v3"></path></svg></sc-if>
+            <sc-if value="{{t.inc}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 7 7 17"></path><path d="M7 9v8h8"></path></svg></sc-if>
+            <sc-if value="{{t.bus}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14M8.5 21l1-4M15.5 21l-1-4"></path></svg></sc-if>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0">
+            <span style="font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.name}}</span>
+            <span style="font-size: 12.5px; color: #8A8A92; white-space: nowrap">{{t.sub}}</span>
+          </div>
+          <span style="font-size: 15px; font-weight: 600; color: {{t.amtColor}}; white-space: nowrap">{{t.amt}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <a href="Add.dc.html" aria-label="Добавить операцию" style="position: absolute; right: 20px; bottom: 96px; width: 62px; height: 62px; border-radius: 22px; background: {{accent}}; color: #0B0B0C; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 32px rgba(0,0,0,0.6), 0 0 0 6px #08080A; text-decoration: none">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+  </a>
+
+  <nav aria-label="Разделы" style="height: 78px; flex: none; background: #0E0E10; border-top: 1px solid #1A1A1E; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 8px 4px 12px; box-sizing: border-box">
+    <button aria-current="page" style="background: none; border: none; color: #F5F5F3; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; padding: 0">
+      <span style="width: 56px; height: 32px; border-radius: 16px; background: {{accentSoft}}; color: {{accent}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="2"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="2"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="2"></rect></svg></span>Обзор
+    </button>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span>История
+    </button>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19V12M9.5 19V5M14.5 19v-8M19.5 19V9"></path></svg></span>Аналитика
+    </button>
+    <a href="Review.dc.html" style="text-decoration: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center; position: relative"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="6" width="16" height="13" rx="3"></rect><path d="M7 3.5h10"></path><path d="m9 12.5 2 2 4-4"></path></svg><span style="position: absolute; top: 0; right: 9px; min-width: 18px; height: 18px; border-radius: 9px; background: #FFB547; color: #0B0B0C; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #0E0E10">3</span></span>Проверка
+    </a>
+    <button style="background: none; border: none; color: #A1A1A8; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 0">
+      <span style="width: 56px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg></span>Настройки
+    </button>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D2F65A","options":["#D2F65A","#A9C8FF","#FFB38A","#8EF0C8"]},"$preview":{"width":400,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#D2F65A';
+    const vals = [6420, 2310, 9870, 3200, 1840];
+    const max = 9870;
+    const days = [];
+    for (let i = 0; i < 30; i++) {
+      if (i < vals.length) {
+        days.push({ h: Math.max(6, Math.round(vals[i] / max * 44)), c: i === vals.length - 1 ? accent : '#3A3A42' });
+      } else {
+        days.push({ h: 4, c: '#1E1E23' });
+      }
+    }
+    const nb = ' ';
+    const row = (o) => Object.assign({ cart: false, cup: false, inc: false, bus: false, amtColor: '#F5F5F3' }, o, { bg: o.color + '26' });
+    return {
+      accent,
+      accentSoft: accent + '2E',
+      days,
+      recent: [
+        row({ name: 'Пятёрочка', sub: 'Продукты · *1234 · 14:05', amt: '−1' + nb + '500 ₽', color: '#9BDB6A', cart: true }),
+        row({ name: 'Кофейня', sub: 'Рестораны · *1234 · 10:12', amt: '−278 ₽', color: '#FF9B73', cup: true }),
+        row({ name: 'Зарплата', sub: 'Доход · *5678 · 09:00', amt: '+95' + nb + '000 ₽', amtColor: '#7FE0A8', color: '#7FE0A8', inc: true }),
+        row({ name: 'Метро', sub: 'Транспорт · *1234 · 08:41', amt: '−62 ₽', color: '#6AA8FF', bus: true })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
