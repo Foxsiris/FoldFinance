@@ -7,6 +7,9 @@ import com.foldfinance.core.model.KnownBalance
 import com.foldfinance.core.model.ParseStatus
 import com.foldfinance.core.model.RawMessage
 import com.foldfinance.core.model.Source
+import com.foldfinance.core.model.Subscription
+import com.foldfinance.core.model.SubscriptionPeriod
+import com.foldfinance.core.model.SubscriptionStatus
 import com.foldfinance.core.model.Transaction
 import com.foldfinance.parser.Direction
 import com.foldfinance.parser.Kind
@@ -40,7 +43,8 @@ object SampleData {
         kind: Kind = Kind.PURCHASE,
         source: Source = Source.SMS,
         needsReview: Boolean = false,
-        card: String? = "4821",
+        // Masks as the parser stores them (`*1234`); the UI shows `•• 1234` (CardMaskFormat).
+        card: String? = "*4821",
         note: String? = null,
     ): Transaction {
         val time = at(local)
@@ -107,8 +111,35 @@ object SampleData {
     )
 
     val balances: List<KnownBalance> = listOf(
-        KnownBalance("4821", 4_821_035, "RUB", at("2026-11-05T13:42"), 10),
-        KnownBalance("1177", 1_250_000, "RUB", at("2026-11-04T18:30"), null),
+        KnownBalance("*4821", 4_821_035, "RUB", at("2026-11-05T13:42"), 10),
+        KnownBalance("*1177", 1_250_000, "RUB", at("2026-11-04T18:30"), null),
+    )
+
+    /** Confirmed subscriptions and one candidate, for the «Подписки» card of the overview. */
+    val subscriptions: List<Subscription> = listOf(
+        subscription(1, "Яндекс Плюс", 39_900, "2026-11-02T21:40", "2026-12-02T21:40"),
+        subscription(2, "Кинопоиск", 29_900, "2026-10-15T09:00", "2026-11-15T09:00"),
+        subscription(3, "Мобильная связь", 65_000, "2026-10-22T08:00", "2026-11-22T08:00"),
+        subscription(4, "VK Музыка", 19_900, "2026-10-28T10:00", "2026-11-28T10:00", SubscriptionStatus.CANDIDATE),
+    )
+
+    private fun subscription(
+        id: Long,
+        merchant: String,
+        amountMinor: Long,
+        last: String,
+        next: String,
+        status: SubscriptionStatus = SubscriptionStatus.CONFIRMED,
+    ) = Subscription(
+        id = id,
+        merchant = merchant,
+        amountMinor = amountMinor,
+        currency = "RUB",
+        period = SubscriptionPeriod.MONTHLY,
+        lastChargeAt = at(last),
+        nextChargeAt = at(next),
+        status = status,
+        categoryId = categoryId("subscriptions"),
     )
 
     fun transactionRepository() = FakeTransactionRepository(transactions, rawMessages) { ScreenshotClock.instant() }

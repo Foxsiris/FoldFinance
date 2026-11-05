@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.foldfinance.app.DeviceConfigs
 import com.foldfinance.app.ScreenshotClock
 import com.foldfinance.app.captureInAllConfigs
 import com.foldfinance.app.ui.components.Period
@@ -26,6 +27,8 @@ import com.foldfinance.app.ui.fakes.FakeTransactionRepository
 import com.foldfinance.app.ui.fakes.NoopDetailActions
 import com.foldfinance.app.ui.fakes.NoopFormActions
 import com.foldfinance.app.ui.fakes.SampleData
+import com.foldfinance.app.ui.fakes.fakePreferences
+import com.foldfinance.app.ui.analytics.FakeSubscriptionRepository
 import com.foldfinance.app.ui.fakes.ViewModelHarness
 import com.foldfinance.app.ui.history.HistoryFilterActions
 import com.foldfinance.app.ui.history.HistoryPeriod
@@ -78,7 +81,7 @@ class MainScreensScreenshotTest {
 
     @Test fun overview() {
         val state = overviewState(SampleData.transactionRepository())
-        captureInAllConfigs("overview") {
+        captureInAllConfigs("overview", configs = DeviceConfigs.withNarrow) {
             Shell(Section.Overview) { m -> OverviewScreen(state, closedForm, NoopFormActions, NoopOverview, now, zone, m) }
         }
     }
@@ -101,7 +104,7 @@ class MainScreensScreenshotTest {
 
     @Test fun historyList() {
         val state = historyState()
-        captureInAllConfigs("history_list") {
+        captureInAllConfigs("history_list", configs = DeviceConfigs.withNarrow) {
             Shell(Section.History) { m ->
                 HistoryScreen(
                     state = state,
@@ -127,7 +130,7 @@ class MainScreensScreenshotTest {
     @Test fun historyDetail() {
         val state = historyState()
         val details = detailsOf(1L, 8L)
-        captureInAllConfigs("history_detail") {
+        captureInAllConfigs("history_detail", configs = DeviceConfigs.all + DeviceConfigs.InnerPortrait) {
             Shell(Section.History) { m ->
                 HistoryScreen(
                     state = state,
@@ -236,12 +239,15 @@ class MainScreensScreenshotTest {
     private val closedForm = TransactionFormState(categories = SampleData.categories)
 
     private fun overviewState(repo: FakeTransactionRepository, handle: SavedStateHandle = SavedStateHandle()): OverviewUiState {
-        val vm = OverviewViewModel(handle, repo, FakeCategoryRepository(), FakeBalanceRepository(if (repo.items.value.isEmpty()) emptyList() else SampleData.balances), ScreenshotClock)
+        val vm = OverviewViewModel(
+            handle, repo, FakeCategoryRepository(), FakeBalanceRepository(if (repo.items.value.isEmpty()) emptyList() else SampleData.balances),
+            FakeSubscriptionRepository(if (repo.items.value.isEmpty()) emptyList() else SampleData.subscriptions), fakePreferences(), ScreenshotClock,
+        )
         return harness.snapshot(vm.state)
     }
 
     private fun historyViewModel(handle: SavedStateHandle = SavedStateHandle()) =
-        HistoryViewModel(handle, SampleData.transactionRepository(), FakeCategoryRepository(), FakeMerchantRuleRepository(), ScreenshotClock)
+        HistoryViewModel(handle, SampleData.transactionRepository(), FakeCategoryRepository(), FakeMerchantRuleRepository(), fakePreferences(), ScreenshotClock)
 
     private fun historyState(): HistoryUiState = harness.snapshot(historyViewModel().state)
 
@@ -254,7 +260,7 @@ class MainScreensScreenshotTest {
 
 /** The real shell around a screen: sections, selection, the review badge. */
 @Composable
-private fun Shell(section: Section, badge: Int = 3, content: @Composable (Modifier) -> Unit) {
+internal fun Shell(section: Section, badge: Int = 3, content: @Composable (Modifier) -> Unit) {
     ShellScaffold(
         sections = Section.entries,
         selected = section,
@@ -272,6 +278,7 @@ private object NoopOverview : OverviewActions {
     override fun openTransaction(transactionId: Long) = Unit
     override fun openReview() = Unit
     override fun openHistory() = Unit
+    override fun openSubscriptions() = Unit
     override fun add() = Unit
 }
 

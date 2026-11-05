@@ -4,6 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.foldfinance.app.DeviceConfigs
 import com.foldfinance.app.backup.BackupError
 import com.foldfinance.app.captureInAllConfigs
+import com.foldfinance.app.ui.Shell
+import com.foldfinance.app.ui.shell.Section
 import com.foldfinance.app.prefs.AppSettings
 import com.foldfinance.app.prefs.RelockTimeout
 import com.foldfinance.app.prefs.ThemeMode
@@ -37,6 +39,19 @@ class SettingsScreenshotTests {
     /** Внешний экран — список разделов; две панели — список и первый раздел рядом. */
     @Test fun list() = captureInAllConfigs("settings_list") {
         SettingsScreen(state = sample, selected = null, actions = SettingsActions.None)
+    }
+
+    /**
+     * Inside the real shell: on the 674 dp inner screen the rail leaves ≈ 230 dp to the list of
+     * sections (compact rows), on the 337 dp outer one the list gets the «Подписки» row.
+     */
+    @Test fun listInShell() = captureInAllConfigs(
+        "settings_shell",
+        configs = listOf(DeviceConfigs.InnerPortrait, DeviceConfigs.Inner, DeviceConfigs.Tabletop, DeviceConfigs.OuterNarrow),
+    ) {
+        Shell(Section.Settings) { m ->
+            SettingsScreen(state = sample, selected = SettingsPane.CURRENCY, actions = SettingsActions.None, modifier = m, onOpenSubscriptions = {})
+        }
     }
 
     @Test fun security() = captureInAllConfigs("settings_security") {

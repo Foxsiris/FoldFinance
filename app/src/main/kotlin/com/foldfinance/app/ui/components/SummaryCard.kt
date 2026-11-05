@@ -14,7 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import com.foldfinance.app.R
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
@@ -49,7 +52,7 @@ fun SummaryCard(
 ) {
     val palette = FoldFinanceTheme.palette
     Surface(modifier = modifier, shape = FoldShapes.summary, color = palette.surface) {
-        Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 22.dp, bottom = 24.dp)) {
+        Column(Modifier.adaptiveHorizontalPadding().padding(top = 22.dp, bottom = 24.dp)) {
             Text(text = periodTitle, style = MaterialTheme.typography.titleLarge, color = palette.text)
             Spacer(Modifier.height(14.dp))
             MoneyText(amountMinor = todayMinor, currency = currency, style = todayStyle)
@@ -73,4 +76,19 @@ fun SummaryCard(
             }
         }
     }
+}
+
+/**
+ * Horizontal padding of a card that shrinks in narrow panes: [wide] normally, [narrow] when the
+ * card is narrower than [threshold] (a ~200 dp pane next to the hinge has no room for 24 dp).
+ * Works with intrinsic measurements, unlike `BoxWithConstraints`.
+ */
+fun Modifier.adaptiveHorizontalPadding(
+    wide: Dp = 24.dp,
+    narrow: Dp = 16.dp,
+    threshold: Dp = 300.dp,
+): Modifier = layout { measurable, constraints ->
+    val pad = (if (constraints.hasBoundedWidth && constraints.maxWidth < threshold.roundToPx()) narrow else wide).roundToPx()
+    val placeable = measurable.measure(constraints.offset(horizontal = -2 * pad))
+    layout(placeable.width + 2 * pad, placeable.height) { placeable.placeRelative(pad, 0) }
 }

@@ -3,9 +3,10 @@ package com.foldfinance.app.ui.history
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.foldfinance.app.prefs.AppPreferences
+import com.foldfinance.app.prefs.AppSettings
 import com.foldfinance.app.ui.transaction.CategoryEditor
 import com.foldfinance.app.ui.transaction.DeferredDeletion
-import com.foldfinance.app.ui.transaction.PrimaryCurrency
 import com.foldfinance.app.ui.transaction.RulePrompt
 import com.foldfinance.app.ui.transaction.TransactionDetailActions
 import com.foldfinance.app.ui.transaction.TransactionDetailState
@@ -113,6 +114,8 @@ data class HistoryUiState(
     val sections: List<HistorySection> = emptyList(),
     val categories: List<Category> = emptyList(),
     val count: Int = 0,
+    /** Currency of [expenseMinor] / [incomeMinor] and of the amount filter: «Валюта» from the settings. */
+    val currency: String = AppSettings.DEFAULT_CURRENCY,
     val expenseMinor: Long = 0,
     val incomeMinor: Long = 0,
 ) {
@@ -134,6 +137,7 @@ class HistoryViewModel @Inject constructor(
     private val transactions: TransactionRepository,
     private val categoryRepository: CategoryRepository,
     rules: MerchantRuleRepository,
+    preferences: AppPreferences,
     @UiClock private val clock: Clock,
 ) : ViewModel(), TransactionDetailActions, HistoryFilterActions {
 
@@ -161,7 +165,8 @@ class HistoryViewModel @Inject constructor(
         categoryRepository.observeAll(),
         filter,
         deletion.pending,
-    ) { list, cats, f, hidden ->
+        preferences.defaultCurrency,
+    ) { list, cats, f, hidden, currency ->
         val visible = if (hidden.isEmpty()) list else list.filterNot { it.id in hidden }
         HistoryUiState(
             loading = false,
@@ -169,8 +174,9 @@ class HistoryViewModel @Inject constructor(
             sections = group(visible, f.sortValue),
             categories = cats,
             count = visible.size,
-            expenseMinor = visible.filter { it.currency == PrimaryCurrency }.sumOf(AnalyticsCalculator::netExpenseContribution),
-            incomeMinor = visible.filter { it.currency == PrimaryCurrency && it.direction == Direction.INCOME }.sumOf { it.amountMinor },
+            currency = currency,
+            expenseMinor = visible.filter { it.currency == currency }.sumOf(AnalyticsCalculator::netExpenseContribution),
+            incomeMinor = visible.filter { it.currency == currency && it.direction == Direction.INCOME }.sumOf { it.amountMinor },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState(filter = filter.value))
 

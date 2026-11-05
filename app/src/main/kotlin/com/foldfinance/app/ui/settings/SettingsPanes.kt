@@ -42,6 +42,7 @@ import com.foldfinance.app.backup.BackupError
 import com.foldfinance.app.prefs.RelockTimeout
 import com.foldfinance.app.prefs.ThemeMode
 import com.foldfinance.app.security.DeviceAuthStatus
+import com.foldfinance.app.ui.format.CardMaskFormat
 import com.foldfinance.app.ui.components.EmptyState
 import com.foldfinance.app.ui.components.ListGroup
 import com.foldfinance.app.ui.components.ListGroupDivider
@@ -124,7 +125,7 @@ private fun CardRow(card: Card, onEditLabel: () -> Unit, onOwnChange: (Boolean) 
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    card.mask,
+                    CardMaskFormat.format(card.mask),
                     style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = TabularNumbers),
                     color = palette.text,
                 )
@@ -139,7 +140,7 @@ private fun CardRow(card: Card, onEditLabel: () -> Unit, onOwnChange: (Boolean) 
             Switch(
                 checked = card.isOwn,
                 onCheckedChange = onOwnChange,
-                modifier = Modifier.semantics { contentDescription = "$ownLabel ${card.mask}" },
+                modifier = Modifier.semantics { contentDescription = "$ownLabel ${CardMaskFormat.format(card.mask)}" },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = palette.onSaffron,
                     checkedTrackColor = palette.saffron,
@@ -158,7 +159,7 @@ private fun CardLabelDialog(card: Card, onDismiss: () -> Unit, onSave: (String) 
     val field = rememberTextFieldState(card.label.orEmpty())
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_card_edit_label, card.mask)) },
+        title = { Text(stringResource(R.string.settings_card_edit_label, CardMaskFormat.format(card.mask))) },
         text = {
             OutlinedTextField(
                 state = field,

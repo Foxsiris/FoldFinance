@@ -11,7 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 
 /**
@@ -33,11 +35,18 @@ fun SectionHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
+            val hasAction = actionLabel != null && onAction != null
+            val titleStyle = MaterialTheme.typography.titleLarge
             Text(
                 text = title,
                 modifier = Modifier.semantics { heading() },
-                style = MaterialTheme.typography.titleLarge,
+                style = titleStyle,
                 color = palette.text,
+                // Next to an action the title stays one line and shrinks a little in a narrow
+                // window («Последние операции · Вся история» on a 337 dp outer screen).
+                maxLines = if (hasAction) 1 else Int.MAX_VALUE,
+                softWrap = !hasAction,
+                autoSize = if (hasAction) TextAutoSize.StepBased(minFontSize = 15.sp, maxFontSize = titleStyle.fontSize, stepSize = 0.5.sp) else null,
             )
             if (supporting != null) {
                 Text(text = supporting, style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)

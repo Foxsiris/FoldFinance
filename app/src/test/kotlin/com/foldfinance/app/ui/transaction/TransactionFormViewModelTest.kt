@@ -6,6 +6,8 @@ import com.foldfinance.app.ScreenshotClock
 import com.foldfinance.app.ui.fakes.FakeCategoryRepository
 import com.foldfinance.app.ui.fakes.FakeTransactionRepository
 import com.foldfinance.app.ui.fakes.SampleData
+import com.foldfinance.app.ui.fakes.fakePreferences
+import com.foldfinance.app.prefs.AppPreferences
 import com.foldfinance.core.model.Source
 import com.foldfinance.parser.Direction
 import com.google.common.truth.Truth.assertThat
@@ -27,8 +29,11 @@ class TransactionFormViewModelTest {
 
     @After fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm(handle: SavedStateHandle, repo: FakeTransactionRepository = FakeTransactionRepository()) =
-        TransactionFormViewModel(handle, repo, FakeCategoryRepository(), ScreenshotClock)
+    private fun vm(
+        handle: SavedStateHandle,
+        repo: FakeTransactionRepository = FakeTransactionRepository(),
+        preferences: AppPreferences = fakePreferences(),
+    ) = TransactionFormViewModel(handle, repo, FakeCategoryRepository(), preferences, ScreenshotClock)
 
     private fun TransactionFormViewModel.type(text: String) = text.forEach { ch ->
         press(if (ch == ',') KeypadKey.Decimal else KeypadKey.Digit(ch - '0'))
@@ -119,5 +124,21 @@ class TransactionFormViewModelTest {
         assertThat(saved.occurredAt).isEqualTo(Instant.parse("2026-11-04T09:00:00Z"))
         assertThat(saved.source).isEqualTo(Source.SMS)
         assertThat(repo.items.value.first { it.id == 1L }.userEdited).isTrue()
+    }
+
+    @Test fun `a new manual operation takes the currency from the settings`() = runTest {
+        val preferences = fakePreferences(currency = "EUR")
+        val repo = FakeTransactionRepository()
+        val vm = vm(SavedStateHandle(), repo, preferences)
+        vm.openAdd()
+        assertThat(vm.state.value.draft.currency).isEqualTo("EUR")
+        vm.type("12")
+        vm.save()
+        assertThat(repo.items.value.single().currency).isEqualTo("EUR")
+
+        // Changed in «Настройки → Валюта»: the next add form uses the new one.
+        preferences.setDefaultCurrency("KZT")
+        vm.openAdd()
+        assertThat(vm.state.value.draft.currency).isEqualTo("KZT")
     }
 }

@@ -21,6 +21,8 @@ import com.foldfinance.app.prefs.ThemeMode
 import com.foldfinance.app.ui.categories.CategoriesRoute
 import com.foldfinance.app.ui.diagnostics.WindowDiagnosticsRoute
 import com.foldfinance.app.ui.onboarding.IngestSettingsSection
+import com.foldfinance.app.ui.shell.LocalShellNavigation
+import com.foldfinance.app.ui.shell.Section
 import com.foldfinance.app.ingest.debug.IngestDebugTools
 import androidx.compose.foundation.layout.Column
 import java.time.LocalDate
@@ -38,6 +40,7 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val selected by viewModel.selectedPane.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val shell = LocalShellNavigation.current
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshDeviceAuth() }
 
@@ -95,6 +98,7 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
         },
         categories = { onBack -> CategoriesRoute(onBack = onBack) },
         diagnostics = { onBack -> WindowDiagnosticsRoute(modifier, onBack = onBack) },
+        onOpenSubscriptions = { shell.openSection(Section.Subscriptions) },
     )
 }
 

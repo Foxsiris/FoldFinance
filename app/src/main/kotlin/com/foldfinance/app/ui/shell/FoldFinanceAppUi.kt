@@ -114,6 +114,9 @@ fun navigationTypeFor(layout: AppLayout, sectionCount: Int): NavigationSuiteType
  * navigation rail) around the content of [selected]. Each section keeps its saveable state
  * (scroll, filters, the list-detail navigator) while another one is shown.
  *
+ * On a Compact window the bar shows at most five sections ([barSections]); a selected section
+ * that has no bar item ([SectionsOutsideCompactBar]) is still shown, with nothing highlighted.
+ *
  * Insets: the scaffold consumes the insets of the side its navigation occupies; the content pads
  * the remaining safe-drawing insets (status bar, camera cutout, Samsung taskbar).
  *
@@ -132,7 +135,9 @@ fun ShellScaffold(
     content: @Composable (Section, Modifier) -> Unit = { section, m -> SectionContent(section, m) },
 ) {
     val palette = FoldFinanceTheme.palette
-    val type = navigationTypeFor(layout, sections.size)
+    val compactBar = layout is AppLayout.Compact
+    val items = barSections(sections, compactBar)
+    val type = navigationTypeFor(layout, items.size)
     val barItemColors = ShortNavigationBarItemDefaults.colors(
         selectedIconColor = palette.onSaffronContainer,
         selectedTextColor = palette.text,
@@ -154,7 +159,7 @@ fun ShellScaffold(
 
     NavigationSuiteScaffold(
         navigationItems = {
-            sections.forEach { section ->
+            items.forEach { section ->
                 val isSelected = section == selected
                 val badge = badges[section] ?: 0
                 val badgeDescription = if (badge > 0) {

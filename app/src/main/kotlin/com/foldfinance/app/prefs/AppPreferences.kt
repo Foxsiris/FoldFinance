@@ -68,6 +68,9 @@ class AppPreferences @Inject constructor(
 ) {
     val settings: Flow<AppSettings> = store.data.map { it.toSettings() }.distinctUntilChanged()
 
+    /** «Валюта» из настроек: валюта сводок, ручного ввода и виджета. Меняется только при смене значения. */
+    val defaultCurrency: Flow<String> = settings.map { it.defaultCurrency }.distinctUntilChanged()
+
     suspend fun current(): AppSettings = settings.first()
 
     suspend fun setThemeMode(mode: ThemeMode) {

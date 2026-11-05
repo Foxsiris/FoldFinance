@@ -3,6 +3,8 @@ package com.foldfinance.app.ui.transaction
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.foldfinance.app.prefs.AppPreferences
+import com.foldfinance.app.prefs.AppSettings
 import com.foldfinance.app.ui.format.MoneyFormat
 import com.foldfinance.core.data.repository.CategoryRepository
 import com.foldfinance.core.data.repository.ManualTransactionInput
@@ -37,7 +39,7 @@ import javax.inject.Inject
 @Serializable
 data class TransactionDraft(
     val amountText: String = "",
-    val currency: String = PrimaryCurrency,
+    val currency: String = AppSettings.DEFAULT_CURRENCY,
     val direction: String = Direction.EXPENSE.name,
     val categoryId: Long? = null,
     val merchant: String = "",
@@ -84,8 +86,13 @@ class TransactionFormViewModel @Inject constructor(
     private val handle: SavedStateHandle,
     private val transactions: TransactionRepository,
     categories: CategoryRepository,
+    preferences: AppPreferences,
     @UiClock private val clock: Clock,
 ) : ViewModel(), TransactionFormActions {
+
+    /** «Валюта» from the settings: the currency of a new manual operation. */
+    private val defaultCurrency: StateFlow<String> =
+        preferences.defaultCurrency.stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings.DEFAULT_CURRENCY)
 
     private val json = Json { ignoreUnknownKeys = true }
     private val events = Channel<FormEvent>(Channel.BUFFERED)
@@ -118,7 +125,7 @@ class TransactionFormViewModel @Inject constructor(
     /** Open an empty add form. An add form that is already open keeps its unsaved input. */
     fun openAdd() {
         if (handle.get<String>(KEY_MODE) == MODE_ADD) return
-        handle[KEY_DRAFT] = encode(TransactionDraft())
+        handle[KEY_DRAFT] = encode(TransactionDraft(currency = defaultCurrency.value))
         handle[KEY_EDIT_ID] = 0L
         handle[KEY_MODE] = MODE_ADD
     }

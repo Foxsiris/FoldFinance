@@ -124,4 +124,21 @@ class ShellViewModelTest {
         assertThat(navigationTypeFor(book, 6)).isEqualTo(NavigationSuiteType.WideNavigationRailCollapsed)
         assertThat(navigationTypeFor(book, 1)).isEqualTo(NavigationSuiteType.None)
     }
+
+    @Test fun `compact bar has five items without subscriptions, the rail has all six`() {
+        val bar = barSections(Section.entries, compactBar = true)
+        assertThat(bar).containsExactly(Section.Overview, Section.History, Section.Review, Section.Analytics, Section.Settings).inOrder()
+        assertThat(bar.size).isAtMost(MaxCompactBarItems)
+        assertThat(barSections(Section.entries, compactBar = false)).isEqualTo(Section.entries)
+    }
+
+    @Test fun `subscriptions selected on the inner screen stay selected after folding`() {
+        // Selected on the rail; folding recreates nothing in the ViewModel, but the Compact bar has
+        // no item for it — the selection must still resolve to Subscriptions, not fall back.
+        val handle = SavedStateHandle()
+        ShellViewModel(handle, Section.entries).select(Section.Subscriptions)
+        val folded = ShellViewModel(SavedStateHandle(mapOf(ShellViewModel.KEY_SELECTED to handle.get<String>(ShellViewModel.KEY_SELECTED))), Section.entries)
+        assertThat(folded.selected.value).isEqualTo(Section.Subscriptions)
+        assertThat(Section.Subscriptions in barSections(folded.visibleSections, compactBar = true)).isFalse()
+    }
 }

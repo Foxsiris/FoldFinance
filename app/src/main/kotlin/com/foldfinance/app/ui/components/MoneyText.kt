@@ -1,5 +1,7 @@
 package com.foldfinance.app.ui.components
 
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -13,9 +15,12 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.sp
 import com.foldfinance.app.ui.format.MoneyFormat
 import com.foldfinance.app.ui.format.SignDisplay
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
@@ -31,31 +36,45 @@ import com.foldfinance.parser.Direction
  *   55% for display sizes (docs/design.md), 80% inline where 55% would be unreadable.
  * @property groupSpacing extra tracking after the narrow no-break space between digit groups:
  *   tabular digits are wide, so inline amounts need a slightly wider group gap to stay legible.
+ * @property shrinkToFit the amount scales down (whole, keeping the proportions of the integer
+ *   part, kopecks and the sign) when it does not fit the width — display sizes in narrow panes.
+ *   Inline amounts are never squeezed: rows give them their intrinsic width.
  */
-enum class MoneyStyle(val minorScale: Float, val groupSpacing: TextUnit) {
+enum class MoneyStyle(val minorScale: Float, val groupSpacing: TextUnit, val shrinkToFit: Boolean) {
     /** Unbounded 60 — one hero number per screen at most. */
-    Hero(0.55f, 0.08.em),
+    Hero(0.55f, 0.08.em, shrinkToFit = true),
 
     /** Unbounded 48 — «Сегодня» on the summary card. */
-    Display(0.55f, 0.08.em),
+    Display(0.55f, 0.08.em, shrinkToFit = true),
 
     /** Unbounded 38. */
-    DisplayMedium(0.55f, 0.08.em),
+    DisplayMedium(0.55f, 0.08.em, shrinkToFit = true),
 
     /** Unbounded 30 — month total, secondary big numbers. */
-    DisplaySmall(0.55f, 0.08.em),
+    DisplaySmall(0.55f, 0.08.em, shrinkToFit = true),
 
     /** Onest 15 tnum — amounts in rows. */
-    Inline(0.8f, 0.16.em),
+    Inline(0.8f, 0.16.em, shrinkToFit = false),
 
     /** Onest 15 tnum SemiBold — totals inside lists. */
-    InlineStrong(0.8f, 0.16.em),
+    InlineStrong(0.8f, 0.16.em, shrinkToFit = false),
 }
+
+/** Smallest size a [MoneyStyle.shrinkToFit] amount goes down to, relative to its style size. */
+private const val MinShrinkFraction = 0.4f
+
+/** Display amounts never get smaller than this, even in the narrowest window. */
+private val MinShrinkSize = 15.sp
 
 /**
  * An amount of money, typeset the FoldFinance way: integer part large, kopecks and the currency
  * sign smaller and muted, `,00` hidden, ru-RU grouping with a narrow no-break space
  * (`1 240,50 ₽`).
+ *
+ * The amount is never cut and never wraps: it is one line, and display styles
+ * ([MoneyStyle.shrinkToFit]) scale down as a whole to the available width (Compose
+ * `TextAutoSize.StepBased`); the kopecks and the currency sign are sized in `em` of the integer
+ * part, so they keep the 55 % proportion at any size.
  *
  * Colour follows [direction]: expense — neutral text (spending is normal, not an alarm), income —
  * mint, refund — lavender, internal transfer — muted. `null` direction means a neutral total.
@@ -86,8 +105,9 @@ fun MoneyText(
     val parts = remember(amountMinor, currency, signDisplay, hideZeroFraction) {
         MoneyFormat.parts(amountMinor, currency, signDisplay, hideZeroFraction)
     }
-    val text = remember(parts, mainColor, minorColor, textStyle, style) {
-        val minor = SpanStyle(fontSize = textStyle.fontSize * style.minorScale, color = minorColor)
+    val text = remember(parts, mainColor, minorColor, style) {
+        // Relative size: under auto-size the integer part changes size, the minor part follows it.
+        val minor = SpanStyle(fontSize = style.minorScale.em, color = minorColor)
         buildAnnotatedString {
             withStyle(SpanStyle(color = mainColor)) {
                 append(parts.sign)
@@ -106,14 +126,35 @@ fun MoneyText(
             }
         }
     }
-    Text(
-        text = text,
-        modifier = modifier.semantics { contentDescription = parts.toString() },
-        style = textStyle,
-        textAlign = textAlign,
-        maxLines = 1,
-        softWrap = false,
-    )
+    val described = modifier.semantics { contentDescription = parts.toString() }
+    if (style.shrinkToFit) {
+        val maxSize = textStyle.fontSize
+        val minSize = (maxSize.value * MinShrinkFraction).coerceAtLeast(MinShrinkSize.value).coerceAtMost(maxSize.value).sp
+        // Line height in em, so a smaller amount does not keep the full-size line box.
+        val lineHeight = if (textStyle.lineHeight.isSpecified && maxSize.isSpecified) {
+            (textStyle.lineHeight.value / maxSize.value).em
+        } else {
+            textStyle.lineHeight
+        }
+        BasicText(
+            text = text,
+            modifier = described,
+            style = textStyle.copy(color = mainColor, lineHeight = lineHeight, textAlign = textAlign ?: TextAlign.Unspecified),
+            overflow = TextOverflow.Clip,
+            softWrap = false,
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(minFontSize = minSize, maxFontSize = maxSize, stepSize = 0.5.sp),
+        )
+    } else {
+        Text(
+            text = text,
+            modifier = described,
+            style = textStyle,
+            textAlign = textAlign,
+            maxLines = 1,
+            softWrap = false,
+        )
+    }
 }
 
 /** Default sign: `+` for money coming in (income, refund), none otherwise. */

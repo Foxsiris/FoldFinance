@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.foldfinance.app.R
+import com.foldfinance.app.ui.format.CardMaskFormat
 import com.foldfinance.app.ui.components.CategoryChip
 import com.foldfinance.app.ui.components.CategoryTile
 import com.foldfinance.app.ui.components.ListGroup
@@ -159,7 +160,7 @@ fun TransactionDetail(
             InfoRow(stringResource(R.string.tx_direction), tx.direction.label())
             tx.cardMask?.let {
                 ListGroupDivider(startInset = 16.dp)
-                InfoRow(stringResource(R.string.tx_card), stringResource(R.string.tx_card_mask, it))
+                InfoRow(stringResource(R.string.tx_card), CardMaskFormat.format(it))
             }
             ListGroupDivider(startInset = 16.dp)
             InfoRow(stringResource(R.string.tx_source), tx.source.label())

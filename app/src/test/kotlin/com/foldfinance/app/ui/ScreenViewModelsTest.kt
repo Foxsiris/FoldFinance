@@ -9,6 +9,9 @@ import com.foldfinance.app.ui.fakes.FakeCategoryRepository
 import com.foldfinance.app.ui.fakes.FakeMerchantRuleRepository
 import com.foldfinance.app.ui.fakes.FakeTransactionRepository
 import com.foldfinance.app.ui.fakes.SampleData
+import com.foldfinance.app.ui.fakes.fakePreferences
+import com.foldfinance.app.ui.analytics.FakeSubscriptionRepository
+import com.foldfinance.app.prefs.AppPreferences
 import com.foldfinance.app.ui.history.HistoryPeriod
 import com.foldfinance.app.ui.history.HistoryViewModel
 import com.foldfinance.app.ui.overview.CategorySelection
@@ -44,8 +47,13 @@ class ScreenViewModelsTest {
 
     // ------------------------------------------------------------------ History
 
-    private fun history(handle: SavedStateHandle, repo: FakeTransactionRepository = SampleData.transactionRepository(), rules: FakeMerchantRuleRepository = FakeMerchantRuleRepository()) =
-        HistoryViewModel(handle, repo, FakeCategoryRepository(), rules, ScreenshotClock)
+    private fun history(
+        handle: SavedStateHandle,
+        repo: FakeTransactionRepository = SampleData.transactionRepository(),
+        rules: FakeMerchantRuleRepository = FakeMerchantRuleRepository(),
+        preferences: AppPreferences = fakePreferences(),
+    ) =
+        HistoryViewModel(handle, repo, FakeCategoryRepository(), rules, preferences, ScreenshotClock)
 
     @Test fun `history filters, search and sort survive recreation`() = runTest {
         val handle = SavedStateHandle()
@@ -165,8 +173,13 @@ class ScreenViewModelsTest {
 
     // ------------------------------------------------------------------ Overview
 
-    private fun overview(handle: SavedStateHandle) = OverviewViewModel(
-        handle, SampleData.transactionRepository(), FakeCategoryRepository(), FakeBalanceRepository(SampleData.balances), ScreenshotClock,
+    private fun overview(
+        handle: SavedStateHandle,
+        preferences: AppPreferences = fakePreferences(),
+        subscriptions: FakeSubscriptionRepository = FakeSubscriptionRepository(),
+    ) = OverviewViewModel(
+        handle, SampleData.transactionRepository(), FakeCategoryRepository(), FakeBalanceRepository(SampleData.balances),
+        subscriptions, preferences, ScreenshotClock,
     )
 
     @Test fun `overview totals are by known operations - refunds reduce, transfers and income do not count`() = runTest {
@@ -178,7 +191,7 @@ class ScreenViewModelsTest {
             // Month: today + 2 599 + 864,20 + 65 + 1 500 − 1 299 + 742 + 399 + 3 214,77 + 540 + 2 315.
             assertThat(state.monthMinor).isEqualTo(403_950L + 259_900 + 86_420 + 6_500 + 150_000 - 129_900 + 74_200 + 39_900 + 321_477 + 54_000 + 231_500)
             assertThat(state.reviewCount).isEqualTo(3)
-            assertThat(state.balances.map { it.cardMask }).containsExactly("4821", "1177").inOrder()
+            assertThat(state.balances.map { it.cardMask }).containsExactly("*4821", "*1177").inOrder()
             assertThat(state.bars).hasSize(30)
         }
     }
@@ -197,6 +210,49 @@ class ScreenViewModelsTest {
             assertThat(state.selectedCategory).isEqualTo(CategorySelection.Of(SampleData.categoryId("groceries")))
             assertThat(state.selectedBar).isEqualTo(java.time.LocalDate.parse("2026-11-04").toEpochDay())
             assertThat(state.transactions.map { it.merchant }).containsExactly("ВкусВилл")
+        }
+    }
+
+    // ------------------------------------------------------------------ Currency from the settings
+
+    @Test fun `overview totals follow the currency from the settings`() = runTest {
+        val preferences = fakePreferences(currency = "USD")
+        overview(SavedStateHandle(), preferences).state.test {
+            var state = awaitItem()
+            while (state.loading) state = awaitItem()
+            // Sample operations are all in roubles: nothing in dollars today.
+            assertThat(state.currency).isEqualTo("USD")
+            assertThat(state.todayMinor).isEqualTo(0L)
+
+            preferences.setDefaultCurrency("RUB")
+            while (state.currency != "RUB") state = awaitItem()
+            assertThat(state.todayMinor).isEqualTo(403_950L)
+        }
+    }
+
+    @Test fun `overview subscriptions card sums confirmed subscriptions per month`() = runTest {
+        val subscriptions = FakeSubscriptionRepository(SampleData.subscriptions)
+        overview(SavedStateHandle(), subscriptions = subscriptions).state.test {
+            var state = awaitItem()
+            while (state.loading) state = awaitItem()
+            assertThat(state.subscriptions.confirmed).isEqualTo(3)
+            assertThat(state.subscriptions.candidates).isEqualTo(1)
+            assertThat(state.subscriptions.monthlyMinor).isEqualTo(39_900L + 29_900 + 65_000)
+        }
+    }
+
+    @Test fun `history totals and amount filter follow the currency from the settings`() = runTest {
+        val preferences = fakePreferences(currency = "EUR")
+        history(SavedStateHandle(), preferences = preferences).state.test {
+            var state = awaitItem()
+            while (state.loading) state = awaitItem()
+            assertThat(state.currency).isEqualTo("EUR")
+            assertThat(state.expenseMinor).isEqualTo(0L)
+            assertThat(state.count).isGreaterThan(0)
+
+            preferences.setDefaultCurrency("RUB")
+            while (state.currency != "RUB") state = awaitItem()
+            assertThat(state.expenseMinor).isGreaterThan(0L)
         }
     }
 }

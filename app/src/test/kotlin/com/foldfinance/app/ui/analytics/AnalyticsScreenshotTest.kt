@@ -4,6 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.foldfinance.app.DeviceConfigs
 import com.foldfinance.app.ScreenshotClock
 import com.foldfinance.app.captureInAllConfigs
+import com.foldfinance.app.ui.Shell
+import com.foldfinance.app.ui.shell.Section
 import com.foldfinance.core.domain.analytics.Period
 import com.foldfinance.core.domain.analytics.PeriodType
 import org.junit.Test
@@ -41,6 +43,20 @@ class AnalyticsScreenshotTest {
             state = state(Period.month(YearMonth.of(2026, 10), zone), selectedDay = LocalDate.of(2026, 10, 17)),
             actions = AnalyticsActions(),
         )
+    }
+
+    /**
+     * The same month inside the real shell in the emulator's narrow windows: inner portrait
+     * (rail + two ≈ 230/325 dp panes) and the 337 dp outer screen with its five-item bar.
+     */
+    @Test fun monthInShell() = captureInAllConfigs("analytics_month_shell", configs = listOf(DeviceConfigs.InnerPortrait, DeviceConfigs.OuterNarrow)) {
+        Shell(Section.Analytics) { m ->
+            AnalyticsScreen(
+                state = state(Period.month(YearMonth.of(2026, 10), zone), selectedDay = LocalDate.of(2026, 10, 17)),
+                actions = AnalyticsActions(),
+                modifier = m,
+            )
+        }
     }
 
     /** A week without a selection. */
