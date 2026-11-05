@@ -99,9 +99,9 @@ class HistoryContinuityTest {
 
     private fun detailShows(merchant: String) {
         // The raw bank message is only in the detail pane.
-        rule.onNodeWithText("Исходное сообщение").assertIsDisplayed()
+        rule.onNodeWithText("ИСХОДНОЕ СООБЩЕНИЕ").assertIsDisplayed()
         rule.onAllNodesWithText(merchant).fetchSemanticsNodes().let { check(it.isNotEmpty()) }
-        rule.onNodeWithContentDescription("Изменить").assertIsDisplayed()
+        rule.onNodeWithText("Изменить").assertIsDisplayed()
     }
 
     private fun pressBack() {
@@ -135,7 +135,7 @@ class HistoryContinuityTest {
         // …and «Назад» leads to the list.
         pressBack()
         rule.onNodeWithText("История").assertIsDisplayed()
-        rule.onNodeWithText("Исходное сообщение").assertDoesNotExist()
+        rule.onNodeWithText("ИСХОДНОЕ СООБЩЕНИЕ").assertDoesNotExist()
     }
 
     @Test fun `opened on the inner screen, folded — detail on the outer screen, back to list`() {

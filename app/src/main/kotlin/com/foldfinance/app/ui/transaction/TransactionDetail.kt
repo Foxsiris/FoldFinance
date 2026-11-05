@@ -49,6 +49,24 @@ import com.foldfinance.app.ui.components.visual
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
 import com.foldfinance.core.model.Category
+import com.foldfinance.parser.MessageChannel
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import com.foldfinance.app.ui.components.IconCircleButton
+import com.foldfinance.app.ui.components.OutlineButton
+import com.foldfinance.app.ui.components.Overline
+import com.foldfinance.app.ui.components.PillTag
+import com.foldfinance.app.ui.components.PrimaryButton
+import com.foldfinance.app.ui.components.signedRowAmount
+import com.foldfinance.app.ui.theme.FoldTextStyles
 import com.foldfinance.core.model.RawMessage
 import com.foldfinance.core.model.Source
 import com.foldfinance.core.model.Transaction
@@ -94,6 +112,7 @@ fun TransactionDetail(
     val palette = FoldFinanceTheme.palette
     val tx = state.transaction
     val today = now.atZone(zone).toLocalDate()
+    val visual = categoryVisualOrNone(state.category)
     Column(
         modifier
             .fillMaxSize()
@@ -102,37 +121,59 @@ fun TransactionDetail(
     ) {
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
             if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.tx_back), tint = palette.text)
-                }
+                IconCircleButton(
+                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = stringResource(R.string.tx_back),
+                    onClick = onBack,
+                )
             }
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = { actions.edit(tx.id) }) {
-                Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.tx_edit), tint = palette.text)
-            }
-            IconButton(onClick = { actions.delete(tx.id) }) {
-                Icon(Icons.Outlined.DeleteOutline, contentDescription = stringResource(R.string.tx_delete), tint = palette.text)
+            OutlineButton(
+                text = stringResource(R.string.tx_edit),
+                icon = Icons.Outlined.Edit,
+                onClick = { actions.edit(tx.id) },
+                height = 40.dp,
+            )
+            Spacer(Modifier.width(8.dp))
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .clip(FoldShapes.tile)
+                    .border(1.dp, palette.outline, FoldShapes.tile)
+                    .clickable(role = Role.Button, onClick = { actions.delete(tx.id) }),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Outlined.DeleteOutline, contentDescription = stringResource(R.string.tx_delete), tint = palette.danger, modifier = Modifier.size(20.dp))
             }
         }
-        Column(headerModifier.fillMaxWidth().padding(top = 8.dp)) {
-            CategoryTile(categoryVisualOrNone(state.category))
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = tx.title(),
-                modifier = Modifier.semantics { heading() },
-                style = MaterialTheme.typography.headlineMedium,
-                color = palette.text,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+        Column(headerModifier.fillMaxWidth().padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(10.dp).background(visual.color, FoldShapes.pill))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = tx.title(),
+                    modifier = Modifier.semantics { heading() },
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = palette.textSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            MoneyText(
+                amountMinor = signedRowAmount(tx.amountMinor, tx.direction),
+                currency = tx.currency,
+                direction = tx.direction,
+                style = MoneyStyle.DisplayMedium,
             )
-            Spacer(Modifier.height(6.dp))
-            MoneyText(amountMinor = tx.amountMinor, currency = tx.currency, direction = tx.direction, style = MoneyStyle.DisplayMedium)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.tx_date_time, formatDate(tx.occurredAt.atZone(zone).toLocalDate(), today), formatTime(tx.occurredAt, zone)),
-                style = MaterialTheme.typography.bodyLarge,
-                color = palette.textMuted,
-            )
+            FlowRow(
+                Modifier.padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                PillTag(tx.direction.label(), color = palette.textSoft, container = palette.surfaceRaised)
+                PillTag(sourceSummary(tx, state.rawMessages), color = palette.textSoft, container = palette.surfaceRaised)
+                if (tx.needsReview) ReviewBadge()
+            }
         }
 
         if (tx.needsReview) {
@@ -140,123 +181,141 @@ fun TransactionDetail(
             ReviewCallout(onConfirm = { actions.confirm(tx.id) })
         }
 
-        Spacer(Modifier.height(24.dp))
-        DetailSectionTitle(stringResource(R.string.tx_category))
-        Spacer(Modifier.height(8.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Spacer(Modifier.height(18.dp))
+        Column {
+            FieldRow(
+                stringResource(R.string.tx_date_label),
+                stringResource(R.string.tx_date_time, formatDate(tx.occurredAt.atZone(zone).toLocalDate(), today), formatTime(tx.occurredAt, zone)),
+            )
+            tx.cardMask?.let { FieldRow(stringResource(R.string.tx_card), CardMaskFormat.format(it)) }
+            FieldRow(stringResource(R.string.tx_category), visual.name)
+            FieldRow(stringResource(R.string.tx_source), tx.source.label())
+            HorizontalDivider(thickness = 1.dp, color = palette.seam)
+        }
+
+        Spacer(Modifier.height(18.dp))
+        Overline(stringResource(R.string.tx_category))
+        Spacer(Modifier.height(4.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
             state.categories.forEach { category ->
-                val visual = category.visual()
+                val chip = category.visual()
                 CategoryChip(
-                    name = visual.name,
-                    color = visual.color,
+                    name = chip.name,
+                    color = chip.color,
                     selected = category.id == tx.categoryId,
                     onClick = { actions.setCategory(tx.id, if (category.id == tx.categoryId) null else category.id) },
+                    height = 36.dp,
                 )
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-        ListGroup(Modifier.fillMaxWidth()) {
-            InfoRow(stringResource(R.string.tx_direction), tx.direction.label())
-            tx.cardMask?.let {
-                ListGroupDivider(startInset = 16.dp)
-                InfoRow(stringResource(R.string.tx_card), CardMaskFormat.format(it))
-            }
-            ListGroupDivider(startInset = 16.dp)
-            InfoRow(stringResource(R.string.tx_source), tx.source.label())
-        }
-
         if (tx.source != Source.MANUAL) {
-            Spacer(Modifier.height(24.dp))
-            DetailSectionTitle(stringResource(R.string.tx_raw_title))
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(18.dp))
+            Overline(stringResource(if (state.rawMessages.size > 1) R.string.tx_raw_title_merged else R.string.tx_raw_title))
+            Spacer(Modifier.height(10.dp))
             if (state.rawMessages.isEmpty()) {
-                Text(stringResource(R.string.tx_raw_missing), style = MaterialTheme.typography.bodyLarge, color = palette.textMuted)
+                Text(stringResource(R.string.tx_raw_missing), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
             }
             state.rawMessages.forEach { raw ->
-                RawMessageCard(raw, today, zone)
-                Spacer(Modifier.height(8.dp))
+                RawMessageCard(raw, tx.source, zone)
+                Spacer(Modifier.height(10.dp))
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-        DetailSectionTitle(stringResource(R.string.tx_note))
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(14.dp))
+        Overline(stringResource(R.string.tx_note))
+        Spacer(Modifier.height(4.dp))
         val note = tx.note
         if (note.isNullOrBlank()) {
             TextButton(onClick = { actions.edit(tx.id) }, contentPadding = PaddingValues(horizontal = 0.dp)) {
-                Text(stringResource(R.string.tx_note_add), color = palette.saffron, style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.tx_note_add), color = palette.accentContent, style = MaterialTheme.typography.labelLarge)
             }
         } else {
-            Text(note, style = MaterialTheme.typography.bodyLarge, color = palette.text)
+            Text(note, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
         }
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(24.dp))
     }
 }
 
+/** «SMS + push», «SMS», «Вручную»: where the operation came from. */
 @Composable
-private fun DetailSectionTitle(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier.semantics { heading() },
-        style = MaterialTheme.typography.titleMedium,
-        color = FoldFinanceTheme.palette.text,
-    )
+private fun sourceSummary(tx: Transaction, raw: List<RawMessage>): String {
+    val sms = stringResource(R.string.tx_source_short_sms)
+    val push = stringResource(R.string.tx_source_short_push)
+    val channels = raw.map { if (it.channel == MessageChannel.PUSH) push else sms }.distinct()
+    return when {
+        channels.size > 1 -> channels.joinToString(" + ")
+        channels.size == 1 -> channels.first()
+        else -> tx.source.label()
+    }
 }
 
+/** «Дата и время … 5 ноября, 14:05» with the hairline above (History mockup). */
 @Composable
-private fun InfoRow(label: String, value: String) {
+private fun FieldRow(label: String, value: String) {
     val palette = FoldFinanceTheme.palette
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column {
+        HorizontalDivider(thickness = 1.dp, color = palette.seam)
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 42.dp).padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = palette.textMuted, modifier = Modifier.weight(1f))
+            Spacer(Modifier.width(16.dp))
+            Text(value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = palette.text, textAlign = TextAlign.End)
+        }
+    }
+}
+
+/** One original bank message: «SMS · 900 · 14:05» over the text in mono, in a sunken well. */
+@Composable
+private fun RawMessageCard(raw: RawMessage, source: Source, zone: ZoneId) {
+    val palette = FoldFinanceTheme.palette
+    val channel = stringResource(if (raw.channel == MessageChannel.PUSH) R.string.tx_source_short_push else R.string.tx_source_short_sms)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(FoldShapes.rowSelected)
+            .background(palette.surfaceSunken)
+            .border(1.dp, palette.seam, FoldShapes.rowSelected)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, color = palette.textMuted, modifier = Modifier.weight(1f))
-        Spacer(Modifier.width(12.dp))
-        Text(value, style = MaterialTheme.typography.bodyLarge, color = palette.text)
+        Text(
+            text = stringResource(R.string.tx_raw_header, channel, raw.sender, formatTimeSeconds(raw.receivedAt, zone)),
+            style = MaterialTheme.typography.labelMedium,
+            color = palette.textSecondary,
+        )
+        Text(raw.text, style = FoldTextStyles.mono, color = palette.textSoft)
     }
 }
 
-@Composable
-private fun RawMessageCard(raw: RawMessage, today: java.time.LocalDate, zone: ZoneId) {
-    val palette = FoldFinanceTheme.palette
-    Surface(shape = FoldShapes.listGroup, color = palette.surface, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                text = stringResource(
-                    R.string.tx_raw_meta,
-                    raw.sender,
-                    formatDate(raw.receivedAt.atZone(zone).toLocalDate(), today),
-                    formatTime(raw.receivedAt, zone),
-                ),
-                style = MaterialTheme.typography.labelMedium,
-                color = palette.textMuted,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(raw.text, style = MaterialTheme.typography.bodyLarge, color = palette.text)
-        }
-    }
-}
+private val TimeWithSeconds: java.time.format.DateTimeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+
+private fun formatTimeSeconds(instant: Instant, zone: ZoneId): String = TimeWithSeconds.format(instant.atZone(zone))
 
 @Composable
 private fun ReviewCallout(onConfirm: () -> Unit) {
     val palette = FoldFinanceTheme.palette
-    Surface(shape = FoldShapes.listGroup, color = palette.saffronContainer.copy(alpha = 0.6f), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                ReviewBadge()
-                Spacer(Modifier.height(4.dp))
-                Text(stringResource(R.string.tx_review_hint), style = MaterialTheme.typography.bodyMedium, color = palette.onSaffronContainer)
-            }
-            Spacer(Modifier.width(8.dp))
-            Button(
-                onClick = onConfirm,
-                shape = FoldShapes.pill,
-                colors = ButtonDefaults.buttonColors(containerColor = palette.saffron, contentColor = palette.onSaffron),
-            ) { Text(stringResource(R.string.tx_confirm)) }
-        }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(FoldShapes.listGroup)
+            .background(palette.review.copy(alpha = 0.1f))
+            .padding(start = 16.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.tx_review_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.textSoft,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(10.dp))
+        PrimaryButton(text = stringResource(R.string.tx_confirm), onClick = onConfirm, height = 44.dp)
     }
 }
+
 
 /**
  * «Применять для всех операций от X?» after a category change. «Применять» creates a merchant

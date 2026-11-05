@@ -22,12 +22,12 @@ class AppLayoutTest {
 
     @Test fun `inner screen half-opened in book posture - split on the hinge`() {
         val layout = computeAppLayout(882f, 662f, listOf(verticalHinge(441f, 662f, FoldState.HALF_OPENED, separating = true)))
-        assertThat(layout).isEqualTo(AppLayout.Book(882f, 662f, 441f, 0f, SplitSource.Hinge))
+        assertThat(layout).isEqualTo(AppLayout.Book(882f, 662f, 441f, 0f, SplitSource.Hinge, separating = true))
     }
 
     @Test fun `hinge with physical width is reported for the keep-out zone`() {
         val layout = computeAppLayout(900f, 700f, listOf(verticalHinge(450f, 700f, separating = true, width = 20f)))
-        assertThat(layout).isEqualTo(AppLayout.Book(900f, 700f, 450f, 20f, SplitSource.Hinge))
+        assertThat(layout).isEqualTo(AppLayout.Book(900f, 700f, 450f, 20f, SplitSource.Hinge, separating = true))
     }
 
     @Test fun `off-centre hinge is followed exactly`() {
@@ -90,7 +90,7 @@ class AppLayoutTest {
 
     @Test fun `narrow window split by a separating hinge still becomes two panes`() {
         val layout = computeAppLayout(560f, 700f, listOf(verticalHinge(280f, 700f, separating = true)))
-        assertThat(layout).isEqualTo(AppLayout.Book(560f, 700f, 280f, 0f, SplitSource.Hinge))
+        assertThat(layout).isEqualTo(AppLayout.Book(560f, 700f, 280f, 0f, SplitSource.Hinge, separating = true))
     }
 
     @Test fun `tabletop needs room for both halves`() {

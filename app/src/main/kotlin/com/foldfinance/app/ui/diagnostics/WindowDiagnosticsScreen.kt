@@ -362,8 +362,8 @@ private fun CopyButton(copied: Boolean, onCopy: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp),
-        shape = FoldShapes.pill,
-        colors = ButtonDefaults.buttonColors(containerColor = palette.saffron, contentColor = palette.onSaffron),
+        shape = FoldShapes.key,
+        colors = ButtonDefaults.buttonColors(containerColor = palette.accent, contentColor = palette.onAccent),
     ) {
         Icon(
             imageVector = if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,

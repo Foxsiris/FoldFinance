@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,24 +17,20 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
@@ -46,62 +41,53 @@ import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.foldfinance.app.R
-import com.foldfinance.app.ui.components.CategoryTile
 import com.foldfinance.app.ui.components.EmptyState
-import com.foldfinance.app.ui.components.LabeledAmount
-import com.foldfinance.app.ui.components.ListGroup
-import com.foldfinance.app.ui.components.ListGroupDivider
+import com.foldfinance.app.ui.components.IconCircleButton
 import com.foldfinance.app.ui.components.MoneyStyle
 import com.foldfinance.app.ui.components.MoneyText
+import com.foldfinance.app.ui.components.Overline
+import com.foldfinance.app.ui.components.Panel
 import com.foldfinance.app.ui.components.PeriodSelector
-import com.foldfinance.app.ui.components.TransactionRow
+import com.foldfinance.app.ui.components.PillTag
+import com.foldfinance.app.ui.components.ScreenTitle
+import com.foldfinance.app.ui.components.SegmentedControl
+import com.foldfinance.app.ui.components.ShareBar
+import com.foldfinance.app.ui.components.StatTile
+import com.foldfinance.app.ui.components.TileRow
 import com.foldfinance.app.ui.components.categoryVisual
+import com.foldfinance.app.ui.components.moneyLabel
 import com.foldfinance.app.ui.components.visual
-import com.foldfinance.app.ui.format.MoneyFormat
-import com.foldfinance.app.ui.format.SignDisplay
+import com.foldfinance.app.ui.format.RuLocale
 import com.foldfinance.app.ui.layout.AppLayout
 import com.foldfinance.app.ui.layout.LocalAppLayout
-import com.foldfinance.app.ui.components.HingeSeam
-import com.foldfinance.app.ui.components.SeamOrientation
-import com.foldfinance.app.ui.layout.SplitSource
 import com.foldfinance.app.ui.layout.TwoPane
-import com.foldfinance.app.ui.layout.TwoPaneDefaults
 import com.foldfinance.app.ui.layout.foldPaneScaffoldDirective
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.platform.LocalDensity
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
+import com.foldfinance.app.ui.theme.FoldTextStyles
 import com.foldfinance.core.domain.analytics.AmountChange
 import com.foldfinance.core.domain.analytics.PeriodType
 import com.foldfinance.core.model.DefaultCategories
-import com.foldfinance.parser.Direction
+import com.foldfinance.core.model.Transaction
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.format.TextStyle
 import com.foldfinance.app.ui.components.Period as SelectorPeriod
 
 /** User actions of the analytics screen. */
@@ -117,15 +103,16 @@ data class AnalyticsActions(
 )
 
 /**
- * Stateless analytics screen in the three window layouts:
+ * Stateless analytics screen in the three window layouts (Analytics and Tabletop mockups):
  *
- * - [AppLayout.Book] — `SupportingPaneScaffold`: the chart and the totals in the main pane, the
- *   period controls, the tapped day and the category breakdown in the supporting pane; the pane
- *   boundary runs on the hinge ([foldPaneScaffoldDirective]).
- * - [AppLayout.Tabletop] — top half (to look at): totals and the chart; bottom half (to touch):
- *   period controls, the tapped day, breakdown.
- * - [AppLayout.Compact] — one column with compact cards and one chart; the period selector sits
- *   at the bottom, in the thumb zone.
+ * - [AppLayout.Book] — `SupportingPaneScaffold` of two panels: the chart panel (period, the total
+ *   with the change to the previous period, the chart with the average line, three tiles) and the
+ *   supporting panel (the tapped day with its operations, the top categories). While the hinge is
+ *   FLAT the chart panel is wider; when it separates the window (HALF_OPENED / `isSeparating`) the
+ *   boundary moves onto the hinge ([foldPaneScaffoldDirective]).
+ * - [AppLayout.Tabletop] — top half (to look at): the hero total and the chart; bottom panel (to
+ *   touch): the period, the tapped day, the categories.
+ * - [AppLayout.Compact] — one column; the period selector sits at the bottom, in the thumb zone.
  */
 @Composable
 fun AnalyticsScreen(
@@ -137,7 +124,7 @@ fun AnalyticsScreen(
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
     val openPicker = { pickerOpen = true }
     when (layout) {
-        is AppLayout.Book -> BookLayout(state, actions, openPicker, modifier)
+        is AppLayout.Book -> BookLayout(state, actions, openPicker, layout, modifier)
         is AppLayout.Tabletop -> TabletopLayout(state, actions, openPicker, modifier)
         is AppLayout.Compact -> CompactLayout(state, actions, openPicker, modifier)
     }
@@ -155,128 +142,112 @@ fun AnalyticsScreen(
 
 // ---------------------------------------------------------------- Layouts
 
+/** Width of the supporting panel while the hinge is FLAT (canvas note s2: the chart panel is wider). */
+private const val SupportingShareFlat = 0.38f
+
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-private fun BookLayout(state: AnalyticsUiState, actions: AnalyticsActions, openPicker: () -> Unit, modifier: Modifier) {
-    val layout = LocalAppLayout.current
-    // No partition spacer: the boundary is the hinge itself, each pane keeps 12 dp clear of it
-    // (the same seam clearance as TwoPane), and the perforated seam is drawn on it.
-    val directive = foldPaneScaffoldDirective().copy(horizontalPartitionSpacerSize = 0.dp)
+private fun BookLayout(state: AnalyticsUiState, actions: AnalyticsActions, openPicker: () -> Unit, layout: AppLayout.Book, modifier: Modifier) {
+    val base = foldPaneScaffoldDirective()
+    val directive = if (layout.separating) {
+        // On the hinge: no partition spacer — each panel keeps 8 dp clear of it (16 dp gap).
+        base.copy(horizontalPartitionSpacerSize = 0.dp)
+    } else {
+        // FLAT: the hinge is not a boundary; the chart panel takes ~62 %, panels 16 dp apart.
+        base.copy(
+            horizontalPartitionSpacerSize = 16.dp,
+            excludedBounds = emptyList(),
+            defaultPanePreferredWidth = ((layout.windowWidthDp - RailWidthDp) * SupportingShareFlat).dp,
+        )
+    }
     val navigator = rememberSupportingPaneScaffoldNavigator<Any>(scaffoldDirective = directive)
-    Box(modifier.fillMaxSize()) {
-        SupportingPaneScaffold(
-            directive = navigator.scaffoldDirective,
-            scaffoldState = navigator.scaffoldState,
-            modifier = Modifier.fillMaxSize(),
-            mainPane = {
-                AnimatedPane {
-                    PaneColumn(start = 24.dp, end = TwoPaneDefaults.SeamClearance) {
-                        PeriodHeader(state, actions)
-                        Spacer(Modifier.height(20.dp))
+    val hingeGap = if (layout.separating) 8.dp else 0.dp
+    SupportingPaneScaffold(
+        directive = directive,
+        scaffoldState = navigator.scaffoldState,
+        modifier = modifier.fillMaxSize().padding(top = 16.dp, bottom = 16.dp, end = 8.dp),
+        mainPane = {
+            AnimatedPane {
+                Panel(Modifier.fillMaxSize().padding(end = hingeGap)) {
+                    Column(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 20.dp)) {
+                        ChartPanelHeader(state, actions, openPicker)
+                        Spacer(Modifier.height(18.dp))
                         if (state.hasData) {
-                            HeroTotals(state, actions, MoneyStyle.DisplayMedium)
-                            Spacer(Modifier.height(24.dp))
-                            ChartCard(state, actions, chartHeight = 260.dp)
+                            HeroTotals(state, actions, MoneyStyle.Display)
                             Spacer(Modifier.height(16.dp))
-                            StatsGroup(state)
+                            ChartArea(state, actions, Modifier.weight(1f).fillMaxWidth())
                             Spacer(Modifier.height(16.dp))
-                            RatioCard(state)
+                            StatTiles(state)
                         } else if (!state.isLoading) {
                             AnalyticsEmpty(actions)
                         }
                     }
                 }
-            },
-            supportingPane = {
-                AnimatedPane {
-                    PaneColumn(start = TwoPaneDefaults.SeamClearance, end = 24.dp) {
-                        PeriodControls(state, actions, openPicker)
+            }
+        },
+        supportingPane = {
+            AnimatedPane {
+                Panel(Modifier.fillMaxSize().padding(start = hingeGap)) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 22.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
                         if (state.hasData) {
-                            if (state.showsOperations) {
-                                Spacer(Modifier.height(24.dp))
-                                OperationsSection(state, actions)
-                            }
-                            Spacer(Modifier.height(24.dp))
-                            CategoriesSection(state)
+                            if (state.currencies.size > 1) CurrencySwitcher(state, actions)
+                            SelectedDay(state, actions)
+                            TopCategories(state)
+                            Footnotes(state)
                         }
                     }
                 }
-            },
-        )
-        if (layout is AppLayout.Book) BookSeam(layout)
-    }
+            }
+        },
+    )
 }
 
-/**
- * The perforated seam on the hinge over a `SupportingPaneScaffold` (TwoPane draws its own). With a
- * hinge the scaffold splits exactly on it; without one it splits the container in half.
- */
-@Composable
-private fun BookSeam(layout: AppLayout.Book) {
-    var originX by remember { mutableFloatStateOf(0f) }
-    var width by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
-    Box(
-        Modifier
-            .fillMaxSize()
-            .onPlaced {
-                originX = it.positionInWindow().x
-                width = it.size.width
-            },
-    ) {
-        val splitPx = if (layout.splitSource == SplitSource.Hinge) {
-            with(density) { layout.splitAtDp.dp.toPx() } - originX
-        } else {
-            width / 2f
-        }
-        val seamWidth = 8.dp
-        HingeSeam(
-            orientation = SeamOrientation.Vertical,
-            modifier = Modifier.offset(x = with(density) { splitPx.toDp() } - seamWidth / 2),
-            thickness = seamWidth,
-        )
-    }
-}
+/** Width of the collapsed wide navigation rail next to the book panes. */
+private const val RailWidthDp = 96f
 
 @Composable
 private fun TabletopLayout(state: AnalyticsUiState, actions: AnalyticsActions, openPicker: () -> Unit, modifier: Modifier) {
     TwoPane(
         modifier = modifier.fillMaxSize(),
-        // Top half — to look at: the totals and the chart, which takes all the remaining height.
+        // Top half — to look at: the hero total and the chart, which takes all the remaining height.
         first = {
-            Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp)) {
-                PeriodHeader(state, actions)
+            Column(Modifier.fillMaxSize().padding(start = 28.dp, end = 28.dp, top = 24.dp, bottom = 8.dp)) {
                 if (state.hasData) {
-                    HeroTotals(state, actions, MoneyStyle.DisplaySmall, showCurrencySwitcher = false)
-                    Spacer(Modifier.height(12.dp))
-                    if (state.buckets.isNotEmpty()) {
-                        ChartCard(state, actions, chartHeight = null, modifier = Modifier.weight(1f), showHint = false)
-                    }
+                    HeroTotals(state, actions, MoneyStyle.Hero, showCurrencySwitcher = false, showAverage = true)
+                    Spacer(Modifier.height(16.dp))
+                    ChartArea(state, actions, Modifier.weight(1f).fillMaxWidth())
                 } else if (!state.isLoading) {
+                    PeriodTitleRow(state, actions)
                     Spacer(Modifier.height(12.dp))
                     AnalyticsEmpty(actions)
                 }
             }
         },
-        // Bottom half — to touch: period, currency, the tapped day, the breakdown.
+        // Bottom half — to touch: period, currency, the tapped day, the categories.
         second = {
-            PaneColumn(start = 24.dp, end = 24.dp, top = 4.dp) {
-                PeriodControls(state, actions, openPicker)
-                if (state.hasData) {
-                    if (state.currencies.size > 1) {
-                        Spacer(Modifier.height(12.dp))
-                        CurrencySwitcher(state, actions)
+            Panel(Modifier.fillMaxSize(), shape = FoldShapes.sheet) {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    PeriodControls(state, actions, openPicker, height = 48.dp)
+                    if (state.hasData) {
+                        if (state.currencies.size > 1) CurrencySwitcher(state, actions)
+                        if (state.selectedBucket != null || state.showsOperations) {
+                            DayOperationsGrid(state, actions)
+                        } else {
+                            TopCategories(state, twoColumns = true)
+                        }
                     }
-                    if (state.showsOperations) {
-                        Spacer(Modifier.height(20.dp))
-                        OperationsSection(state, actions)
-                    }
-                    Spacer(Modifier.height(20.dp))
-                    StatsGroup(state)
-                    Spacer(Modifier.height(16.dp))
-                    RatioCard(state)
-                    Spacer(Modifier.height(20.dp))
-                    CategoriesSection(state)
                 }
             }
         },
@@ -291,28 +262,19 @@ private fun CompactLayout(state: AnalyticsUiState, actions: AnalyticsActions, op
             Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 16.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            PeriodHeader(state, actions)
-            Spacer(Modifier.height(12.dp))
+            ScreenTitle(stringResource(R.string.analytics_title))
             if (state.hasData) {
-                HeroTotals(state, actions, MoneyStyle.DisplayMedium)
-                Spacer(Modifier.height(20.dp))
-                if (state.buckets.isNotEmpty()) {
-                    ChartCard(state, actions, chartHeight = 200.dp)
-                    Spacer(Modifier.height(16.dp))
-                }
-                if (state.showsOperations) {
-                    OperationsSection(state, actions)
-                    Spacer(Modifier.height(20.dp))
-                }
-                StatsGroup(state)
-                Spacer(Modifier.height(16.dp))
-                RatioCard(state)
-                Spacer(Modifier.height(20.dp))
-                CategoriesSection(state)
+                HeroTotals(state, actions, MoneyStyle.Display)
+                if (state.buckets.isNotEmpty()) ChartArea(state, actions, Modifier.fillMaxWidth().height(220.dp))
+                StatTiles(state, stacked = true)
+                SelectedDay(state, actions)
+                TopCategories(state)
+                Footnotes(state)
             } else if (!state.isLoading) {
-                Spacer(Modifier.height(24.dp))
+                PeriodTitleRow(state, actions)
                 AnalyticsEmpty(actions)
             }
         }
@@ -323,95 +285,52 @@ private fun CompactLayout(state: AnalyticsUiState, actions: AnalyticsActions, op
                 .background(palette.ink)
                 .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp),
         ) {
-            PeriodControls(state, actions, openPicker)
+            PeriodControls(state, actions, openPicker, height = 48.dp)
         }
     }
-}
-
-/** Scrollable pane content with the screen paddings. */
-@Composable
-private fun PaneColumn(start: androidx.compose.ui.unit.Dp, end: androidx.compose.ui.unit.Dp, top: androidx.compose.ui.unit.Dp = 24.dp, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(start = start, end = end, top = top, bottom = 24.dp),
-        content = content,
-    )
 }
 
 // ---------------------------------------------------------------- Header and controls
 
+/** «Аналитика» and the period segments on one line (in a narrow panel the segments go under it). */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PeriodHeader(state: AnalyticsUiState, actions: AnalyticsActions) {
-    val palette = FoldFinanceTheme.palette
-    val title = AnalyticsFormat.periodTitle(
-        state.period,
-        state.today,
-        stringResource(R.string.analytics_today),
-        stringResource(R.string.analytics_yesterday),
-    )
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        val titleStyle = MaterialTheme.typography.headlineLarge
-        Text(
-            text = title,
-            modifier = Modifier.weight(1f).semantics { heading() },
-            style = titleStyle,
-            color = palette.text,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-            // Next to the arrows in a ≈ 230 dp pane «Октябрь» shrinks instead of «Октя…».
-            autoSize = TextAutoSize.StepBased(minFontSize = 17.sp, maxFontSize = titleStyle.fontSize, stepSize = 0.5.sp),
-        )
-        val colors = IconButtonDefaults.iconButtonColors(
-            containerColor = palette.surfaceRaised,
-            contentColor = palette.text,
-            disabledContainerColor = palette.surfaceRaised.copy(alpha = 0.5f),
-            disabledContentColor = palette.textMuted.copy(alpha = 0.5f),
-        )
-        IconButton(onClick = actions.onPrevious, colors = colors) {
-            Icon(Icons.Outlined.ChevronLeft, contentDescription = stringResource(R.string.analytics_period_previous))
-        }
-        Spacer(Modifier.width(8.dp))
-        IconButton(onClick = actions.onNext, enabled = state.canGoNext, colors = colors) {
-            Icon(Icons.Outlined.ChevronRight, contentDescription = stringResource(R.string.analytics_period_next))
+private fun ChartPanelHeader(state: AnalyticsUiState, actions: AnalyticsActions, openPicker: () -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth >= 480.dp) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ScreenTitle(stringResource(R.string.analytics_title), Modifier.weight(1f))
+                Spacer(Modifier.width(12.dp))
+                PeriodControls(state, actions, openPicker, height = 40.dp, modifier = Modifier.widthIn(max = 330.dp))
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ScreenTitle(stringResource(R.string.analytics_title))
+                PeriodControls(state, actions, openPicker, height = 40.dp)
+            }
         }
     }
 }
 
-/** «День / Неделя / Месяц / Год» + «Свой период». */
+/** «День / Неделя / Месяц / Год / Свой». «Свой» opens the range picker. */
 @Composable
-private fun PeriodControls(state: AnalyticsUiState, actions: AnalyticsActions, openPicker: () -> Unit) {
-    val palette = FoldFinanceTheme.palette
+private fun PeriodControls(
+    state: AnalyticsUiState,
+    actions: AnalyticsActions,
+    openPicker: () -> Unit,
+    height: Dp,
+    modifier: Modifier = Modifier,
+) {
     val type = state.period.type
-    val custom = type == PeriodType.CUSTOM
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        PeriodSelector(
-            selected = type.toSelector(),
-            onSelect = { actions.onSelectType(it.toPeriodType()) },
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(8.dp))
-        // «Свой период»: a round 48 dp button; the chosen range is the screen title.
-        Surface(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(FoldShapes.pill)
-                .selectable(selected = custom, role = Role.Button, onClick = openPicker),
-            shape = FoldShapes.pill,
-            color = if (custom) palette.saffronContainer else palette.surfaceRaised,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Outlined.DateRange,
-                    contentDescription = stringResource(R.string.analytics_period_custom),
-                    tint = if (custom) palette.onSaffronContainer else palette.textMuted,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
-        }
-    }
+    PeriodSelector(
+        selected = type.toSelector(),
+        onSelect = { actions.onSelectType(it.toPeriodType()) },
+        modifier = modifier,
+        height = height,
+        extra = listOf(stringResource(R.string.analytics_custom_short)),
+        extraSelected = if (type == PeriodType.CUSTOM) 0 else -1,
+        onExtra = { openPicker() },
+    )
 }
 
 private fun PeriodType.toSelector(): SelectorPeriod? = when (this) {
@@ -429,8 +348,55 @@ private fun SelectorPeriod.toPeriodType(): PeriodType = when (this) {
     SelectorPeriod.Year -> PeriodType.YEAR
 }
 
+@Composable
+private fun periodTitle(state: AnalyticsUiState): String = AnalyticsFormat.periodTitle(
+    state.period,
+    state.today,
+    stringResource(R.string.analytics_today),
+    stringResource(R.string.analytics_yesterday),
+)
+
+/** «Расходы · октябрь 2026» with ‹ › to step through periods. */
+@Composable
+private fun PeriodTitleRow(state: AnalyticsUiState, actions: AnalyticsActions) {
+    val palette = FoldFinanceTheme.palette
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            stringResource(R.string.analytics_expenses_of, periodTitle(state).lowercase(RuLocale)),
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.textSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Spacer(Modifier.width(6.dp))
+        IconCircleButton(
+            icon = Icons.Outlined.ChevronLeft,
+            contentDescription = stringResource(R.string.analytics_period_previous),
+            onClick = actions.onPrevious,
+            size = 32.dp,
+            container = Color.Transparent,
+            tint = palette.textSecondary,
+        )
+        if (state.canGoNext) {
+            IconCircleButton(
+                icon = Icons.Outlined.ChevronRight,
+                contentDescription = stringResource(R.string.analytics_period_next),
+                onClick = actions.onNext,
+                size = 32.dp,
+                container = Color.Transparent,
+                tint = palette.textSecondary,
+            )
+        }
+    }
+}
+
 // ---------------------------------------------------------------- Totals
 
+/**
+ * «Расходы · октябрь 2026», the total, the change to the previous period («↑ 12% к сентябрю») and,
+ * in tabletop, «в среднем 2 303 ₽ в день».
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HeroTotals(
@@ -439,70 +405,29 @@ private fun HeroTotals(
     style: MoneyStyle,
     modifier: Modifier = Modifier,
     showCurrencySwitcher: Boolean = true,
+    showAverage: Boolean = false,
 ) {
     val palette = FoldFinanceTheme.palette
     val summary = state.summary ?: return
-    Column(modifier) {
-        if (showCurrencySwitcher && state.currencies.size > 1) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (showCurrencySwitcher && state.currencies.size > 1 && LocalAppLayout.current is AppLayout.Compact) {
             CurrencySwitcher(state, actions)
-            Spacer(Modifier.height(12.dp))
         }
-        MoneyText(amountMinor = summary.netExpenseMinor, currency = summary.currency, style = style)
-        // The comparison badge goes under «потрачено» when the pane is too narrow for both.
+        PeriodTitleRow(state, actions)
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            itemVerticalAlignment = Alignment.CenterVertically,
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            itemVerticalAlignment = Alignment.Bottom,
         ) {
-            Text(
-                text = stringResource(R.string.analytics_net_expense),
-                style = MaterialTheme.typography.bodyLarge,
-                color = palette.textMuted,
-            )
-            state.comparison?.netExpense?.let { change ->
-                ChangeBadge(change, periodComparisonLabel(state.period.type), positiveIsGood = false)
-            }
-        }
-        if (summary.incomeMinor > 0) {
-            Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                MoneyText(
-                    amountMinor = summary.incomeMinor,
-                    currency = summary.currency,
-                    direction = Direction.INCOME,
-                    style = MoneyStyle.InlineStrong,
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = stringResource(R.string.analytics_income).lowercase(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = palette.textMuted,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CurrencySwitcher(state: AnalyticsUiState, actions: AnalyticsActions) {
-    val palette = FoldFinanceTheme.palette
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        state.currencies.forEach { total ->
-            val selected = total.currency == state.currency
-            Surface(
-                modifier = Modifier
-                    .heightIn(min = 40.dp)
-                    .clip(FoldShapes.pill)
-                    .selectable(selected = selected, role = Role.Tab, onClick = { actions.onSelectCurrency(total.currency) }),
-                shape = FoldShapes.pill,
-                color = if (selected) palette.saffronContainer else palette.surfaceRaised,
-            ) {
-                Box(Modifier.padding(horizontal = 16.dp, vertical = 9.dp), contentAlignment = Alignment.Center) {
+            MoneyText(amountMinor = summary.netExpenseMinor, currency = summary.currency, style = style, modifier = Modifier.padding(end = 12.dp))
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                state.comparison?.netExpense?.let { change -> ChangeBadge(change, periodComparisonLabel(state.period.type)) }
+                if (showAverage && summary.averageDailyNetExpenseMinor > 0) {
                     Text(
-                        text = "${MoneyFormat.symbol(total.currency)}  ${total.currency}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (selected) palette.onSaffronContainer else palette.textMuted,
-                        maxLines = 1,
+                        stringResource(R.string.analytics_average_per_day, moneyLabel(summary.averageDailyNetExpenseMinor, summary.currency)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textMuted,
                     )
                 }
             }
@@ -510,9 +435,24 @@ private fun CurrencySwitcher(state: AnalyticsUiState, actions: AnalyticsActions)
     }
 }
 
-/** «↑ 12% к прошлому месяцу». Expenses are neutral; only more income is tinted mint. */
 @Composable
-private fun ChangeBadge(change: AmountChange, suffix: String, positiveIsGood: Boolean) {
+private fun CurrencySwitcher(state: AnalyticsUiState, actions: AnalyticsActions) {
+    val labels = state.currencies.map { "${com.foldfinance.app.ui.format.MoneyFormat.symbol(it.currency)}  ${it.currency}" }
+    SegmentedControl(
+        labels = labels,
+        selected = state.currencies.indexOfFirst { it.currency == state.currency },
+        onSelect = { actions.onSelectCurrency(state.currencies[it].currency) },
+        height = 40.dp,
+        description = stringResource(R.string.analytics_currency),
+    )
+}
+
+/**
+ * «↑ 12% к прошлому месяцу»: more expenses are warm (growth colour), less — quiet. Never red:
+ * spending is not an alarm.
+ */
+@Composable
+private fun ChangeBadge(change: AmountChange, suffix: String) {
     val palette = FoldFinanceTheme.palette
     val percent = change.percent
     val text = when {
@@ -520,16 +460,8 @@ private fun ChangeBadge(change: AmountChange, suffix: String, positiveIsGood: Bo
         change.deltaMinor == 0L -> "= $suffix"
         else -> (if (change.deltaMinor > 0) "↑ " else "↓ ") + AnalyticsFormat.percent(percent) + "% " + suffix
     }
-    val good = positiveIsGood && change.deltaMinor > 0
-    Surface(shape = FoldShapes.pill, color = if (good) palette.mintContainer else palette.surfaceRaised) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = if (good) palette.mint else palette.textMuted,
-            maxLines = 1,
-        )
-    }
+    val color = if (change.deltaMinor > 0) palette.growth else palette.textSecondary
+    PillTag(text, color = color, container = if (change.deltaMinor > 0) color.copy(alpha = 0.12f) else palette.surfaceRaised, large = true)
 }
 
 @Composable
@@ -546,14 +478,7 @@ private fun periodComparisonLabel(type: PeriodType): String = stringResource(
 // ---------------------------------------------------------------- Chart
 
 @Composable
-private fun ChartCard(
-    state: AnalyticsUiState,
-    actions: AnalyticsActions,
-    chartHeight: androidx.compose.ui.unit.Dp?,
-    showHint: Boolean = true,
-    modifier: Modifier = Modifier,
-) {
-    val palette = FoldFinanceTheme.palette
+private fun ChartArea(state: AnalyticsUiState, actions: AnalyticsActions, modifier: Modifier = Modifier) {
     val currency = state.currency ?: return
     if (state.buckets.isEmpty()) return
     val buckets = state.buckets
@@ -561,240 +486,243 @@ private fun ChartCard(
     val week = state.period.type == PeriodType.WEEK
     val description = stringResource(
         R.string.analytics_chart_description,
-        MoneyFormat.format(state.summary?.netExpenseMinor ?: 0, currency),
-        MoneyFormat.format(buckets.maxOf { it.netExpenseMinor }, currency),
+        com.foldfinance.app.ui.format.MoneyFormat.format(state.summary?.netExpenseMinor ?: 0, currency),
+        com.foldfinance.app.ui.format.MoneyFormat.format(buckets.maxOf { it.netExpenseMinor }, currency),
     )
-    Surface(modifier = modifier.fillMaxWidth(), shape = FoldShapes.summary, color = palette.surface) {
-        Column(Modifier.padding(start = 16.dp, end = 12.dp, top = 18.dp, bottom = 14.dp)) {
-            ChartLegend(monthly, Modifier.padding(start = 6.dp))
-            Spacer(Modifier.height(12.dp))
-            val chartModifier = if (chartHeight != null) Modifier.fillMaxWidth().height(chartHeight) else Modifier.fillMaxWidth().weight(1f)
-            SpendingChart(
-                buckets = buckets,
-                currency = currency,
-                selectedIndex = state.selectedIndex,
-                onSelect = { index -> buckets.getOrNull(index)?.let { actions.onSelectBucket(it.start) } },
-                bucketLabel = { index ->
-                    val bucket = buckets.getOrNull(index)
-                    when {
-                        bucket == null -> ""
-                        monthly -> AnalyticsFormat.monthShort(bucket.start)
-                        week -> bucket.start.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT_STANDALONE, com.foldfinance.app.ui.format.RuLocale)
-                        else -> bucket.start.dayOfMonth.toString()
-                    }
-                },
-                markerLabel = { index ->
-                    buckets.getOrNull(index)?.let { MoneyFormat.format(it.netExpenseMinor, currency) }.orEmpty()
-                },
-                description = description,
-                modifier = chartModifier,
-            )
-            if (showHint) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(if (monthly) R.string.analytics_chart_hint_month else R.string.analytics_chart_hint_day),
-                    modifier = Modifier.padding(start = 6.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.textMuted,
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ChartLegend(monthly: Boolean, modifier: Modifier = Modifier) {
-    val palette = FoldFinanceTheme.palette
-    FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        LegendItem(
-            stringResource(if (monthly) R.string.analytics_chart_monthly else R.string.analytics_chart_daily),
-            swatch = { Box(Modifier.size(10.dp).background(palette.text.copy(alpha = if (palette.isDark) 0.42f else 0.34f), FoldShapes.tile)) },
-        )
-        LegendItem(
-            stringResource(R.string.analytics_chart_cumulative_income),
-            swatch = { Box(Modifier.width(14.dp).height(3.dp).background(palette.mint, FoldShapes.pill)) },
-        )
-        LegendItem(
-            stringResource(R.string.analytics_chart_cumulative_expense),
-            swatch = {
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    repeat(3) { Box(Modifier.width(4.dp).height(2.dp).background(palette.textMuted)) }
-                }
-            },
-        )
-    }
-}
-
-@Composable
-private fun LegendItem(label: String, swatch: @Composable () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        swatch()
-        Spacer(Modifier.width(6.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = FoldFinanceTheme.palette.textMuted, maxLines = 1)
-    }
-}
-
-// ---------------------------------------------------------------- Stats
-
-/** Income, refunds, average per day, change of expenses and income to the previous period. */
-@Composable
-private fun StatsGroup(state: AnalyticsUiState) {
-    val summary = state.summary ?: return
-    val palette = FoldFinanceTheme.palette
-    val currency = summary.currency
-    ListGroup(Modifier.fillMaxWidth()) {
-        StatRow(
-            label = stringResource(R.string.analytics_average_day),
-            supporting = stringResource(R.string.analytics_average_day_hint, state.daysCounted),
-        ) {
-            MoneyText(summary.averageDailyNetExpenseMinor, currency, style = MoneyStyle.InlineStrong)
-        }
-        ListGroupDivider(startInset = 16.dp)
-        StatRow(label = stringResource(R.string.analytics_expense)) {
-            MoneyText(summary.expenseMinor, currency, style = MoneyStyle.InlineStrong)
-        }
-        if (summary.refundMinor > 0) {
-            ListGroupDivider(startInset = 16.dp)
-            StatRow(label = stringResource(R.string.analytics_refunds)) {
-                MoneyText(summary.refundMinor, currency, direction = Direction.REFUND, style = MoneyStyle.InlineStrong)
-            }
-        }
-        ListGroupDivider(startInset = 16.dp)
-        StatRow(label = stringResource(R.string.analytics_income)) {
-            MoneyText(summary.incomeMinor, currency, direction = Direction.INCOME, style = MoneyStyle.InlineStrong)
-        }
-        state.comparison?.let { comparison ->
-            ListGroupDivider(startInset = 16.dp)
-            StatRow(
-                label = stringResource(R.string.analytics_compare_expense),
-                supporting = periodComparisonLabel(state.period.type),
-            ) { ChangeValue(comparison.netExpense, currency, positiveIsGood = false) }
-            ListGroupDivider(startInset = 16.dp)
-            StatRow(
-                label = stringResource(R.string.analytics_compare_income),
-                supporting = periodComparisonLabel(state.period.type),
-            ) { ChangeValue(comparison.income, currency, positiveIsGood = true) }
-        }
-    }
-    if (state.needsReviewCount > 0) {
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.analytics_needs_review, state.needsReviewCount),
-            modifier = Modifier.padding(horizontal = 4.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = palette.saffron,
-        )
-    }
-    Spacer(Modifier.height(8.dp))
-    Text(
-        text = stringResource(R.string.analytics_footnote),
-        modifier = Modifier.padding(horizontal = 4.dp),
-        style = MaterialTheme.typography.bodySmall,
-        color = palette.textMuted,
-    )
-}
-
-/** A statistic: label on the left, value on the right; in a narrow pane the value goes under the label (still on the right). */
-@Composable
-private fun StatRow(label: String, supporting: String? = null, value: @Composable () -> Unit) {
-    val palette = FoldFinanceTheme.palette
-    LabeledAmount(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        stackedAlignment = Alignment.End,
-        label = {
-            Column {
-                Text(label, style = MaterialTheme.typography.bodyLarge, color = palette.text)
-                if (supporting != null) {
-                    Text(supporting, style = MaterialTheme.typography.bodySmall, color = palette.textMuted)
-                }
+    val average = state.summary?.averageDailyNetExpenseMinor?.takeIf { !monthly && it > 0 }
+    SpendingChart(
+        buckets = buckets,
+        currency = currency,
+        selectedIndex = state.selectedIndex,
+        onSelect = { index -> buckets.getOrNull(index)?.let { actions.onSelectBucket(it.start) } },
+        bucketLabel = { index ->
+            val bucket = buckets.getOrNull(index)
+            when {
+                bucket == null -> ""
+                monthly -> AnalyticsFormat.monthShort(bucket.start)
+                week -> bucket.start.dayOfWeek.getDisplayName(TextStyle.SHORT_STANDALONE, RuLocale)
+                else -> bucket.start.dayOfMonth.toString()
             }
         },
-        amount = value,
+        markerLabel = { index ->
+            buckets.getOrNull(index)?.let { bucket ->
+                val date = if (monthly) AnalyticsFormat.monthShort(bucket.start) else tooltipDate(bucket.start)
+                date + " · " + moneyLabel(bucket.netExpenseMinor, currency)
+            }.orEmpty()
+        },
+        description = description,
+        averageMinor = average,
+        averageLabel = average?.let { stringResource(R.string.analytics_average_line, moneyLabel(it, currency)) },
+        modifier = modifier,
     )
 }
 
-/** «+1 200 ₽ · 12%» style value of a change, as an amount with a sign and a percent under it. */
+/** «сб, 17 окт» for the tooltip. */
+private fun tooltipDate(date: LocalDate): String =
+    date.dayOfWeek.getDisplayName(TextStyle.SHORT, RuLocale) + ", " + date.dayOfMonth + " " + AnalyticsFormat.monthShort(date)
+
+// ---------------------------------------------------------------- Tiles
+
+/**
+ * Three tiles under the chart: the average per day, the share of income spent (with a bar), the
+ * biggest category. On the outer screen they stack two + one.
+ */
 @Composable
-private fun ChangeValue(change: AmountChange, currency: String, positiveIsGood: Boolean) {
+private fun StatTiles(state: AnalyticsUiState, stacked: Boolean = false) {
+    val summary = state.summary ?: return
     val palette = FoldFinanceTheme.palette
-    Column(horizontalAlignment = Alignment.End) {
-        if (change.deltaMinor == 0L) {
-            Text(stringResource(R.string.analytics_compare_same), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
-            return@Column
+    val average: @Composable (Modifier) -> Unit = { m ->
+        StatTile(m, color = palette.card) {
+            Text(stringResource(R.string.analytics_tile_average), style = FoldTextStyles.caption, color = palette.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            MoneyText(summary.averageDailyNetExpenseMinor, summary.currency, style = MoneyStyle.Tile)
+            Text(stringResource(R.string.analytics_average_day_hint, state.daysCounted), style = FoldTextStyles.caption, color = palette.textMuted, maxLines = 1)
         }
-        val color = if (positiveIsGood && change.deltaMinor > 0) palette.mint else palette.text
-        MoneyText(
-            amountMinor = change.deltaMinor,
-            currency = currency,
-            style = MoneyStyle.InlineStrong,
-            signDisplay = SignDisplay.Always,
-            color = color,
-        )
-        val percent = change.percent
-        Text(
-            text = if (percent == null) stringResource(R.string.analytics_compare_new) else AnalyticsFormat.percent(percent) + "%",
-            style = MaterialTheme.typography.bodySmall,
-            color = palette.textMuted,
-        )
+    }
+    val ratio: @Composable (Modifier) -> Unit = { m ->
+        StatTile(m, color = palette.card) {
+            Text(stringResource(R.string.analytics_tile_ratio), style = FoldTextStyles.caption, color = palette.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val share = summary.expenseShareOfIncomePercent
+            if (share == null) {
+                Text("—", style = FoldFinanceTheme.money.tile, color = palette.textDisabled)
+                Text(stringResource(R.string.analytics_ratio_no_income), style = FoldTextStyles.caption, color = palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            } else {
+                Text(AnalyticsFormat.percent(share) + "%", style = FoldFinanceTheme.money.tile, color = if (share > 100.0) palette.danger else palette.text)
+                ShareBar((share / 100.0).toFloat(), if (share > 100.0) palette.danger else palette.accent, Modifier.padding(top = 4.dp))
+            }
+        }
+    }
+    val top: @Composable (Modifier) -> Unit = { m ->
+        val first = state.topCategories.firstOrNull()
+        StatTile(m, color = palette.card) {
+            Text(stringResource(R.string.analytics_tile_top), style = FoldTextStyles.caption, color = palette.textSecondary, maxLines = 1)
+            if (first == null) {
+                Text("—", style = FoldFinanceTheme.money.tile, color = palette.textDisabled)
+            } else {
+                val visual = first.category?.visual() ?: uncategorizedVisual()
+                Text(visual.name, style = FoldFinanceTheme.money.tile, color = palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    stringResource(R.string.analytics_tile_top_value, moneyLabel(first.netExpenseMinor, summary.currency), first.sharePercent?.let(AnalyticsFormat::percent) ?: "—"),
+                    style = FoldTextStyles.caption,
+                    color = palette.textMuted,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+    if (stacked) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            TileRow {
+                average(Modifier.weight(1f))
+                ratio(Modifier.weight(1f))
+            }
+            top(Modifier.fillMaxWidth())
+        }
+    } else {
+        TileRow {
+            average(Modifier.weight(1f))
+            ratio(Modifier.weight(1f))
+            top(Modifier.weight(1f))
+        }
     }
 }
 
-/** Income vs expenses: share of income spent, as a bar. */
+// ---------------------------------------------------------------- Selected day
+
+/**
+ * «ВЫБРАННЫЙ ДЕНЬ · 17 октября, суббота · 4 820 ₽ · 5 операций · в 2,1 раза выше среднего» and the
+ * day's operations. Without a selection — the hint to tap a column.
+ */
 @Composable
-private fun RatioCard(state: AnalyticsUiState) {
-    val summary = state.summary ?: return
+private fun SelectedDay(state: AnalyticsUiState, actions: AnalyticsActions) {
     val palette = FoldFinanceTheme.palette
-    Surface(Modifier.fillMaxWidth(), shape = FoldShapes.listGroup, color = palette.surface) {
-        Column(Modifier.padding(16.dp)) {
-            Text(stringResource(R.string.analytics_ratio_title), style = MaterialTheme.typography.titleMedium, color = palette.text)
-            Spacer(Modifier.height(10.dp))
-            val share = summary.expenseShareOfIncomePercent
-            if (share == null) {
-                Text(stringResource(R.string.analytics_ratio_no_income), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
-                return@Column
-            }
-            val fraction = (share / 100.0).toFloat().coerceIn(0f, 1f)
-            BoxWithConstraints(
-                Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(FoldShapes.pill)
-                    .background(palette.mintContainer),
-            ) {
-                Box(
-                    Modifier
-                        .width(maxWidth * fraction)
-                        .fillMaxHeight()
-                        .background(if (share > 100.0) palette.alert else palette.text.copy(alpha = 0.7f), FoldShapes.pill),
+    val bucket = state.selectedBucket
+    val monthly = state.granularity == ChartGranularity.MONTH
+    if (bucket == null && !state.showsOperations) {
+        Text(
+            stringResource(if (monthly) R.string.analytics_chart_hint_month else R.string.analytics_chart_hint_day),
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.textMuted,
+        )
+        return
+    }
+    val currency = state.currency ?: return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Overline(stringResource(if (monthly) R.string.analytics_selected_month else R.string.analytics_selected_day), Modifier.weight(1f))
+            if (bucket != null) {
+                IconCircleButton(
+                    icon = Icons.Outlined.Close,
+                    contentDescription = stringResource(R.string.analytics_day_close),
+                    onClick = actions.onClearSelection,
+                    size = 36.dp,
+                    container = Color.Transparent,
+                    tint = palette.textMuted,
                 )
             }
-            Spacer(Modifier.height(10.dp))
-            FlowRow(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                itemVerticalAlignment = Alignment.CenterVertically,
-            ) {
+        }
+        Text(
+            if (bucket != null) AnalyticsFormat.bucketTitle(bucket, state.granularity, state.today) else periodTitle(state),
+            style = MaterialTheme.typography.headlineSmall,
+            color = palette.text,
+            modifier = Modifier.semantics { heading() },
+        )
+        val amount = bucket?.netExpenseMinor ?: state.summary?.netExpenseMinor ?: 0
+        MoneyText(amount, currency, style = MoneyStyle.DisplaySmall, modifier = Modifier.padding(top = 4.dp))
+        Text(daySummary(state, amount), style = FoldTextStyles.caption, color = palette.textMuted)
+    }
+    if (state.operations.isEmpty()) {
+        Text(stringResource(R.string.analytics_day_empty), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
+        return
+    }
+    Column {
+        state.operations.forEach { tx -> DayOperationRow(state, tx, withDate = monthly) }
+    }
+}
+
+/** «5 операций · в 2,1 раза выше среднего». */
+@Composable
+private fun daySummary(state: AnalyticsUiState, amountMinor: Long): String {
+    val count = pluralStringResource(R.plurals.analytics_operations_count, state.operations.size, state.operations.size)
+    val average = state.summary?.averageDailyNetExpenseMinor ?: 0
+    if (state.granularity == ChartGranularity.MONTH || state.selectedBucket == null || average <= 0) return count
+    val ratio = amountMinor.toDouble() / average.toDouble()
+    val comparison = when {
+        ratio >= 1.1 -> stringResource(R.string.analytics_day_above, AnalyticsFormat.percent(ratio))
+        ratio <= 0.9 -> stringResource(R.string.analytics_day_below)
+        else -> stringResource(R.string.analytics_day_level)
+    }
+    return stringResource(R.string.analytics_day_summary, count, comparison)
+}
+
+/** A compact operation row of the selected day: colour dot, merchant, category · time, amount. */
+@Composable
+private fun DayOperationRow(state: AnalyticsUiState, tx: Transaction, withDate: Boolean, modifier: Modifier = Modifier) {
+    val palette = FoldFinanceTheme.palette
+    val visual = tx.categoryId?.let(state.categories::get)?.visual() ?: uncategorizedVisual()
+    Column(modifier) {
+        HorizontalDivider(thickness = 1.dp, color = palette.seam)
+        Row(Modifier.fillMaxWidth().heightIn(min = 50.dp).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(10.dp).background(visual.color, FoldShapes.pill))
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(tx.merchant ?: visual.name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    text = stringResource(R.string.analytics_ratio_share, AnalyticsFormat.percent(share)),
-                    modifier = Modifier.padding(end = 12.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.text,
+                    visual.name + " · " + AnalyticsFormat.operationTime(tx.occurredAt, state.period.zone, withDate),
+                    style = FoldTextStyles.caption,
+                    color = palette.textMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                val left = summary.balanceMinor
-                Text(
-                    text = if (left >= 0) {
-                        stringResource(R.string.analytics_ratio_left, MoneyFormat.format(left, summary.currency))
-                    } else {
-                        stringResource(R.string.analytics_ratio_over, MoneyFormat.format(-left, summary.currency))
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (left >= 0) palette.mint else palette.alert,
-                )
+            }
+            Spacer(Modifier.width(8.dp))
+            MoneyText(tx.amountMinor, tx.currency, direction = tx.direction, style = MoneyStyle.Inline)
+        }
+    }
+}
+
+/** Tabletop: «17 октября · 5 операций … 4 820 ₽» and the operations in two columns. */
+@Composable
+private fun DayOperationsGrid(state: AnalyticsUiState, actions: AnalyticsActions) {
+    val palette = FoldFinanceTheme.palette
+    val bucket = state.selectedBucket
+    val currency = state.currency ?: return
+    val monthly = state.granularity == ChartGranularity.MONTH
+    val title = if (bucket != null) AnalyticsFormat.bucketTitle(bucket, state.granularity, state.today) else periodTitle(state)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            stringResource(
+                R.string.analytics_day_header,
+                title,
+                pluralStringResource(R.plurals.analytics_operations_count, state.operations.size, state.operations.size),
+            ),
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize * 1.07f),
+            color = palette.text,
+            modifier = Modifier.weight(1f).semantics { heading() },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        MoneyText(bucket?.netExpenseMinor ?: state.summary?.netExpenseMinor ?: 0, currency, style = MoneyStyle.InlineStrong)
+        if (bucket != null) {
+            IconCircleButton(
+                icon = Icons.Outlined.Close,
+                contentDescription = stringResource(R.string.analytics_day_close),
+                onClick = actions.onClearSelection,
+                size = 40.dp,
+                container = Color.Transparent,
+                tint = palette.textMuted,
+            )
+        }
+    }
+    if (state.operations.isEmpty()) {
+        Text(stringResource(R.string.analytics_day_empty), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
+        return
+    }
+    val rows = state.operations.chunked(2)
+    Column {
+        rows.forEach { pair ->
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                pair.forEach { tx -> DayOperationRow(state, tx, withDate = monthly, modifier = Modifier.weight(1f)) }
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }
@@ -802,78 +730,51 @@ private fun RatioCard(state: AnalyticsUiState) {
 
 // ---------------------------------------------------------------- Categories
 
+/** «ТОП КАТЕГОРИЙ · ОКТЯБРЬ»: name and amount over a bar in the category colour. */
 @Composable
-private fun CategoriesSection(state: AnalyticsUiState) {
+private fun TopCategories(state: AnalyticsUiState, twoColumns: Boolean = false) {
     val palette = FoldFinanceTheme.palette
     val summary = state.summary ?: return
-    Text(
-        stringResource(R.string.analytics_categories_title),
-        modifier = Modifier.semantics { heading() },
-        style = MaterialTheme.typography.titleLarge,
-        color = palette.text,
-    )
-    Spacer(Modifier.height(12.dp))
-    if (state.topCategories.isEmpty()) {
-        Text(stringResource(R.string.analytics_categories_empty), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
-        return
-    }
-    val maxAmount = state.topCategories.maxOf { it.netExpenseMinor }.coerceAtLeast(1)
-    ListGroup(Modifier.fillMaxWidth()) {
-        state.topCategories.forEachIndexed { index, share ->
-            if (index > 0) ListGroupDivider()
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Overline(stringResource(R.string.analytics_top_categories, periodTitle(state)))
+        if (state.topCategories.isEmpty()) {
+            Text(stringResource(R.string.analytics_categories_empty), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
+            return@Column
+        }
+        val maxAmount = state.topCategories.maxOf { it.netExpenseMinor }.coerceAtLeast(1)
+        val item: @Composable (CategoryShare, Modifier) -> Unit = { share, m ->
             val visual = share.category?.visual() ?: uncategorizedVisual()
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 64.dp)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CategoryTile(visual)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            visual.name,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = palette.text,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        MoneyText(share.netExpenseMinor, summary.currency, style = MoneyStyle.Inline)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BoxWithConstraints(
-                            Modifier
-                                .weight(1f)
-                                .height(6.dp)
-                                .clip(FoldShapes.pill)
-                                .background(palette.surfaceRaised),
-                        ) {
-                            Box(
-                                Modifier
-                                    .width(maxWidth * (share.netExpenseMinor.toFloat() / maxAmount))
-                                    .fillMaxHeight()
-                                    .background(visual.color, FoldShapes.pill),
-                            )
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = share.sharePercent?.let { AnalyticsFormat.percent(it) + "%" }.orEmpty(),
-                            modifier = Modifier.width(44.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = palette.textMuted,
-                            maxLines = 1,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                        )
-                    }
+            Column(m, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(visual.name, style = MaterialTheme.typography.bodyMedium, color = palette.textSoft, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(8.dp))
+                    MoneyText(share.netExpenseMinor, summary.currency, style = MoneyStyle.Inline)
                 }
+                ShareBar(share.netExpenseMinor.toFloat() / maxAmount, visual.color)
             }
         }
+        if (twoColumns) {
+            state.topCategories.chunked(2).forEach { pair ->
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    pair.forEach { item(it, Modifier.weight(1f)) }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        } else {
+            state.topCategories.forEach { item(it, Modifier.fillMaxWidth()) }
+        }
+    }
+}
+
+/** «3 на проверке — учтены как есть» and «По известным операциям, без пересчёта валют». */
+@Composable
+private fun ColumnScope.Footnotes(state: AnalyticsUiState) {
+    val palette = FoldFinanceTheme.palette
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (state.needsReviewCount > 0) {
+            Text(stringResource(R.string.analytics_needs_review, state.needsReviewCount), style = FoldTextStyles.caption, color = palette.review)
+        }
+        Text(stringResource(R.string.analytics_footnote), style = FoldTextStyles.caption, color = palette.textMuted)
     }
 }
 
@@ -883,58 +784,6 @@ private fun uncategorizedVisual() = categoryVisual(
     name = stringResource(R.string.analytics_uncategorized),
     iconKey = "category",
 )
-
-// ---------------------------------------------------------------- Operations of the tapped day
-
-@Composable
-private fun OperationsSection(state: AnalyticsUiState, actions: AnalyticsActions) {
-    val palette = FoldFinanceTheme.palette
-    val bucket = state.selectedBucket
-    val title = if (bucket != null) {
-        AnalyticsFormat.bucketTitle(bucket, state.granularity, state.today)
-    } else {
-        stringResource(R.string.analytics_day_operations)
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge, color = palette.text)
-            if (state.operations.isNotEmpty()) {
-                Text(
-                    pluralStringResource(R.plurals.analytics_operations_count, state.operations.size, state.operations.size),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.textMuted,
-                )
-            }
-        }
-        if (bucket != null) {
-            IconButton(onClick = actions.onClearSelection) {
-                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.analytics_day_close), tint = palette.textMuted)
-            }
-        }
-    }
-    Spacer(Modifier.height(10.dp))
-    if (state.operations.isEmpty()) {
-        Text(stringResource(R.string.analytics_day_empty), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
-        return
-    }
-    val withDate = bucket != null && state.granularity == ChartGranularity.MONTH
-    ListGroup(Modifier.fillMaxWidth()) {
-        state.operations.forEachIndexed { index, tx ->
-            if (index > 0) ListGroupDivider()
-            val visual = tx.categoryId?.let(state.categories::get)?.visual() ?: uncategorizedVisual()
-            TransactionRow(
-                merchant = tx.merchant ?: visual.name,
-                time = AnalyticsFormat.operationTime(tx.occurredAt, state.period.zone, withDate),
-                amountMinor = tx.amountMinor,
-                currency = tx.currency,
-                direction = tx.direction,
-                category = visual,
-                source = tx.source,
-                needsReview = tx.needsReview,
-            )
-        }
-    }
-}
 
 // ---------------------------------------------------------------- Empty state and picker
 

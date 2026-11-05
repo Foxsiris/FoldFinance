@@ -37,6 +37,12 @@
     <string name="tx_card">Карта</string>
     <string name="tx_source">Источник</string>
     <string name="tx_raw_title">Исходное сообщение</string>
+    <string name="tx_source_short_sms">SMS</string>
+    <string name="tx_source_short_push">Push</string>
+    <string name="tx_raw_title_merged">Исходные сообщения · объединены (±3 мин)</string>
+    <string name="tx_date_label">Дата и время</string>
+    <!-- «SMS · 900 · 14:05» -->
+    <string name="tx_raw_header">%1$s · %2$s · %3$s</string>
     <string name="tx_raw_missing">Текст сообщения не сохранился.</string>
     <!-- 900 · 5 ноября, 14:05 -->
     <string name="tx_raw_meta">%1$s, %2$s, %3$s</string>
@@ -65,6 +71,11 @@
     <string name="tx_form_merchant_income">От кого</string>
     <string name="tx_form_note">Заметка</string>
     <string name="tx_form_save">Сохранить</string>
+    <!-- «Сохранить · 1 250 ₽» -->
+    <string name="tx_form_save_amount">Сохранить · %1$s</string>
+    <string name="tx_form_enter_amount">Введите сумму</string>
+    <string name="tx_form_transfer">Перевод</string>
+    <string name="tx_form_types">Тип операции</string>
     <string name="tx_form_next">Далее</string>
     <string name="tx_form_done">Готово</string>
     <string name="tx_form_time">Время</string>

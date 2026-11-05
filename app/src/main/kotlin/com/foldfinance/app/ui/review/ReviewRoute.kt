@@ -26,6 +26,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import com.foldfinance.app.ui.components.ChipStyle
+import com.foldfinance.app.ui.components.Panel
+import com.foldfinance.app.ui.components.PillTag
+import com.foldfinance.app.ui.components.PrimaryButton
+import com.foldfinance.app.ui.components.ScreenTitle
+import com.foldfinance.app.ui.theme.FoldTextStyles
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -102,6 +118,9 @@ interface ReviewActions {
     fun openPicker(id: Long)
     fun closePicker()
 
+    /** «Пропустить»: the operation goes to the end of the queue (default: no-op for previews). */
+    fun skip(id: Long) {}
+
     /** «Не распознано» (defaults: no-ops, so previews and tests need not implement them). */
     fun openUnrecognized() {}
     fun closeUnrecognized() {}
@@ -158,6 +177,7 @@ fun ReviewRoute(
             override fun focus(id: Long) = viewModel.focus(id)
             override fun openPicker(id: Long) = viewModel.openPicker(id)
             override fun closePicker() = viewModel.closePicker()
+            override fun skip(id: Long) = viewModel.skip(id)
             override fun openUnrecognized() = viewModel.openUnrecognized()
             override fun closeUnrecognized() = viewModel.closeUnrecognized()
             override fun hideUnrecognized(rawMessageId: Long) = viewModel.hideUnrecognized(rawMessageId)
@@ -235,43 +255,56 @@ fun ReviewScreen(
         is AppLayout.Tabletop -> TwoPane(
             modifier = modifier.fillMaxSize(),
             first = {
-                Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 12.dp)) {
+                Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 12.dp)) {
                     ReviewHeader(state.queue.size)
                     UnrecognizedEntry(state, actions)
                     Spacer(Modifier.weight(1f))
-                    val current = state.current
-                    if (current == null) {
+                    if (state.current == null) {
                         AllDone()
                     } else {
-                        CardStack(state, actions, detail, now, zone)
+                        CardStack(state, actions, detail, now, zone, quickPicks = false)
                     }
+                    Spacer(Modifier.weight(1f))
                 }
             },
             second = {
-                val current = state.current
-                if (current != null) {
-                    Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp)) {
-                        Column(
-                            Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            Text(stringResource(R.string.review_choose_category), style = MaterialTheme.typography.titleMedium, color = FoldFinanceTheme.palette.text)
-                            CategoryGrid(state.categories, current.categoryId) { actions.assign(listOf(current.id), it) }
+                Panel(Modifier.fillMaxSize(), shape = FoldShapes.sheet) {
+                    val current = state.current
+                    if (current != null) {
+                        Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 20.dp)) {
+                            Column(
+                                Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                            ) {
+                                Text(stringResource(R.string.review_choose_category), style = MaterialTheme.typography.titleMedium, color = FoldFinanceTheme.palette.text)
+                                CategoryGrid(state.categories, current.categoryId) { actions.assign(listOf(current.id), it) }
+                            }
+                            // The round actions at the very bottom: the thumb zone of the touch half.
+                            ThumbActions(
+                                onCategory = { actions.openPicker(current.id) },
+                                onSkip = if (state.queue.size > 1) ({ actions.skip(current.id) }) else null,
+                                onConfirm = { actions.confirm(current.id) },
+                                showCategory = false,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
                         }
-                        // «Подтвердить» at the very bottom: the thumb zone of the touch half.
-                        ConfirmButton(stringResource(R.string.review_confirm), onClick = { actions.confirm(current.id) }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
+                    } else {
+                        Box(Modifier.fillMaxSize().padding(24.dp))
                     }
                 }
             },
         )
         is AppLayout.Book -> TwoPane(
-            modifier = modifier.fillMaxSize(),
-            first = { QueueList(state, actions, zone, Modifier.fillMaxSize()) },
+            modifier = modifier.fillMaxSize().padding(top = 16.dp, bottom = 16.dp, end = 8.dp),
+            first = {
+                Panel(Modifier.fillMaxSize()) { QueueList(state, actions, zone, Modifier.fillMaxSize()) }
+            },
             second = {
-                Box(Modifier.fillMaxSize().testTag("review.editor")) {
+                Panel(Modifier.fillMaxSize().testTag("review.editor")) {
                     val focused = state.focused
                     val editing = focused != null && editorState.mode == FormMode.Edit(focused.id)
                     BackHandler(enabled = editing) { editorActions.close() }
+                    val padding = PaddingValues(horizontal = 24.dp, vertical = 20.dp)
                     when {
                         state.selectedIds.size > 1 || (state.selectedIds.isNotEmpty() && focused?.id !in state.selectedIds) ->
                             BulkPanel(state, actions)
@@ -279,7 +312,7 @@ fun ReviewScreen(
                             editorState, editorActions, now, zone,
                             modifier = Modifier.fillMaxSize(),
                             fillHeight = true,
-                            contentPadding = PaddingValues(start = 12.dp, end = 24.dp, top = 8.dp, bottom = 16.dp),
+                            contentPadding = padding,
                         )
                         focused != null -> {
                             val data = detail(focused.id)
@@ -289,11 +322,11 @@ fun ReviewScreen(
                                     actions = detailActions,
                                     now = now,
                                     zone = zone,
-                                    contentPadding = PaddingValues(start = 12.dp, end = 24.dp, top = 8.dp, bottom = 8.dp),
+                                    contentPadding = padding,
                                 )
                             }
                         }
-                        else -> Box(Modifier.fillMaxSize().padding(start = 12.dp, end = 24.dp, top = 88.dp)) { AllDone() }
+                        else -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) { AllDone() }
                     }
                 }
             },
@@ -301,6 +334,10 @@ fun ReviewScreen(
     }
 }
 
+/**
+ * Outer screen (Review mockup): «Проверка» with the counter, the hint, the card stack, and the
+ * three thumb actions — «Категория» (round), «Пропустить», «Подтвердить» (round, lime).
+ */
 @Composable
 private fun CompactReview(
     state: ReviewUiState,
@@ -314,34 +351,22 @@ private fun CompactReview(
     Column(modifier.fillMaxSize().padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 12.dp)) {
         ReviewHeader(state.queue.size)
         UnrecognizedEntry(state, actions)
+        Spacer(Modifier.height(16.dp))
         if (current == null) {
+            AllDone(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(min = 300.dp))
             Spacer(Modifier.weight(1f))
-            AllDone()
-            Spacer(Modifier.height(24.dp))
             return@Column
         }
-        Spacer(Modifier.weight(1f))
-        CardStack(state, actions, detail, now, zone)
-        Spacer(Modifier.weight(1f))
-        Text(
-            stringResource(R.string.review_swipe_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = FoldFinanceTheme.palette.textMuted,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        )
-        // Duplicates of the swipes, in the thumb zone: accessible and discoverable.
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SecondaryButton(
-                text = stringResource(R.string.review_pick_category),
-                onClick = { actions.openPicker(current.id) },
-                modifier = Modifier.weight(1f),
-            )
-            ConfirmButton(
-                text = stringResource(R.string.review_confirm),
-                onClick = { actions.confirm(current.id) },
-                modifier = Modifier.weight(1f),
-            )
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            CardStack(state, actions, detail, now, zone, quickPicks = true)
         }
+        // Duplicates of the swipes, in the thumb zone: accessible and discoverable.
+        ThumbActions(
+            onCategory = { actions.openPicker(current.id) },
+            onSkip = if (state.queue.size > 1) ({ actions.skip(current.id) }) else null,
+            onConfirm = { actions.confirm(current.id) },
+            modifier = Modifier.padding(top = 8.dp),
+        )
     }
     state.pickerFor?.let { tx ->
         CategorySheet(
@@ -354,6 +379,80 @@ private fun CompactReview(
     }
 }
 
+/** «Категория» · «Пропустить» · «Подтвердить»: 64 dp round buttons with labels under them. */
+@Composable
+private fun ThumbActions(
+    onCategory: () -> Unit,
+    onSkip: (() -> Unit)?,
+    onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
+    showCategory: Boolean = true,
+) {
+    val palette = FoldFinanceTheme.palette
+    Row(modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.Top) {
+        if (showCategory) {
+            RoundAction(
+                label = stringResource(R.string.review_pick_category),
+                icon = Icons.Outlined.Sell,
+                onClick = onCategory,
+                container = palette.card,
+                content = palette.text,
+                border = true,
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        if (onSkip != null) {
+            Box(
+                Modifier
+                    .padding(top = 10.dp)
+                    .heightIn(min = 44.dp)
+                    .clip(FoldShapes.tile)
+                    .clickable(role = Role.Button, onClick = onSkip)
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(stringResource(R.string.review_skip), style = MaterialTheme.typography.labelLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal), color = palette.textMuted)
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        RoundAction(
+            label = stringResource(R.string.review_confirm),
+            icon = Icons.Outlined.Check,
+            onClick = onConfirm,
+            container = palette.accent,
+            content = palette.onAccent,
+            border = false,
+        )
+    }
+}
+
+@Composable
+private fun RoundAction(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    container: Color,
+    content: Color,
+    border: Boolean,
+) {
+    val palette = FoldFinanceTheme.palette
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(
+            Modifier
+                .size(64.dp)
+                .then(if (!border) Modifier.shadow(10.dp, FoldShapes.pill, ambientColor = Color.Black, spotColor = Color.Black) else Modifier)
+                .clip(FoldShapes.pill)
+                .background(container)
+                .then(if (border) Modifier.border(1.dp, palette.outline, FoldShapes.pill) else Modifier)
+                .clickable(role = Role.Button, onClickLabel = label, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = label, tint = content, modifier = Modifier.size(26.dp))
+        }
+        Text(label, style = FoldTextStyles.overline.copy(letterSpacing = androidx.compose.ui.unit.TextUnit.Unspecified), color = palette.textSecondary)
+    }
+}
+
 @Composable
 private fun CardStack(
     state: ReviewUiState,
@@ -361,51 +460,75 @@ private fun CardStack(
     detail: @Composable (Long) -> TransactionDetailState?,
     now: Instant,
     zone: ZoneId,
+    quickPicks: Boolean,
 ) {
     val current = state.current ?: return
     val data = detail(current.id)
     val today = now.atZone(zone).toLocalDate()
-    Box(Modifier.fillMaxWidth().padding(bottom = 18.dp)) {
-        if (state.next != null) StackedCardBehind(Modifier.matchParentSize())
+    val category = data?.category ?: state.categories.firstOrNull { it.id == current.categoryId }
+    val quick = if (quickPicks) quickCategories(state.categories, category) else emptyList()
+    Box(Modifier.fillMaxWidth().widthIn(max = 520.dp).padding(bottom = 18.dp)) {
+        if (state.next != null) StackedCardBehind(Modifier.matchParentSize(), depth = if (state.queue.size > 2) 2 else 1)
         SwipeableReviewCard(
             transaction = current,
-            category = data?.category ?: state.categories.firstOrNull { it.id == current.categoryId },
+            category = category,
             raw = data?.rawMessages.orEmpty(),
             today = today,
             zone = zone,
             onConfirm = { actions.confirm(current.id) },
             onPickCategory = { actions.openPicker(current.id) },
+            quickCategories = quick,
+            onQuickPick = { picked ->
+                if (picked == current.categoryId) actions.confirm(current.id) else actions.assign(listOf(current.id), picked)
+            },
         )
     }
 }
 
+/** Up to three categories for the card's quick question: the current one first. */
+private fun quickCategories(all: List<Category>, current: Category?): List<Category> =
+    (listOfNotNull(current) + all.filter { it.id != current?.id }).take(3)
+
+/** «Проверка» (28 / 600), the amber counter, the hint about the swipes. */
 @Composable
-private fun ReviewHeader(count: Int) {
+private fun ReviewHeader(count: Int, showHint: Boolean = true) {
     val palette = FoldFinanceTheme.palette
-    Column {
-        Text(
-            stringResource(R.string.section_review),
-            style = MaterialTheme.typography.headlineLarge,
-            color = palette.text,
-            modifier = Modifier.semantics { heading() },
-        )
-        if (count > 0) {
-            Text(
-                pluralStringResource(R.plurals.review_left, count, count),
-                style = MaterialTheme.typography.bodyLarge,
-                color = palette.textMuted,
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            ScreenTitle(stringResource(R.string.section_review), Modifier.weight(1f), large = true)
+            PillTag(
+                text = if (count > 0) pluralStringResource(R.plurals.review_counter, count, count) else stringResource(R.string.review_counter_done),
+                color = if (count > 0) palette.review else palette.accentContent,
+                large = true,
+                modifier = Modifier.semantics {
+                    // The visual counter is short; screen readers get the full sentence.
+                },
             )
+        }
+        if (count > 0 && showHint) {
+            Text(stringResource(R.string.review_hint), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
         }
     }
 }
 
+/** «Всё разобрано»: the place of the card, with the lime check. */
 @Composable
-private fun AllDone() {
-    EmptyState(
-        title = stringResource(R.string.review_done_title),
-        body = stringResource(R.string.review_done_body),
-        icon = Icons.Outlined.TaskAlt,
-    )
+private fun AllDone(modifier: Modifier = Modifier) {
+    val palette = FoldFinanceTheme.palette
+    Box(
+        modifier
+            .fillMaxWidth()
+            .background(palette.surface, FoldShapes.card)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        EmptyState(
+            title = stringResource(R.string.review_done_title),
+            body = stringResource(R.string.review_done_body),
+            icon = Icons.Outlined.Check,
+            centered = true,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -436,28 +559,29 @@ private fun CategorySheet(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CategoryGrid(categories: List<Category>, selectedId: Long?, onPick: (Long) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
         categories.forEach { category ->
             val visual = category.visual()
-            CategoryChip(name = visual.name, color = visual.color, selected = category.id == selectedId, onClick = { onPick(category.id) })
+            CategoryChip(name = visual.name, color = visual.color, selected = category.id == selectedId, onClick = { onPick(category.id) }, height = 40.dp)
         }
     }
 }
 
+/** Left panel of the book layout: the queue with checkboxes for bulk assignment. */
 @Composable
 private fun QueueList(state: ReviewUiState, actions: ReviewActions, zone: ZoneId, modifier: Modifier) {
     val palette = FoldFinanceTheme.palette
     val listState = rememberLazyListState()
     val categoriesById = remember(state.categories) { state.categories.associateBy { it.id } }
     Column(modifier.testTag("review.list")) {
-        Column(Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 8.dp)) {
-            ReviewHeader(state.queue.size)
+        Column(Modifier.padding(start = 22.dp, end = 18.dp, top = 22.dp, bottom = 4.dp)) {
+            ReviewHeader(state.queue.size, showHint = false)
             UnrecognizedEntry(state, actions)
             if (state.queue.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (state.selectedIds.isEmpty()) {
                         TextButton(onClick = actions::selectAll, contentPadding = PaddingValues(horizontal = 0.dp)) {
-                            Text(stringResource(R.string.review_select_all), color = palette.saffron, style = MaterialTheme.typography.labelLarge)
+                            Text(stringResource(R.string.review_select_all), color = palette.accentContent, style = MaterialTheme.typography.labelLarge)
                         }
                     } else {
                         Text(
@@ -467,7 +591,7 @@ private fun QueueList(state: ReviewUiState, actions: ReviewActions, zone: ZoneId
                             modifier = Modifier.weight(1f),
                         )
                         TextButton(onClick = actions::clearSelection) {
-                            Text(stringResource(R.string.review_clear_selection), color = palette.saffron, style = MaterialTheme.typography.labelLarge)
+                            Text(stringResource(R.string.review_clear_selection), color = palette.accentContent, style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -477,23 +601,22 @@ private fun QueueList(state: ReviewUiState, actions: ReviewActions, zone: ZoneId
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 12.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(start = 8.dp, end = 14.dp, bottom = 20.dp),
         ) {
-            itemsIndexed(state.queue, key = { _, tx -> tx.id }) { index, tx ->
+            itemsIndexed(state.queue, key = { _, tx -> tx.id }) { _, tx ->
                 val checked = tx.id in state.selectedIds
                 val focused = tx.id == state.focusedId && state.selectedIds.isEmpty()
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(0.dp)
-                        .background(palette.surface, groupItemShape(index, state.queue.size))
-                        .then(if (focused || checked) Modifier.background(palette.saffronContainer.copy(alpha = 0.55f), groupItemShape(index, state.queue.size)) else Modifier),
+                        .clip(FoldShapes.rowSelected)
+                        .then(if (focused || checked) Modifier.background(palette.selection) else Modifier),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Checkbox(
                         checked = checked,
                         onCheckedChange = { actions.toggleSelected(tx.id) },
-                        colors = CheckboxDefaults.colors(checkedColor = palette.saffron, checkmarkColor = palette.onSaffron, uncheckedColor = palette.outline),
+                        colors = CheckboxDefaults.colors(checkedColor = palette.accent, checkmarkColor = palette.onAccent, uncheckedColor = palette.outline),
                     )
                     TransactionRow(
                         merchant = tx.title(),
@@ -504,24 +627,22 @@ private fun QueueList(state: ReviewUiState, actions: ReviewActions, zone: ZoneId
                         category = categoryVisualOrNone(tx.categoryId?.let(categoriesById::get)),
                         source = tx.source,
                         onClick = { if (state.selectedIds.isNotEmpty()) actions.toggleSelected(tx.id) else actions.focus(tx.id) },
-                        modifier = Modifier.weight(1f).padding(start = 0.dp),
+                        modifier = Modifier.weight(1f),
+                        horizontalPadding = 4.dp,
                     )
-                }
-                if (index < state.queue.lastIndex) {
-                    Box(Modifier.fillMaxWidth().background(palette.surface)) { ListGroupDivider(startInset = 116.dp) }
                 }
             }
         }
     }
 }
 
-/** Right pane for a multi-selection: one category for all of them, or confirm all as they are. */
+/** Right panel for a multi-selection: one category for all of them, or confirm all as they are. */
 @Composable
 private fun BulkPanel(state: ReviewUiState, actions: ReviewActions) {
     val palette = FoldFinanceTheme.palette
     val count = state.selectedIds.size
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 24.dp, top = 24.dp, bottom = 24.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
@@ -530,44 +651,15 @@ private fun BulkPanel(state: ReviewUiState, actions: ReviewActions) {
             color = palette.text,
             modifier = Modifier.semantics { heading() },
         )
-        Text(stringResource(R.string.review_bulk_body), style = MaterialTheme.typography.bodyLarge, color = palette.textMuted)
+        Text(stringResource(R.string.review_bulk_body), style = MaterialTheme.typography.bodyMedium, color = palette.textMuted)
         CategoryGrid(state.categories, selectedId = null, onPick = actions::assignToSelected)
         Spacer(Modifier.height(8.dp))
-        ConfirmButton(
+        PrimaryButton(
             text = pluralStringResource(R.plurals.review_confirm_selected, count, count),
             onClick = actions::confirmSelected,
+            icon = Icons.Outlined.Check,
+            height = 56.dp,
             modifier = Modifier.fillMaxWidth(),
         )
     }
 }
-
-@Composable
-private fun ConfirmButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val palette = FoldFinanceTheme.palette
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 56.dp),
-        shape = FoldShapes.pill,
-        colors = ButtonDefaults.buttonColors(containerColor = palette.saffron, contentColor = palette.onSaffron),
-    ) {
-        Icon(Icons.Outlined.Check, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Text(text, style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-@Composable
-private fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val palette = FoldFinanceTheme.palette
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 56.dp),
-        shape = FoldShapes.pill,
-        colors = ButtonDefaults.buttonColors(containerColor = palette.surfaceRaised, contentColor = palette.text),
-    ) {
-        Icon(Icons.Outlined.Category, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Text(text, style = MaterialTheme.typography.titleMedium)
-    }
-}
-

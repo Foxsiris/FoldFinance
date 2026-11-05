@@ -169,8 +169,8 @@ private fun ListPane(state: CategoriesUiState, actions: CategoriesActions, start
                 .fillMaxWidth()
                 .padding(start = start, end = end, bottom = 16.dp, top = 4.dp)
                 .heightIn(min = 52.dp),
-            shape = FoldShapes.pill,
-            colors = ButtonDefaults.buttonColors(containerColor = palette.saffron, contentColor = palette.onSaffron),
+            shape = FoldShapes.key,
+            colors = ButtonDefaults.buttonColors(containerColor = palette.accent, contentColor = palette.onAccent),
         ) {
             Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
@@ -207,7 +207,7 @@ private fun CategoryRow(category: Category, selected: Boolean, onClick: () -> Un
     Row(
         Modifier
             .fillMaxWidth()
-            .then(if (selected) Modifier.background(palette.saffronContainer.copy(alpha = 0.55f)) else Modifier)
+            .then(if (selected) Modifier.background(palette.selection) else Modifier)
             .clickable(role = Role.Button, onClick = onClick)
             .heightIn(min = 64.dp)
             .padding(horizontal = 16.dp, vertical = 10.dp),
@@ -327,8 +327,8 @@ private fun EditorPane(state: CategoriesUiState, draft: CategoryDraft, actions: 
             Button(
                 onClick = actions.onSave,
                 modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                shape = FoldShapes.pill,
-                colors = ButtonDefaults.buttonColors(containerColor = palette.saffron, contentColor = palette.onSaffron),
+                shape = FoldShapes.key,
+                colors = ButtonDefaults.buttonColors(containerColor = palette.accent, contentColor = palette.onAccent),
             ) { Text(stringResource(R.string.categories_save), style = MaterialTheme.typography.labelLarge) }
         }
     }

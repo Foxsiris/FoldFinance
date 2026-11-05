@@ -47,7 +47,7 @@ fun TransactionFormSheet(
         onDismissRequest = actions::close,
         sheetState = sheetState,
         shape = FoldShapes.sheet,
-        containerColor = FoldFinanceTheme.palette.surface,
+        containerColor = FoldFinanceTheme.palette.ink,
         // The form has its own «×»; without the drag handle the keypad fits the outer screen.
         dragHandle = null,
         contentWindowInsets = { WindowInsets(0) },

@@ -20,6 +20,22 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import com.foldfinance.app.ui.components.CategoryChip
+import com.foldfinance.app.ui.components.Overline
+import com.foldfinance.app.ui.components.PillTag
+import com.foldfinance.app.ui.components.visual
+import com.foldfinance.app.ui.format.CardMaskFormat
+import com.foldfinance.app.ui.format.RuLocale
+import com.foldfinance.app.ui.theme.FoldTextStyles
+import com.foldfinance.core.model.Source
+import com.foldfinance.parser.Kind
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -85,6 +101,8 @@ fun SwipeableReviewCard(
     onConfirm: () -> Unit,
     onPickCategory: () -> Unit,
     modifier: Modifier = Modifier,
+    quickCategories: List<Category> = emptyList(),
+    onQuickPick: (Long) -> Unit = {},
 ) {
     val reducedMotion = FoldFinanceTheme.reducedMotion
     val haptics = LocalHapticFeedback.current
@@ -158,12 +176,15 @@ fun SwipeableReviewCard(
             raw = raw,
             today = today,
             zone = zone,
+            quickCategories = quickCategories,
+            onQuickPick = onQuickPick,
             modifier = Modifier
                 .offset { IntOffset(offset.value.roundToInt(), 0) }
                 .graphicsLayer { rotationZ = (offset.value / width) * 6f },
         )
     }
 }
+
 
 /** What the swipe will do, revealed under the card as it moves. */
 @Composable
@@ -179,26 +200,31 @@ private fun SwipeHint(progress: Float) {
         horizontalArrangement = if (right) Arrangement.Start else Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Surface(shape = FoldShapes.pill, color = if (right) palette.saffron else palette.surfaceRaised) {
+        Surface(shape = FoldShapes.pill, color = if (right) palette.accent else palette.surfaceRaised) {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     if (right) Icons.Outlined.Check else Icons.Outlined.Category,
                     contentDescription = null,
-                    tint = if (right) palette.onSaffron else palette.text,
+                    tint = if (right) palette.onAccent else palette.text,
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(if (right) R.string.review_confirm else R.string.review_pick_category),
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (right) palette.onSaffron else palette.text,
+                    color = if (right) palette.onAccent else palette.text,
                 )
             }
         }
     }
 }
 
-/** Content of a review card: what the bank said and what we understood from it. */
+/**
+ * Content of a review card (Review mockup): why it is here and where it came from, the merchant,
+ * the amount, card and time, the original text of the bank in mono — and a quick question with up
+ * to three categories (a tap assigns and takes the operation out of the queue).
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ReviewCard(
     transaction: Transaction,
@@ -207,59 +233,76 @@ fun ReviewCard(
     today: LocalDate,
     zone: ZoneId,
     modifier: Modifier = Modifier,
+    quickCategories: List<Category> = emptyList(),
+    onQuickPick: (Long) -> Unit = {},
 ) {
     val palette = FoldFinanceTheme.palette
-    Surface(modifier.fillMaxWidth(), shape = FoldShapes.summary, color = palette.surface, shadowElevation = 2.dp) {
-        Column(Modifier.padding(24.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CategoryTile(categoryVisualOrNone(category))
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        transaction.title(),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = palette.text,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.review_card_meta,
-                            dayTitle(transaction.occurredAt.atZone(zone).toLocalDate(), today),
-                            formatTime(transaction.occurredAt, zone),
-                            transaction.direction.label(),
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.textMuted,
-                        maxLines = 1,
-                    )
-                }
-            }
-            Spacer(Modifier.height(20.dp))
+    Column(
+        modifier
+            .fillMaxWidth()
+            .shadow(if (palette.isDark) 20.dp else 6.dp, FoldShapes.card, ambientColor = Color.Black, spotColor = Color.Black)
+            .background(palette.card, FoldShapes.card)
+            .border(1.dp, if (palette.isDark) Color(0xFF25252B) else palette.outline, FoldShapes.card)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PillTag(stringResource(reasonOf(transaction)), color = palette.review, container = palette.review.copy(alpha = 0.14f))
+            PillTag(sourceTag(transaction, raw), color = palette.textSecondary, container = palette.surfaceRaised)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                transaction.title(),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Medium),
+                color = palette.textSoft,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             MoneyText(
                 amountMinor = transaction.amountMinor,
                 currency = transaction.currency,
-                direction = transaction.direction,
-                style = MoneyStyle.Display,
+                direction = transaction.direction.takeIf { it != com.foldfinance.parser.Direction.EXPENSE },
+                style = MoneyStyle.DisplayMedium,
             )
-            Spacer(Modifier.height(4.dp))
             Text(
-                text = categoryVisualOrNone(category).name,
-                style = MaterialTheme.typography.bodyLarge,
+                text = cardLine(transaction, today, zone),
+                style = MaterialTheme.typography.bodyMedium,
                 color = palette.textMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            val text = raw.firstOrNull()?.text
-            if (text != null) {
-                Spacer(Modifier.height(20.dp))
-                Surface(shape = FoldShapes.tile, color = palette.surfaceRaised, modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(
-                            text = stringResource(R.string.review_card_source, raw.first().sender, transaction.source.label()),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = palette.textMuted,
+        }
+        val text = raw.firstOrNull()?.text
+        if (text != null) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .background(palette.surfaceSunken, androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Overline(stringResource(R.string.review_raw_title))
+                Text(text, style = FoldTextStyles.mono, color = palette.textSoft, maxLines = 4, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        if (quickCategories.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    stringResource(if (category == null) R.string.review_question_where else R.string.review_question_category),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textSecondary,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                    quickCategories.forEach { option ->
+                        val visual = option.visual()
+                        CategoryChip(
+                            name = visual.name,
+                            color = visual.color,
+                            selected = option.id == category?.id,
+                            onClick = { onQuickPick(option.id) },
+                            height = 36.dp,
+                            style = com.foldfinance.app.ui.components.ChipStyle.Outlined,
                         )
-                        Spacer(Modifier.height(4.dp))
-                        Text(text, style = MaterialTheme.typography.bodyLarge, color = palette.text, maxLines = 4, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -267,19 +310,62 @@ fun ReviewCard(
     }
 }
 
-/** The card under the top one, a step back: shows there is more to review. */
+/** Why the operation waits for review — said plainly, never guessed. */
+private fun reasonOf(transaction: Transaction): Int = when {
+    transaction.categoryId == null -> R.string.review_reason_category
+    transaction.kind == Kind.UNKNOWN -> R.string.review_reason_type
+    else -> R.string.review_reason_check
+}
+
+/** «SMS · 900», «Push · Т-Банк»: the channel and the sender of the original message. */
 @Composable
-fun StackedCardBehind(modifier: Modifier = Modifier) {
+private fun sourceTag(transaction: Transaction, raw: List<RawMessage>): String {
+    val channel = stringResource(
+        when (transaction.source) {
+            Source.SMS -> R.string.review_source_sms
+            Source.PUSH -> R.string.review_source_push
+            Source.MANUAL -> R.string.review_source_manual
+        },
+    )
+    val sender = raw.firstOrNull()?.sender?.takeIf { it.isNotBlank() } ?: return channel
+    return stringResource(R.string.review_source_tag, channel, sender)
+}
+
+/** «Карта •• 1234 · сегодня, 12:41». */
+@Composable
+private fun cardLine(transaction: Transaction, today: LocalDate, zone: ZoneId): String {
+    val day = dayTitle(transaction.occurredAt.atZone(zone).toLocalDate(), today).lowercase(RuLocale)
+    val time = formatTime(transaction.occurredAt, zone)
+    val whenText = stringResource(R.string.review_card_when, day, time)
+    val mask = transaction.cardMask?.takeIf { it.isNotBlank() } ?: return whenText
+    return stringResource(R.string.review_card_line, CardMaskFormat.format(mask), whenText)
+}
+
+/**
+ * The cards under the top one, a step back each (12 and 24 dp): shows there is more to review.
+ * @param depth 1 or 2 cards behind.
+ */
+@Composable
+fun StackedCardBehind(modifier: Modifier = Modifier, depth: Int = 1) {
     val palette = FoldFinanceTheme.palette
-    Surface(
-        modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = 0.94f
-                scaleY = 0.94f
-                translationY = 18.dp.toPx()
-            },
-        shape = FoldShapes.summary,
-        color = palette.surfaceRaised,
-    ) { Box(Modifier.fillMaxSize()) }
+    Box(modifier) {
+        if (depth >= 2) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(start = 24.dp, end = 24.dp, top = 24.dp)
+                    .offset(y = 16.dp)
+                    .background(if (palette.isDark) Color(0xFF0F0F12) else palette.surfaceRaised, FoldShapes.card)
+                    .border(1.dp, if (palette.isDark) Color(0xFF18181C) else palette.outline, FoldShapes.card),
+            )
+        }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(start = 12.dp, end = 12.dp, top = 12.dp)
+                .offset(y = 8.dp)
+                .background(if (palette.isDark) Color(0xFF121215) else palette.surface, FoldShapes.card)
+                .border(1.dp, if (palette.isDark) Color(0xFF1C1C21) else palette.outline, FoldShapes.card),
+        )
+    }
 }

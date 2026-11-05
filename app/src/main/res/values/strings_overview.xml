@@ -22,7 +22,7 @@
     <string name="overview_period_week">Расходы за неделю</string>
     <string name="overview_period_month">Расходы за %1$s</string>
     <string name="overview_period_year">Расходы за %1$d год</string>
-    <string name="overview_categories_title">По категориям</string>
+    <string name="overview_categories_title">Категории</string>
     <string name="overview_share_percent">%1$d %%</string>
     <string name="overview_selection_clear">Снять фильтр</string>
 
@@ -47,4 +47,44 @@
         <item quantity="many">Найдено %d похожих, подтвердите</item>
         <item quantity="other">Найдено %d похожих, подтвердите</item>
     </plurals>
+
+    <!-- Obsidian: Главная внешнего экрана и сводка внутреннего -->
+    <!-- «Четверг, 5 ноября» -->
+    <string name="overview_date_header">%1$s, %2$s</string>
+    <string name="overview_spent_month">Потрачено за месяц</string>
+    <string name="overview_spent">Потрачено</string>
+    <string name="overview_income_known">доход · по известным операциям</string>
+    <string name="overview_known_only">по известным операциям</string>
+    <string name="overview_today_tile">Сегодня</string>
+    <plurals name="overview_today_expenses">
+        <item quantity="one">%d расход</item>
+        <item quantity="few">%d расхода</item>
+        <item quantity="many">%d расходов</item>
+        <item quantity="other">%d расхода</item>
+    </plurals>
+    <string name="overview_today_none">расходов не было</string>
+    <string name="overview_review_tile">На проверку</string>
+    <string name="overview_review_tile_action">Разобрать свайпом →</string>
+    <string name="overview_review_tile_done">Всё проверено</string>
+    <string name="overview_recent_title">Последние</string>
+    <string name="overview_recent_all">Все</string>
+    <string name="overview_search">Поиск по операциям</string>
+    <string name="overview_categories_hint">Нажмите, чтобы отфильтровать</string>
+    <plurals name="overview_list_count">
+        <item quantity="one">%d операция</item>
+        <item quantity="few">%d операции</item>
+        <item quantity="many">%d операций</item>
+        <item quantity="other">%d операции</item>
+    </plurals>
+    <!-- «5 операций · 6 180 ₽» -->
+    <string name="overview_list_summary">%1$s · %2$s</string>
+    <!-- «Ноябрь 2026» -->
+    <string name="overview_period_month_title">%1$s %2$d</string>
+    <string name="overview_period_week_title">Эта неделя</string>
+    <string name="overview_period_year_title">%1$d год</string>
+    <string name="overview_period_choose">Выбрать период</string>
+    <!-- «1–5 ноября» -->
+    <string name="overview_days_range">%1$d–%2$s</string>
+    <string name="overview_days_range_long">%1$s – %2$s</string>
+    <string name="overview_chart_description_static">Расходы по дням месяца, больше всего за день %1$s.</string>
 </resources>

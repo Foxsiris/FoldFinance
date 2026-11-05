@@ -189,7 +189,7 @@ class MainScreensScreenshotTest {
                         Surface(
                             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
                             shape = FoldShapes.sheet,
-                            color = com.foldfinance.app.ui.theme.FoldFinanceTheme.palette.surface,
+                            color = com.foldfinance.app.ui.theme.FoldFinanceTheme.palette.ink,
                         ) {
                             TransactionForm(form, NoopFormActions, now, zone, Modifier.padding(top = 12.dp))
                         }
@@ -266,6 +266,7 @@ internal fun Shell(section: Section, badge: Int = 3, content: @Composable (Modif
         selected = section,
         onSelect = {},
         badges = mapOf(Section.Review to badge),
+        onAdd = {},
         content = { _, m -> content(m) },
     )
 }

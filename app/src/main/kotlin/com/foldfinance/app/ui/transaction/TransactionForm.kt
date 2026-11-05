@@ -1,7 +1,8 @@
 package com.foldfinance.app.ui.transaction
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,26 +16,26 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -50,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -58,19 +60,26 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import com.foldfinance.app.R
 import com.foldfinance.app.ui.components.CategoryChip
+import com.foldfinance.app.ui.components.IconCircleButton
 import com.foldfinance.app.ui.components.MoneyStyle
+import com.foldfinance.app.ui.components.PrimaryButton
+import com.foldfinance.app.ui.components.SegmentedControl
 import com.foldfinance.app.ui.components.moneyColor
+import com.foldfinance.app.ui.components.moneyLabel
 import com.foldfinance.app.ui.components.moneyTextStyle
 import com.foldfinance.app.ui.components.visual
 import com.foldfinance.app.ui.format.MoneyFormat
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
-import com.foldfinance.app.ui.theme.FoldMotion
 import com.foldfinance.app.ui.theme.FoldShapes
 import com.foldfinance.parser.Direction
 import java.time.Instant
@@ -91,11 +100,16 @@ interface TransactionFormActions {
     fun close()
 }
 
+/** Text field of the form opened by its chip. */
+private enum class FormField { Merchant, Note }
+
 /**
- * Add / edit form: direction, the amount in big Unbounded digits, merchant, category chips,
- * date and time, note — and the keypad with «Сохранить» at the bottom, in the thumb zone.
+ * Add / edit form (Add mockup): the title with «×», «Расход / Доход / Перевод», the typed amount
+ * with a lime cursor, chips for date, place and note, category chips — and the 3 × 4 keypad with
+ * «Сохранить · 1 250 ₽» at the bottom, in the thumb zone.
  *
- * Stateless: everything comes from [state] (owned by [TransactionFormViewModel]).
+ * Stateless: everything comes from [state] (owned by [TransactionFormViewModel]); only which text
+ * field is open and the date/time dialogs are local (saveable).
  *
  * @param now «сейчас» for the date chip when the draft has no explicit time.
  * @param fillHeight `true` in a pane (keypad pinned to the bottom), `false` in a sheet (wraps content).
@@ -115,41 +129,78 @@ fun TransactionForm(
     var pickDate by rememberSaveable { mutableStateOf(false) }
     var pickTime by rememberSaveable { mutableStateOf(false) }
     var pickedDateEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
+    var openField by rememberSaveable { mutableStateOf<FormField?>(null) }
     val occurredAt = draft.occurredAtMillis?.let(Instant::ofEpochMilli) ?: now
+    val digits = MoneyFormat.fractionDigits(draft.currency)
+    val merchantLabel = stringResource(if (draft.directionValue == Direction.INCOME) R.string.tx_form_merchant_income else R.string.tx_form_merchant)
+    val noteLabel = stringResource(R.string.tx_form_note)
 
     Column(modifier.then(if (fillHeight) Modifier.fillMaxHeight() else Modifier).padding(contentPadding)) {
-        // One header row: the direction is the first choice, «×» closes. The title is for screen readers.
         val title = stringResource(if (state.mode is FormMode.Edit) R.string.tx_form_title_edit else R.string.tx_form_title_add)
         Row(
-            Modifier.fillMaxWidth().semantics { heading(); paneTitle = title },
+            Modifier.fillMaxWidth().heightIn(min = 44.dp).semantics { paneTitle = title },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DirectionToggle(selected = draft.directionValue, onSelect = actions::setDirection, modifier = Modifier.weight(1f))
-            Spacer(Modifier.width(4.dp))
-            IconButton(onClick = actions::close) {
-                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.tx_form_close), tint = palette.textMuted)
-            }
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                color = palette.text,
+                modifier = Modifier.weight(1f).semantics { heading() },
+            )
+            IconCircleButton(
+                icon = Icons.Outlined.Close,
+                contentDescription = stringResource(R.string.tx_form_close),
+                onClick = actions::close,
+            )
         }
+        Spacer(Modifier.height(12.dp))
+        DirectionToggle(selected = draft.directionValue, onSelect = actions::setDirection)
         Column(
             modifier = Modifier
                 .weight(1f, fill = fillHeight)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             AmountDisplay(text = draft.amountText, currency = draft.currency, direction = draft.directionValue)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FormTextField(
-                    value = draft.merchant,
-                    onValueChange = actions::setMerchant,
-                    label = stringResource(
-                        if (draft.directionValue == Direction.INCOME) R.string.tx_form_merchant_income else R.string.tx_form_merchant,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
-                DateChip(
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FormChip(
                     text = dateTimeLabel(occurredAt, now, zone),
+                    icon = Icons.Outlined.CalendarMonth,
                     onClick = { pickDate = true },
                 )
+                FormChip(
+                    text = draft.merchant.ifBlank { merchantLabel },
+                    icon = Icons.Outlined.Storefront,
+                    active = openField == FormField.Merchant || draft.merchant.isNotBlank(),
+                    onClick = { openField = if (openField == FormField.Merchant) null else FormField.Merchant },
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                FormChip(
+                    text = draft.note.ifBlank { noteLabel },
+                    icon = Icons.Outlined.EditNote,
+                    active = openField == FormField.Note || draft.note.isNotBlank(),
+                    onClick = { openField = if (openField == FormField.Note) null else FormField.Note },
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
+            when (openField) {
+                FormField.Merchant -> FormTextField(
+                    value = draft.merchant,
+                    onValueChange = actions::setMerchant,
+                    label = merchantLabel,
+                    onDone = { openField = null },
+                )
+                FormField.Note -> FormTextField(
+                    value = draft.note,
+                    onValueChange = actions::setNote,
+                    label = noteLabel,
+                    onDone = { openField = null },
+                )
+                null -> Unit
             }
             if (state.categories.isNotEmpty()) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -160,29 +211,22 @@ fun TransactionForm(
                             color = visual.color,
                             selected = category.id == draft.categoryId,
                             onClick = { actions.toggleCategory(category.id) },
+                            height = 40.dp,
                         )
                     }
                 }
             }
-            FormTextField(value = draft.note, onValueChange = actions::setNote, label = stringResource(R.string.tx_form_note))
         }
         Spacer(Modifier.height(12.dp))
-        NumericKeypad(onKey = actions::press, showDecimal = MoneyFormat.fractionDigits(draft.currency) > 0, keyHeight = 52.dp)
-        Spacer(Modifier.height(12.dp))
-        Button(
+        NumericKeypad(onKey = actions::press, showDecimal = digits > 0, keyHeight = 48.dp)
+        Spacer(Modifier.height(10.dp))
+        val amount = moneyLabel(draft.amountMinor, draft.currency)
+        PrimaryButton(
+            text = if (draft.amountMinor > 0) stringResource(R.string.tx_form_save_amount, amount) else stringResource(R.string.tx_form_enter_amount),
             onClick = actions::save,
             enabled = state.canSave,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-            shape = FoldShapes.pill,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = palette.saffron,
-                contentColor = palette.onSaffron,
-                disabledContainerColor = palette.surfaceRaised,
-                disabledContentColor = palette.textMuted,
-            ),
-        ) {
-            Text(stringResource(R.string.tx_form_save), style = MaterialTheme.typography.titleMedium)
-        }
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 
     if (pickDate) {
@@ -209,84 +253,120 @@ fun TransactionForm(
     }
 }
 
-/** Two-segment pill «Расход / Доход». */
+/**
+ * Segmented «Расход / Доход / Перевод» (a transfer between own cards). A refund being edited gets
+ * its own fourth segment, so editing never silently changes what the bank said.
+ */
 @Composable
 fun DirectionToggle(selected: Direction, onSelect: (Direction) -> Unit, modifier: Modifier = Modifier) {
+    val options = buildList {
+        add(Direction.EXPENSE)
+        add(Direction.INCOME)
+        add(Direction.INTERNAL_TRANSFER)
+        if (selected == Direction.REFUND) add(Direction.REFUND)
+    }
+    val labels = options.map { option ->
+        if (option == Direction.INTERNAL_TRANSFER) stringResource(R.string.tx_form_transfer) else option.label()
+    }
+    SegmentedControl(
+        labels = labels,
+        selected = options.indexOf(selected),
+        onSelect = { onSelect(options[it]) },
+        modifier = modifier,
+        height = 42.dp,
+        role = Role.RadioButton,
+        description = stringResource(R.string.tx_form_types),
+    )
+}
+
+/**
+ * The typed amount (Add mockup): 56 sp digits, a lime cursor, the currency sign quiet; kopecks
+ * smaller. Empty input shows a dim «0».
+ */
+@Composable
+private fun AmountDisplay(text: String, currency: String, direction: Direction) {
     val palette = FoldFinanceTheme.palette
-    val options = listOf(Direction.EXPENSE, Direction.INCOME)
+    val style = moneyTextStyle(MoneyStyle.Display).copy(fontSize = 56.sp, lineHeight = 60.sp)
+    val (integer, fraction) = AmountEntry.displayParts(text)
+    val empty = text.isEmpty()
+    val main = when {
+        empty -> palette.textDisabled.copy(alpha = 0.7f)
+        direction == Direction.INCOME -> moneyColor(direction)
+        else -> palette.text
+    }
+    val spoken = MoneyFormat.format(AmountEntry.toMinor(text, MoneyFormat.fractionDigits(currency)), currency)
     Row(
-        modifier
+        Modifier
             .fillMaxWidth()
-            .height(48.dp)
-            .background(palette.surfaceRaised, FoldShapes.pill)
-            .padding(4.dp)
-            .selectableGroup(),
+            .height(80.dp)
+            .semantics(mergeDescendants = true) { contentDescription = spoken },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        options.forEach { option ->
-            val isSelected = option == selected || (option == Direction.EXPENSE && selected !in options)
-            val container by animateColorAsState(
-                if (isSelected) palette.saffronContainer else palette.surfaceRaised,
-                FoldMotion.effects(),
-                label = "direction",
+        BasicText(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = main)) {
+                    integer.forEach { ch ->
+                        if (ch == MoneyFormat.NARROW_NBSP) {
+                            withStyle(SpanStyle(letterSpacing = 0.03.em)) { append(ch) }
+                        } else {
+                            append(ch)
+                        }
+                    }
+                }
+                if (fraction != null) withStyle(SpanStyle(color = palette.textMuted, fontSize = 0.6.em)) { append(fraction) }
+            },
+            style = style,
+            maxLines = 1,
+            modifier = Modifier.weight(1f, fill = false),
+            autoSize = TextAutoSize.StepBased(minFontSize = 24.sp, maxFontSize = 56.sp, stepSize = 1.sp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Box(Modifier.width(2.dp).height(44.dp).background(palette.accent, FoldShapes.pill))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            MoneyFormat.symbol(currency),
+            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp, fontWeight = FontWeight.Medium),
+            color = palette.textDisabled,
+        )
+    }
+}
+
+/** Chip of the form: date, place, note (Add mockup: 36 dp, 12 dp corners, hairline border). */
+@Composable
+private fun FormChip(text: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false) {
+    val palette = FoldFinanceTheme.palette
+    Box(modifier.heightIn(min = 48.dp).clip(FoldShapes.chip).clickable(role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier
+                .height(36.dp)
+                .widthIn(max = 220.dp)
+                .clip(FoldShapes.chip)
+                .border(1.dp, if (active) palette.accentLine else palette.outline, FoldShapes.chip)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, contentDescription = null, tint = if (active) palette.accentContent else palette.textSecondary, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Normal),
+                color = palette.textSoft,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Box(
-                Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(FoldShapes.pill)
-                    .background(container)
-                    .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(option) }),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = option.label(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (isSelected) palette.onSaffronContainer else palette.textMuted,
-                )
-            }
         }
     }
 }
 
-/** The typed amount: integer part in Unbounded, comma and kopecks smaller and muted, like [com.foldfinance.app.ui.components.MoneyText]. */
 @Composable
-private fun AmountDisplay(text: String, currency: String, direction: Direction) {
-    val palette = FoldFinanceTheme.palette
-    val style = moneyTextStyle(MoneyStyle.Display)
-    val (integer, fraction) = AmountEntry.displayParts(text)
-    val empty = text.isEmpty()
-    val main = if (empty) palette.textMuted.copy(alpha = 0.6f) else moneyColor(direction)
-    val minor = if (empty) main else palette.textMuted
-    val spoken = MoneyFormat.format(AmountEntry.toMinor(text, MoneyFormat.fractionDigits(currency)), currency)
-    Text(
-        text = buildAnnotatedString {
-            withStyle(SpanStyle(color = main)) {
-                integer.forEach { ch ->
-                    // Same widened group gap as MoneyText: the narrow no-break space alone is too tight.
-                    if (ch == MoneyFormat.NARROW_NBSP) {
-                        withStyle(SpanStyle(letterSpacing = MoneyStyle.Display.groupSpacing)) { append(ch) }
-                    } else {
-                        append(ch)
-                    }
-                }
-            }
-            withStyle(SpanStyle(color = minor, fontSize = style.fontSize * MoneyStyle.Display.minorScale)) {
-                if (fraction != null) append(fraction)
-                append(MoneyFormat.NARROW_NBSP)
-                append(MoneyFormat.symbol(currency))
-            }
-        },
-        style = style,
-        maxLines = 1,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .semantics { contentDescription = spoken },
-    )
-}
-
-@Composable
-private fun FormTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier.fillMaxWidth()) {
+private fun FormTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+) {
     val palette = FoldFinanceTheme.palette
     TextField(
         value = value,
@@ -295,34 +375,20 @@ private fun FormTextField(value: String, onValueChange: (String) -> Unit, label:
         singleLine = true,
         shape = FoldShapes.tile,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onDone() }),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = palette.surfaceRaised,
             unfocusedContainerColor = palette.surfaceRaised,
             focusedIndicatorColor = palette.surfaceRaised,
             unfocusedIndicatorColor = palette.surfaceRaised,
-            focusedLabelColor = palette.saffron,
+            focusedLabelColor = palette.accentContent,
             unfocusedLabelColor = palette.textMuted,
-            cursorColor = palette.saffron,
+            cursorColor = palette.accentContent,
             focusedTextColor = palette.text,
             unfocusedTextColor = palette.text,
         ),
         modifier = modifier,
     )
-}
-
-@Composable
-private fun DateChip(text: String, onClick: () -> Unit) {
-    val palette = FoldFinanceTheme.palette
-    Surface(onClick = onClick, shape = FoldShapes.tile, color = palette.surfaceRaised) {
-        Row(
-            Modifier.heightIn(min = 56.dp).padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Outlined.CalendarMonth, contentDescription = null, tint = palette.saffron, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(text, style = MaterialTheme.typography.labelLarge, color = palette.text)
-        }
-    }
 }
 
 @Composable

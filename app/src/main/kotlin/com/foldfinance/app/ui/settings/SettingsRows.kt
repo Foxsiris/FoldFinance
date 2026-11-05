@@ -72,7 +72,7 @@ internal fun SettingsCompactNavRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (selected) palette.saffronContainer else Color.Transparent)
+            .background(if (selected) palette.selection else Color.Transparent)
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .heightIn(min = 56.dp)
             .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -106,7 +106,7 @@ internal fun SettingsNavRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (selected) palette.saffronContainer else Color.Transparent)
+            .background(if (selected) palette.selection else Color.Transparent)
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .heightIn(min = 64.dp)
             .padding(horizontal = 16.dp, vertical = 12.dp),

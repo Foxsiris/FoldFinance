@@ -11,6 +11,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -41,13 +47,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.foldfinance.app.R
+import com.foldfinance.app.ui.components.AccentFab
 import com.foldfinance.app.ui.layout.AppLayout
 import com.foldfinance.app.ui.layout.LocalAppLayout
 import com.foldfinance.app.ui.onboarding.OnboardingRoute
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldMotion
 import com.foldfinance.app.ui.theme.FoldShapes
-import com.foldfinance.app.ui.theme.PaletteTokens
+import com.foldfinance.app.ui.theme.FoldTextStyles
+import com.foldfinance.app.ui.transaction.TransactionFormViewModel
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
 import com.foldfinance.app.ui.transaction.LocalAppSnackbar
 
 /**
@@ -68,6 +78,8 @@ fun FoldFinanceAppUi(
     val reviewCount by viewModel.reviewCount.collectAsStateWithLifecycle()
     val onboarding by viewModel.onboarding.collectAsStateWithLifecycle()
     val pending by viewModel.pendingTransaction.collectAsStateWithLifecycle()
+    // The app-wide add form (same instance as the screens' and the widget intent's): the rail's «+».
+    val addForm: TransactionFormViewModel = hiltViewModel()
     val sections = viewModel.visibleSections
     val navigation = remember(viewModel, pending) {
         object : ShellNavigation {
@@ -90,6 +102,11 @@ fun FoldFinanceAppUi(
                     selected = selected,
                     onSelect = viewModel::select,
                     badges = mapOf(Section.Review to reviewCount),
+                    onAdd = {
+                        // Only Overview and History show the add form; elsewhere go to Overview first.
+                        if (selected != Section.Overview && selected != Section.History) viewModel.select(Section.Overview)
+                        addForm.openAdd()
+                    },
                     content = content,
                 )
             }
@@ -133,30 +150,32 @@ fun ShellScaffold(
     layout: AppLayout = LocalAppLayout.current,
     badges: Map<Section, Int> = emptyMap(),
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
+    onAdd: (() -> Unit)? = null,
     content: @Composable (Section, Modifier) -> Unit = { section, m -> SectionContent(section, m) },
 ) {
     val palette = FoldFinanceTheme.palette
     val compactBar = layout is AppLayout.Compact
     val items = barSections(sections, compactBar)
     val type = navigationTypeFor(layout, items.size)
+    val rail = type == NavigationSuiteType.WideNavigationRailCollapsed
     val barItemColors = ShortNavigationBarItemDefaults.colors(
-        selectedIconColor = palette.onSaffronContainer,
+        selectedIconColor = palette.accentContent,
         selectedTextColor = palette.text,
-        selectedIndicatorColor = palette.saffronContainer,
-        unselectedIconColor = palette.textMuted,
-        unselectedTextColor = palette.textMuted,
+        selectedIndicatorColor = palette.accentSoft,
+        unselectedIconColor = palette.textSecondary,
+        unselectedTextColor = palette.textSecondary,
     )
     val railItemColors = WideNavigationRailItemDefaults.colors(
-        selectedIconColor = palette.onSaffronContainer,
+        selectedIconColor = palette.accentContent,
         selectedTextColor = palette.text,
-        selectedIndicatorColor = palette.saffronContainer,
-        unselectedIconColor = palette.textMuted,
-        unselectedTextColor = palette.textMuted,
+        selectedIndicatorColor = palette.accentSoft,
+        unselectedIconColor = palette.textSecondary,
+        unselectedTextColor = palette.textSecondary,
     )
-    val itemColors: NavigationItemColors =
-        if (type == NavigationSuiteType.WideNavigationRailCollapsed) railItemColors else barItemColors
+    val itemColors: NavigationItemColors = if (rail) railItemColors else barItemColors
     val stateHolder = rememberSaveableStateHolder()
     val reducedMotion = FoldFinanceTheme.reducedMotion
+    val addLabel = stringResource(R.string.tx_add)
 
     NavigationSuiteScaffold(
         navigationItems = {
@@ -167,7 +186,14 @@ fun ShellScaffold(
                     selected = isSelected,
                     onClick = { onSelect(section) },
                     icon = { NavigationIcon(section, isSelected, badge) },
-                    label = { Text(stringResource(section.labelRes), maxLines = 1) },
+                    label = {
+                        Text(
+                            stringResource(section.labelRes),
+                            maxLines = 1,
+                            style = FoldTextStyles.navLabel,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        )
+                    },
                     navigationSuiteType = type,
                     colors = itemColors,
                 )
@@ -176,15 +202,35 @@ fun ShellScaffold(
         modifier = modifier,
         navigationSuiteType = type,
         navigationSuiteColors = NavigationSuiteDefaults.colors(
-            shortNavigationBarContainerColor = palette.surface,
-            shortNavigationBarContentColor = palette.textMuted,
+            shortNavigationBarContainerColor = palette.navBar,
+            shortNavigationBarContentColor = palette.textSecondary,
             wideNavigationRailColors = WideNavigationRailDefaults.colors(
                 containerColor = palette.ink,
-                contentColor = palette.textMuted,
+                contentColor = palette.textSecondary,
             ),
         ),
         containerColor = palette.ink,
         contentColor = palette.text,
+        // The rail opens with the lime «+» (Overview / History mockups); the bar has none — the
+        // outer Overview draws its own FAB in the thumb zone.
+        primaryActionContentHorizontalAlignment = Alignment.CenterHorizontally,
+        primaryActionContent = {
+            if (rail && onAdd != null) {
+                // Centred over the items of the collapsed rail (96 dp).
+                Box(Modifier.width(96.dp), contentAlignment = Alignment.Center) {
+                    AccentFab(
+                        icon = Icons.Outlined.Add,
+                        contentDescription = addLabel,
+                        onClick = onAdd,
+                        size = 56.dp,
+                        shape = RoundedCornerShape(18.dp),
+                        ringColor = null,
+                        elevated = false,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 10.dp),
+                    )
+                }
+            }
+        },
     ) {
         CompositionLocalProvider(LocalAppSnackbar provides snackbar) {
             Box(Modifier.fillMaxSize()) {
@@ -205,26 +251,39 @@ fun ShellScaffold(
                         }
                     }
                 }
+                if (type == NavigationSuiteType.ShortNavigationBarCompact) {
+                    // Hairline over the bar (Main mockup: 1 dp border-top).
+                    Box(
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(palette.seam),
+                    )
+                }
                 SnackbarHost(
                     hostState = snackbar,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .windowInsetsPadding(WindowInsets.safeDrawing)
-                        // Above the thumb-zone action row of the outer screen.
-                        .padding(bottom = if (compactBar) 84.dp else 16.dp),
+                        // Above the thumb-zone actions of the outer screen.
+                        .padding(bottom = if (compactBar) 96.dp else 16.dp),
                 ) { data ->
                     Snackbar(
                         snackbarData = data,
                         shape = FoldShapes.tile,
-                        containerColor = palette.text,
-                        contentColor = palette.ink,
-                        actionColor = if (palette.isDark) PaletteTokens.Light.saffron else PaletteTokens.Dark.saffron,
+                        containerColor = if (palette.isDark) palette.text else palette.textSoft,
+                        contentColor = if (palette.isDark) palette.ink else palette.card,
+                        actionColor = if (palette.isDark) PaletteTokensLightAccent else palette.accent,
                     )
                 }
             }
         }
     }
 }
+
+/** Snackbar action on the light snackbar of the dark theme: the olive accent stays readable. */
+private val PaletteTokensLightAccent = com.foldfinance.app.ui.theme.PaletteTokens.Light.accentContent
 
 @Composable
 private fun NavigationIcon(section: Section, selected: Boolean, badge: Int) {
@@ -235,10 +294,10 @@ private fun NavigationIcon(section: Section, selected: Boolean, badge: Int) {
         BadgedBox(
             badge = {
                 Badge(
-                    containerColor = palette.saffron,
-                    contentColor = palette.onSaffron,
+                    containerColor = palette.review,
+                    contentColor = palette.onReview,
                     modifier = Modifier.semantics { contentDescription = badgeDescription },
-                ) { Text(if (badge > 99) "99+" else badge.toString()) }
+                ) { Text(if (badge > 99) "99+" else badge.toString(), fontWeight = FontWeight.Bold) }
             },
         ) { Icon(imageVector = icon, contentDescription = null) }
     } else {

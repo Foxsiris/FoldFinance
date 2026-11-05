@@ -2,11 +2,12 @@ package com.foldfinance.app.ui.overview
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
@@ -30,48 +32,60 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.TaskAlt
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.foldfinance.app.R
+import com.foldfinance.app.ui.components.AccentFab
 import com.foldfinance.app.ui.components.CategoryChip
-import com.foldfinance.app.ui.components.CategoryTile
+import com.foldfinance.app.ui.components.ChipStyle
 import com.foldfinance.app.ui.components.EmptyState
-import com.foldfinance.app.ui.components.LabeledAmount
+import com.foldfinance.app.ui.components.FilterPill
+import com.foldfinance.app.ui.components.IconCircleButton
 import com.foldfinance.app.ui.components.LabeledAmountGroup
-import com.foldfinance.app.ui.components.ListGroup
-import com.foldfinance.app.ui.components.ListGroupDivider
 import com.foldfinance.app.ui.components.MoneyStyle
 import com.foldfinance.app.ui.components.MoneyText
+import com.foldfinance.app.ui.components.Panel
 import com.foldfinance.app.ui.components.Period
 import com.foldfinance.app.ui.components.PeriodSelector
+import com.foldfinance.app.ui.components.ScreenTitle
 import com.foldfinance.app.ui.components.SectionHeader
-import com.foldfinance.app.ui.components.SummaryCard
+import com.foldfinance.app.ui.components.StatTile
+import com.foldfinance.app.ui.components.TileRow
+import com.foldfinance.app.ui.components.moneyLabel
 import com.foldfinance.app.ui.format.CardMaskFormat
+import com.foldfinance.app.ui.format.MoneyFormat
+import com.foldfinance.app.ui.format.RuLocale
+import com.foldfinance.app.ui.format.SignDisplay
 import com.foldfinance.app.ui.format.monthTitle
 import com.foldfinance.app.ui.layout.AppLayout
 import com.foldfinance.app.ui.layout.LocalAppLayout
@@ -80,6 +94,7 @@ import com.foldfinance.app.ui.shell.LocalShellNavigation
 import com.foldfinance.app.ui.shell.Section
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
+import com.foldfinance.app.ui.theme.FoldTextStyles
 import com.foldfinance.app.ui.transaction.DayHeader
 import com.foldfinance.app.ui.transaction.SavedSnackbarEffect
 import com.foldfinance.app.ui.transaction.TransactionForm
@@ -93,11 +108,13 @@ import com.foldfinance.app.ui.transaction.dayTitle
 import com.foldfinance.app.ui.transaction.formatDate
 import com.foldfinance.app.ui.transaction.formatTime
 import com.foldfinance.app.ui.transaction.groupByDay
+import com.foldfinance.core.domain.analytics.AnalyticsCalculator
 import com.foldfinance.core.model.KnownBalance
 import com.foldfinance.core.model.Transaction
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.TextStyle
 
 /** Callbacks of [OverviewScreen]. */
 interface OverviewActions {
@@ -115,17 +132,18 @@ interface OverviewActions {
 /** Periods of the overview chart (a single day has nothing to chart). */
 val OverviewPeriods: List<Period> = listOf(Period.Week, Period.Month, Period.Year)
 
-/** Operations shown in the outer-screen feed; the rest is one tap away in History. */
-private const val FeedSize = 20
-
 /**
- * «Обзор».
+ * «Обзор» / «Главная» (docs/design-v2: Main, Overview).
  *
- * - Outer screen: «Сегодня / Месяц», known balances, the feed of recent operations; «Разобрать N»
- *   and «Добавить» sit at the bottom, in the thumb zone.
- * - Book: summary, chart and categories on the left; the list on the right — a tap on a category or
- *   a bar filters it in place. The add form opens in the right pane.
- * - Tabletop: summary and chart on top (to look at), period, filters and list below (to touch).
+ * - Outer screen: the month, «Потрачено за месяц» big, income as a line, the mini chart of the
+ *   month's days, the «Сегодня» and «На проверку» tiles, «Последние»; the lime «+» floats in the
+ *   thumb zone over the navigation bar.
+ * - Book: the summary panel (period, «Потрачено», the chart with the selected category drawn in
+ *   its colour, the share strip, category filters) and the operations panel next to it, split on
+ *   the hinge; a tap on a category or a bar filters the list in place. The add form opens in the
+ *   right panel.
+ * - Tabletop: «Потрачено» and the chart on top (to look at); period, category filters and the list
+ *   in the bottom panel (to touch).
  */
 @Composable
 fun OverviewRoute(
@@ -184,72 +202,90 @@ fun OverviewScreen(
             TransactionFormSheet(addState, addActions, now, zone)
         }
         is AppLayout.Book -> TwoPane(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier.fillMaxSize().padding(top = 16.dp, bottom = 16.dp, end = 8.dp),
             first = {
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    if (state.hasAnyTransactions) {
-                        Summary(state, zone, todayStyle = MoneyStyle.DisplayMedium, twoLineBalances = true)
-                        SubscriptionsCard(state, actions::openSubscriptions)
-                        PeriodSelector(selected = state.period, onSelect = actions::setPeriod, periods = OverviewPeriods)
-                        ChartCard(state, actions)
-                        CategoryBreakdown(state, actions)
-                    } else {
-                        PendingSummary(state)
+                Panel(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 22.dp, vertical = 22.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        SummaryPanelContent(state, actions, zone)
                     }
                 }
             },
             second = {
-                if (addState.isOpen) {
-                    TransactionForm(
-                        addState, addActions, now, zone,
-                        modifier = Modifier.fillMaxSize(),
-                        fillHeight = true,
-                        contentPadding = PaddingValues(start = 12.dp, end = 24.dp, top = 8.dp, bottom = 16.dp),
-                    )
-                } else {
-                    ListPane(state, actions, zone, Modifier.fillMaxSize(), contentStart = 12.dp, contentEnd = 24.dp)
+                Panel(Modifier.fillMaxSize()) {
+                    if (addState.isOpen) {
+                        TransactionForm(
+                            addState, addActions, now, zone,
+                            modifier = Modifier.fillMaxSize(),
+                            fillHeight = true,
+                            contentPadding = PaddingValues(horizontal = 22.dp, vertical = 18.dp),
+                        )
+                    } else {
+                        ListPane(state, actions, zone, Modifier.fillMaxSize(), horizontal = 14.dp)
+                    }
                 }
             },
         )
         is AppLayout.Tabletop -> TwoPane(
             modifier = modifier.fillMaxSize(),
             first = {
-                if (state.hasAnyTransactions) {
-                    Box(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 12.dp), contentAlignment = Alignment.Center) {
-                        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Summary(state, zone, todayStyle = MoneyStyle.DisplayMedium, twoLineBalances = true, modifier = Modifier.weight(1f).fillMaxHeight())
-                            ChartCard(state, actions, Modifier.weight(1f).fillMaxHeight())
+                Column(Modifier.fillMaxSize().padding(start = 28.dp, end = 28.dp, top = 20.dp, bottom = 8.dp)) {
+                    if (state.hasAnyTransactions) {
+                        SpentBlock(state, label = periodSpentLabel(state), amountMinor = state.periodExpenseMinor, style = MoneyStyle.Hero)
+                        Spacer(Modifier.height(16.dp))
+                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                            androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+                                SpendingBars(
+                                    bars = state.bars,
+                                    period = state.period,
+                                    selectedKey = state.selectedBar,
+                                    onSelect = actions::toggleBar,
+                                    currency = state.currency,
+                                    chartHeight = (maxHeight - 28.dp).coerceAtLeast(48.dp),
+                                    highlightColor = selectedCategoryColor(state),
+                                    today = state.today,
+                                    gap = 6.dp,
+                                    modifier = Modifier.align(Alignment.BottomCenter),
+                                )
+                            }
                         }
-                    }
-                } else {
-                    Box(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp), contentAlignment = Alignment.BottomStart) {
+                    } else {
                         PendingSummary(state)
                     }
                 }
             },
             second = {
-                if (addState.isOpen) {
-                    TransactionForm(addState, addActions, now, zone, Modifier.fillMaxSize(), fillHeight = true)
-                } else {
-                    Column(Modifier.fillMaxSize().padding(top = 12.dp)) {
-                        if (state.hasAnyTransactions) {
-                            PeriodSelector(
-                                selected = state.period,
-                                onSelect = actions::setPeriod,
-                                periods = OverviewPeriods,
-                                modifier = Modifier.padding(horizontal = 24.dp),
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            CategoryFilterStrip(state, actions)
+                Panel(Modifier.fillMaxSize(), shape = FoldShapes.sheet) {
+                    if (addState.isOpen) {
+                        TransactionForm(addState, addActions, now, zone, Modifier.fillMaxSize(), fillHeight = true, contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp))
+                    } else {
+                        Column(Modifier.fillMaxSize().padding(top = 20.dp)) {
+                            if (state.hasAnyTransactions) {
+                                PeriodSelector(
+                                    selected = state.period,
+                                    onSelect = actions::setPeriod,
+                                    periods = OverviewPeriods,
+                                    modifier = Modifier.padding(horizontal = 24.dp),
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                CategoryFilterStrip(state, actions)
+                            }
+                            Box(Modifier.weight(1f)) {
+                                ListPane(state, actions, zone, Modifier.fillMaxSize(), horizontal = 14.dp, showTitle = false)
+                                AccentFab(
+                                    icon = Icons.Outlined.Add,
+                                    contentDescription = stringResource(R.string.tx_add),
+                                    onClick = actions::add,
+                                    ringColor = FoldFinanceTheme.palette.surface,
+                                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 18.dp, bottom = 12.dp),
+                                )
+                            }
                         }
-                        ListPane(state, actions, zone, Modifier.weight(1f), contentStart = 24.dp, contentEnd = 24.dp, showTitle = false)
-                        ThumbActions(state.reviewCount, actions, Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
                     }
                 }
             },
@@ -257,148 +293,196 @@ fun OverviewScreen(
     }
 }
 
+// ---------------------------------------------------------------- Outer screen («Главная»)
+
 @Composable
 private fun CompactOverview(state: OverviewUiState, actions: OverviewActions, zone: ZoneId, modifier: Modifier) {
     val listState = rememberLazyListState()
-    Column(modifier.fillMaxSize()) {
+    Box(modifier.fillMaxSize()) {
         if (!state.hasAnyTransactions) {
-            Column(Modifier.weight(1f).padding(horizontal = 20.dp).padding(top = 16.dp)) {
+            Column(Modifier.fillMaxSize().padding(horizontal = 20.dp).padding(top = 16.dp)) {
+                DateHeader(state, actions)
+                Spacer(Modifier.height(18.dp))
                 PendingSummary(state)
-                // The invitation sits in the lower part of the screen: the thumb zone (docs/design.md).
+                // The invitation sits in the lower part of the screen: the thumb zone.
                 Spacer(Modifier.weight(1f))
                 OverviewEmptyState(onAdd = actions::add)
                 Spacer(Modifier.height(24.dp))
             }
-            return@Column
+            return@Box
         }
         LazyColumn(
             state = listState,
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 104.dp),
         ) {
-            item(key = "summary") { Summary(state, zone) }
-            // The outer-screen bar has five items; «Подписки» live here (and in «Настройки»).
-            item(key = "subscriptions") { SubscriptionsCard(state, actions::openSubscriptions, Modifier.padding(top = 12.dp)) }
-            item(key = "feedHeader") {
-                Spacer(Modifier.height(8.dp))
-                SectionHeader(
-                    title = stringResource(R.string.overview_feed_title),
-                    actionLabel = stringResource(R.string.overview_feed_all),
-                    onAction = actions::openHistory,
-                    modifier = Modifier.padding(start = 4.dp),
+            item(key = "header") { DateHeader(state, actions) }
+            item(key = "spent") {
+                Column(Modifier.padding(top = 18.dp)) {
+                    SpentBlock(state, label = stringResource(R.string.overview_spent_month), amountMinor = state.monthMinor, style = MoneyStyle.Display)
+                }
+            }
+            item(key = "mini") {
+                SpendingBars(
+                    bars = state.monthBars,
+                    period = Period.Month,
+                    selectedKey = null,
+                    onSelect = null,
+                    currency = state.currency,
+                    chartHeight = 44.dp,
+                    today = state.today,
+                    accentToday = true,
+                    showAxis = false,
+                    modifier = Modifier.padding(top = 18.dp),
                 )
             }
-            if (state.transactions.isEmpty()) {
-                item(key = "feedEmpty") {
+            item(key = "tiles") { TodayTiles(state, actions, Modifier.padding(top = 18.dp)) }
+            if (state.balances.isNotEmpty()) {
+                item(key = "balances") { Balances(state.balances, state.today, zone, Modifier.padding(top = 14.dp)) }
+            }
+            // The outer-screen bar has five items; «Подписки» live here (and in «Настройки»).
+            item(key = "subscriptions") { SubscriptionsRow(state, actions::openSubscriptions, Modifier.padding(top = 10.dp)) }
+            item(key = "recentHeader") {
+                SectionHeader(
+                    title = stringResource(R.string.overview_recent_title),
+                    actionLabel = stringResource(R.string.overview_recent_all),
+                    onAction = actions::openHistory,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+            if (state.recent.isEmpty()) {
+                item(key = "recentEmpty") {
                     Text(
                         text = stringResource(R.string.overview_feed_empty),
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = FoldFinanceTheme.palette.textMuted,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(vertical = 8.dp),
                     )
                 }
             }
-            feed(state, state.transactions.take(FeedSize), zone, actions::openTransaction)
+            items(state.recent, key = { it.id }, contentType = { "row" }) { tx ->
+                TransactionListItem(
+                    transaction = tx,
+                    category = tx.categoryId?.let(state.categories::get),
+                    zone = zone,
+                    index = 0,
+                    groupSize = 1,
+                    onClick = { actions.openTransaction(tx.id) },
+                    horizontalPadding = 0.dp,
+                )
+            }
         }
-        ThumbActions(state.reviewCount, actions, Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp))
+        // Thumb zone: the lime «+» right above the navigation bar, cut out of the list by its ring.
+        AccentFab(
+            icon = Icons.Outlined.Add,
+            contentDescription = stringResource(R.string.tx_add),
+            onClick = actions::add,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 12.dp),
+        )
     }
 }
 
-/** Grouped rows of [items] (day headers + list groups). */
-private fun LazyListScope.feed(
-    state: OverviewUiState,
-    items: List<Transaction>,
-    zone: ZoneId,
-    onOpen: (Long) -> Unit,
-) {
-    groupByDay(items, zone).forEach { (date, dayItems) ->
-        item(key = "d-${date.toEpochDay()}", contentType = "header") {
-            DayHeader(title = dayTitle(date, state.today), totalMinor = null, currency = null)
+/** «Четверг, 5 ноября» / «Ноябрь» and the search button. */
+@Composable
+private fun DateHeader(state: OverviewUiState, actions: OverviewActions) {
+    val palette = FoldFinanceTheme.palette
+    val weekday = state.today.dayOfWeek.getDisplayName(TextStyle.FULL, RuLocale).replaceFirstChar { it.titlecase(RuLocale) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                stringResource(R.string.overview_date_header, weekday, formatDate(state.today, state.today)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = palette.textSecondary,
+            )
+            ScreenTitle(monthTitle(state.today))
         }
-        itemsIndexed(dayItems, key = { _, tx -> tx.id }, contentType = { _, _ -> "row" }) { index, tx ->
-            TransactionListItem(
-                transaction = tx,
-                category = tx.categoryId?.let(state.categories::get),
-                zone = zone,
-                index = index,
-                groupSize = dayItems.size,
-                onClick = { onOpen(tx.id) },
+        if (state.hasAnyTransactions) {
+            IconCircleButton(
+                icon = Icons.Outlined.Search,
+                contentDescription = stringResource(R.string.overview_search),
+                onClick = actions::openHistory,
             )
         }
     }
 }
 
-/** «Разобрать N» (when there is anything to review) and the FAB «Добавить», in the thumb zone. */
+/** «Потрачено за месяц» · the big amount · «+95 000 ₽ доход · по известным операциям». */
 @Composable
-private fun ThumbActions(reviewCount: Int, actions: OverviewActions, modifier: Modifier = Modifier) {
+private fun SpentBlock(state: OverviewUiState, label: String, amountMinor: Long, style: MoneyStyle, incomeMinor: Long = state.monthIncomeMinor) {
     val palette = FoldFinanceTheme.palette
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        if (reviewCount > 0) {
-            ReviewButton(reviewCount, actions::openReview, Modifier.weight(1f))
-            Spacer(Modifier.width(12.dp))
-        } else {
-            Spacer(Modifier.weight(1f))
-        }
-        FloatingActionButton(
-            onClick = actions::add,
-            shape = FoldShapes.fab,
-            containerColor = if (reviewCount > 0) palette.surfaceRaised else palette.saffron,
-            contentColor = if (reviewCount > 0) palette.text else palette.onSaffron,
-        ) {
-            Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.tx_add))
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
+        MoneyText(amountMinor = amountMinor, currency = state.currency, style = style)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (incomeMinor > 0) {
+                Text(
+                    moneyLabel(incomeMinor, state.currency, SignDisplay.Always),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.income,
+                    maxLines = 1,
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                stringResource(if (incomeMinor > 0) R.string.overview_income_known else R.string.overview_known_only),
+                style = MaterialTheme.typography.bodyMedium,
+                color = palette.textMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
 
+/** «Сегодня 1 840 ₽ · 3 расхода» and «На проверку 3 · Разобрать свайпом →». */
 @Composable
-private fun ReviewButton(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
+private fun TodayTiles(state: OverviewUiState, actions: OverviewActions, modifier: Modifier = Modifier) {
     val palette = FoldFinanceTheme.palette
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = if (compact) 48.dp else 56.dp),
-        shape = FoldShapes.pill,
-        colors = ButtonDefaults.buttonColors(containerColor = palette.saffron, contentColor = palette.onSaffron),
-        contentPadding = PaddingValues(horizontal = 20.dp),
-    ) {
-        Icon(Icons.Outlined.TaskAlt, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.overview_review_button, count), style = MaterialTheme.typography.titleMedium)
+    TileRow(modifier) {
+        StatTile(Modifier.weight(1f)) {
+            Text(stringResource(R.string.overview_today_tile), style = FoldTextStyles.caption, color = palette.textSecondary)
+            MoneyText(amountMinor = state.todayMinor, currency = state.currency, style = MoneyStyle.Tile)
+            Text(
+                if (state.todayExpenseCount > 0) {
+                    pluralStringResource(R.plurals.overview_today_expenses, state.todayExpenseCount, state.todayExpenseCount)
+                } else {
+                    stringResource(R.string.overview_today_none)
+                },
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal),
+                color = palette.textMuted,
+            )
+        }
+        val count = state.reviewCount
+        StatTile(Modifier.weight(1f), onClick = actions::openReview) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (count > 0) {
+                    Box(Modifier.size(7.dp).background(palette.review, FoldShapes.pill))
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(stringResource(R.string.overview_review_tile), style = FoldTextStyles.caption, color = palette.textSecondary)
+            }
+            Text(
+                count.toString(),
+                style = FoldFinanceTheme.money.tile,
+                color = if (count > 0) palette.review else palette.textDisabled,
+            )
+            Text(
+                stringResource(if (count > 0) R.string.overview_review_tile_action else R.string.overview_review_tile_done),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal),
+                color = palette.textMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
 /**
- * «Сегодня / Месяц» by known operations; the known bank balances go under the footnote, as a
- * separate statement of the bank — never added to the totals.
+ * Entry to «Подписки» on the outer screen (its bar has no such item): what confirmed
+ * subscriptions cost per month, or how many candidates wait for a decision.
  */
 @Composable
-private fun Summary(
-    state: OverviewUiState,
-    zone: ZoneId,
-    modifier: Modifier = Modifier,
-    todayStyle: MoneyStyle = MoneyStyle.Display,
-    twoLineBalances: Boolean = false,
-) {
-    SummaryCard(
-        periodTitle = monthTitle(state.today),
-        todayMinor = state.todayMinor,
-        monthMinor = state.monthMinor,
-        currency = state.currency,
-        modifier = modifier.fillMaxWidth(),
-        todayStyle = todayStyle,
-        trailing = if (state.balances.isNotEmpty()) {
-            { Balances(state.balances, state.today, zone, twoLine = twoLineBalances) }
-        } else {
-            null
-        },
-    )
-}
-
-/**
- * Entry to «Подписки»: what confirmed subscriptions cost per month, or how many candidates wait
- * for a decision. A tap opens the section.
- */
-@Composable
-private fun SubscriptionsCard(state: OverviewUiState, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+private fun SubscriptionsRow(state: OverviewUiState, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val palette = FoldFinanceTheme.palette
     val summary = state.subscriptions
     val caption = when {
@@ -407,66 +491,44 @@ private fun SubscriptionsCard(state: OverviewUiState, onOpen: () -> Unit, modifi
         summary.candidates > 0 -> pluralStringResource(R.plurals.overview_subscriptions_candidates, summary.candidates, summary.candidates)
         else -> stringResource(R.string.overview_subscriptions_empty)
     }
-    Surface(
-        onClick = onOpen,
-        modifier = modifier.fillMaxWidth(),
-        shape = FoldShapes.listGroup,
-        color = palette.surface,
+    Row(
+        modifier
+            .fillMaxWidth()
+            .clip(FoldShapes.listGroup)
+            .background(palette.card)
+            .clickable(role = Role.Button, onClick = onOpen)
+            .heightIn(min = 60.dp)
+            .padding(start = 14.dp, end = 8.dp, top = 9.dp, bottom = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            Modifier.heightIn(min = 64.dp).padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                Modifier.size(40.dp).background(palette.saffron.copy(alpha = if (palette.isDark) 0.18f else 0.14f), FoldShapes.tile),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Outlined.Autorenew, contentDescription = null, tint = palette.saffron, modifier = Modifier.size(22.dp))
-            }
-            Spacer(Modifier.width(12.dp))
-            LabeledAmount(
-                modifier = Modifier.weight(1f),
-                label = {
-                    Column {
-                        Text(stringResource(R.string.overview_subscriptions_title), style = MaterialTheme.typography.bodyLarge, color = palette.text, maxLines = 1)
-                        Text(caption, style = MaterialTheme.typography.bodyMedium, color = palette.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                },
-                amount = {
-                    if (summary.monthlyMinor > 0) {
-                        MoneyText(amountMinor = summary.monthlyMinor, currency = state.currency, style = MoneyStyle.InlineStrong)
-                    }
-                },
-            )
-            Icon(
-                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                tint = palette.textMuted,
-                modifier = Modifier.padding(start = 4.dp),
-            )
+        val violet = palette.categories.forKey("subscriptions")
+        Box(Modifier.size(42.dp).background(violet.copy(alpha = 0.15f), FoldShapes.tile), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.Autorenew, contentDescription = null, tint = violet, modifier = Modifier.size(20.dp))
         }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.overview_subscriptions_title), style = FoldTextStyles.row, color = palette.text, maxLines = 1)
+            Text(caption, style = FoldTextStyles.caption, color = palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (summary.monthlyMinor > 0) {
+            Spacer(Modifier.width(8.dp))
+            MoneyText(amountMinor = summary.monthlyMinor, currency = state.currency, style = MoneyStyle.Inline)
+        }
+        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = palette.textMuted, modifier = Modifier.padding(start = 4.dp))
     }
 }
 
-/** Before the first operation: an honest card instead of zeros. */
+/** Before the first operation: an honest statement instead of zeros. */
 @Composable
 private fun PendingSummary(state: OverviewUiState) {
     val palette = FoldFinanceTheme.palette
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.overview_spent_month), style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
         Text(
-            text = monthTitle(state.today),
-            modifier = Modifier.semantics { heading() },
-            style = MaterialTheme.typography.headlineLarge,
-            color = palette.text,
+            stringResource(R.string.overview_summary_pending),
+            style = MaterialTheme.typography.bodyLarge,
+            color = palette.textMuted,
         )
-        Spacer(Modifier.height(16.dp))
-        Surface(Modifier.fillMaxWidth(), shape = FoldShapes.summary, color = palette.surface) {
-            Column(Modifier.padding(24.dp)) {
-                Text(stringResource(R.string.overview_summary_title), style = MaterialTheme.typography.titleLarge, color = palette.text)
-                Spacer(Modifier.height(6.dp))
-                Text(stringResource(R.string.overview_summary_pending), style = MaterialTheme.typography.bodyLarge, color = palette.textMuted)
-            }
-        }
     }
 }
 
@@ -481,42 +543,151 @@ private fun OverviewEmptyState(onAdd: () -> Unit) {
     )
 }
 
+// ---------------------------------------------------------------- Summary panel (book)
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChartCard(state: OverviewUiState, actions: OverviewActions, modifier: Modifier = Modifier) {
+private fun SummaryPanelContent(state: OverviewUiState, actions: OverviewActions, zone: ZoneId) {
     val palette = FoldFinanceTheme.palette
-    Surface(modifier.fillMaxWidth(), shape = FoldShapes.listGroup, color = palette.surface) {
-        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 16.dp)) {
-            Text(periodCaption(state.period, state.periodStart), style = MaterialTheme.typography.titleMedium, color = palette.text)
-            Spacer(Modifier.height(2.dp))
-            MoneyText(amountMinor = state.periodExpenseMinor, currency = state.currency, style = MoneyStyle.DisplaySmall)
-            Spacer(Modifier.height(14.dp))
-            SpendingBars(
-                bars = state.bars,
-                period = state.period,
-                selectedKey = state.selectedBar,
-                onSelect = actions::toggleBar,
-                currency = state.currency,
-            )
+    // In a narrow panel the day range goes under the period chip instead of squeezing it.
+    FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        PeriodMenu(state, actions)
+        daysRange(state)?.let {
+            Text(it, style = FoldTextStyles.caption, color = palette.textMuted, maxLines = 1, modifier = Modifier.padding(start = 8.dp))
+        }
+    }
+    if (!state.hasAnyTransactions) {
+        PendingSummary(state)
+        return
+    }
+    SpentBlock(
+        state,
+        label = stringResource(R.string.overview_spent),
+        amountMinor = state.periodExpenseMinor,
+        style = MoneyStyle.Display,
+        incomeMinor = if (state.period == Period.Month) state.monthIncomeMinor else 0,
+    )
+    SpendingBars(
+        bars = state.bars,
+        period = state.period,
+        selectedKey = state.selectedBar,
+        onSelect = actions::toggleBar,
+        currency = state.currency,
+        chartHeight = 120.dp,
+        highlightColor = selectedCategoryColor(state),
+        today = state.today,
+    )
+    if (state.balances.isNotEmpty()) Balances(state.balances, state.today, zone)
+    CategoryBreakdown(state, actions)
+}
+
+/** «Ноябрь 2026 ⌄»: the period of the overview, a tap opens the choice of week / month / year. */
+@Composable
+private fun PeriodMenu(state: OverviewUiState, actions: OverviewActions) {
+    val palette = FoldFinanceTheme.palette
+    var open by rememberSaveable { mutableStateOf(false) }
+    Box {
+        Row(
+            Modifier
+                .heightIn(min = 36.dp)
+                .clip(FoldShapes.chip)
+                .background(palette.surfaceRaised)
+                .clickable(role = Role.DropdownList, onClickLabel = stringResource(R.string.overview_period_choose)) { open = true }
+                .padding(start = 12.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(periodTitle(state.period, state.periodStart), style = MaterialTheme.typography.titleSmall, color = palette.text, maxLines = 1)
+            Spacer(Modifier.width(6.dp))
+            Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null, tint = palette.textSecondary, modifier = Modifier.size(18.dp))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = palette.card, shape = FoldShapes.tile) {
+            OverviewPeriods.forEach { period ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(period.labelRes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (period == state.period) palette.accentContent else palette.text,
+                        )
+                    },
+                    onClick = {
+                        open = false
+                        actions.setPeriod(period)
+                    },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun periodCaption(period: Period, start: LocalDate): String = when (period) {
-    Period.Week -> stringResource(R.string.overview_period_week)
-    Period.Year -> stringResource(R.string.overview_period_year, start.year)
-    else -> stringResource(R.string.overview_period_month, monthTitle(start).lowercase(com.foldfinance.app.ui.format.RuLocale))
+private fun periodTitle(period: Period, start: LocalDate): String = when (period) {
+    Period.Week -> stringResource(R.string.overview_period_week_title)
+    Period.Year -> stringResource(R.string.overview_period_year_title, start.year)
+    else -> stringResource(R.string.overview_period_month_title, monthTitle(start), start.year)
 }
 
+/** «Потрачено» in tabletop names the period, the hero number above the chart. */
+@Composable
+private fun periodSpentLabel(state: OverviewUiState): String = when (state.period) {
+    Period.Week -> stringResource(R.string.overview_period_week)
+    Period.Year -> stringResource(R.string.overview_period_year, state.periodStart.year)
+    else -> stringResource(R.string.overview_period_month, monthTitle(state.periodStart).lowercase(RuLocale))
+}
+
+/** «1–5 ноября»: the days the totals cover so far. */
+@Composable
+private fun daysRange(state: OverviewUiState): String? {
+    if (state.period == Period.Year || state.periodStart == LocalDate.MIN) return null
+    val start = state.periodStart
+    val end = state.today
+    if (end.isBefore(start)) return null
+    return if (start.month == end.month) {
+        stringResource(R.string.overview_days_range, start.dayOfMonth, formatDate(end, end))
+    } else {
+        stringResource(R.string.overview_days_range_long, formatDate(start, end), formatDate(end, end))
+    }
+}
+
+@Composable
+private fun selectedCategoryColor(state: OverviewUiState): Color? {
+    val selection = state.selectedCategory ?: return null
+    val category = (selection as? CategorySelection.Of)?.let { state.categories[it.categoryId] }
+    return categoryVisualOrNone(category).color
+}
+
+/**
+ * «Категории»: the share strip and the category rows (dot, name, %, amount). A tap filters the
+ * operations panel next to it; the active one is outlined in lime.
+ */
 @Composable
 private fun CategoryBreakdown(state: OverviewUiState, actions: OverviewActions) {
     if (state.breakdown.isEmpty()) return
     val palette = FoldFinanceTheme.palette
-    Column {
-        SectionHeader(title = stringResource(R.string.overview_categories_title), modifier = Modifier.padding(start = 4.dp))
-        ListGroup(Modifier.fillMaxWidth()) {
-            state.breakdown.forEachIndexed { index, share ->
-                if (index > 0) ListGroupDivider()
+    androidx.compose.foundation.layout.BoxWithConstraints {
+    // Below ~300 dp (inner portrait, next to the hinge) the hint goes and the amounts move under the names.
+    val narrow = maxWidth < 300.dp
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            Text(
+                stringResource(R.string.overview_categories_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = palette.text,
+                modifier = Modifier.semantics { heading() },
+            )
+            Spacer(Modifier.weight(1f))
+            if (!narrow) {
+                Text(stringResource(R.string.overview_categories_hint), style = FoldTextStyles.caption, color = palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 12.dp))
+            }
+        }
+        ShareStrip(state)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            state.breakdown.forEach { share ->
                 val category = share.categoryId?.let(state.categories::get)
                 val visual = categoryVisualOrNone(category)
                 val selection = share.categoryId?.let { CategorySelection.Of(it) } ?: CategorySelection.Uncategorized
@@ -524,34 +695,66 @@ private fun CategoryBreakdown(state: OverviewUiState, actions: OverviewActions) 
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .then(if (selected) Modifier.background(palette.saffronContainer.copy(alpha = 0.55f)) else Modifier)
+                        .heightIn(min = 44.dp)
+                        .clip(FoldShapes.tile)
+                        .then(if (selected) Modifier.background(palette.selection).border(1.dp, palette.accentLine, FoldShapes.tile) else Modifier)
                         .clickable(role = Role.Checkbox) { actions.toggleCategory(selection) }
                         .semantics { this.selected = selected }
-                        .heightIn(min = 64.dp)
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CategoryTile(visual)
+                    Box(Modifier.size(10.dp).background(visual.color, FoldShapes.pill))
                     Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(visual.name, style = MaterialTheme.typography.bodyLarge, color = palette.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Spacer(Modifier.height(6.dp))
-                        Box(Modifier.fillMaxWidth().height(4.dp).background(palette.surfaceRaised, FoldShapes.pill)) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth(share.percent.coerceIn(1, 100) / 100f)
-                                    .fillMaxHeight()
-                                    .background(visual.color, FoldShapes.pill),
-                            )
-                        }
+                    val name: @Composable (Modifier) -> Unit = { m ->
+                        Text(
+                            visual.name,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = MaterialTheme.typography.labelLarge.fontSize * 1.04f),
+                            color = palette.text,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = m,
+                        )
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column(horizontalAlignment = Alignment.End) {
+                    val percent: @Composable () -> Unit = {
+                        Text(
+                            stringResource(R.string.overview_share_percent, share.percent).replace(" ", ""),
+                            style = FoldTextStyles.caption,
+                            color = palette.textMuted,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.widthIn(min = 40.dp),
+                        )
+                    }
+                    if (narrow) {
+                        Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+                            name(Modifier)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                MoneyText(amountMinor = share.amountMinor, currency = state.currency, style = MoneyStyle.Inline)
+                                Spacer(Modifier.weight(1f))
+                                percent()
+                            }
+                        }
+                    } else {
+                        name(Modifier.weight(1f))
+                        percent()
+                        Spacer(Modifier.width(8.dp))
                         MoneyText(amountMinor = share.amountMinor, currency = state.currency, style = MoneyStyle.Inline)
-                        Text(stringResource(R.string.overview_share_percent, share.percent), style = MaterialTheme.typography.labelMedium, color = palette.textMuted)
                     }
                 }
             }
+        }
+    }
+    }
+}
+
+/** 8 dp strip of category shares, in the order of the list below. */
+@Composable
+private fun ShareStrip(state: OverviewUiState) {
+    val total = state.breakdown.sumOf { it.amountMinor }.coerceAtLeast(1)
+    val colors = state.breakdown.map { share -> categoryVisualOrNone(share.categoryId?.let(state.categories::get)).color }
+    Row(Modifier.fillMaxWidth().height(8.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        state.breakdown.forEachIndexed { index, share ->
+            val weight = (share.amountMinor.toFloat() / total).coerceAtLeast(0.01f)
+            Box(Modifier.weight(weight).fillMaxHeight().background(colors[index], FoldShapes.pill))
         }
     }
 }
@@ -569,163 +772,183 @@ private fun CategoryFilterStrip(state: OverviewUiState, actions: OverviewActions
                 color = visual.color,
                 selected = state.selectedCategory == selection,
                 onClick = { actions.toggleCategory(selection) },
+                style = ChipStyle.Outlined,
             )
         }
     }
 }
 
 /**
- * Known bank balances, never mixed with totals: «Остаток •• 1234 на 14:05». Caption and amount
- * side by side when every line fits; otherwise all captions go over their amounts, so nothing is
- * cut («Остато по дан…» on the 674 dp inner screen) and the lines look alike.
+ * Known bank balances, never mixed with totals: «Остаток •• 1234 на 14:05 … 48 210 ₽». Caption and
+ * amount side by side when every line fits; otherwise all captions go over their amounts.
  */
 @Composable
-private fun Balances(balances: List<KnownBalance>, today: LocalDate, zone: ZoneId, twoLine: Boolean) {
+private fun Balances(balances: List<KnownBalance>, today: LocalDate, zone: ZoneId, modifier: Modifier = Modifier) {
     val palette = FoldFinanceTheme.palette
-    Column {
-        HorizontalDivider(thickness = 1.dp, color = palette.seam.copy(alpha = 0.7f))
-        Spacer(Modifier.height(8.dp))
-        LabeledAmountGroup(
-            count = balances.size,
-            modifier = Modifier.fillMaxWidth(),
-            rowMinHeight = if (twoLine) 44.dp else 32.dp,
-            rowSpacing = if (twoLine) 8.dp else 4.dp,
-            label = { index ->
-                val balance = balances[index]
-                val date = balance.asOf.atZone(zone).toLocalDate()
-                val time = formatTime(balance.asOf, zone)
-                val at = if (date == today) time else stringResource(R.string.tx_date_time, formatDate(date, today), time)
-                val mask = CardMaskFormat.format(balance.cardMask)
-                if (twoLine) {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.overview_balance, mask),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = palette.text,
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                        Text(
-                            text = stringResource(R.string.overview_balance_at, at),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = palette.textMuted,
-                        )
-                    }
-                } else {
-                    Text(
-                        text = stringResource(R.string.overview_balance_inline, mask, at),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.textMuted,
-                    )
-                }
-            },
-            amount = { index ->
-                val balance = balances[index]
-                MoneyText(amountMinor = balance.amountMinor, currency = balance.currency, style = MoneyStyle.Inline)
-            },
-        )
-    }
+    LabeledAmountGroup(
+        count = balances.size,
+        modifier = modifier.fillMaxWidth(),
+        rowMinHeight = 26.dp,
+        rowSpacing = 2.dp,
+        label = { index ->
+            val balance = balances[index]
+            val date = balance.asOf.atZone(zone).toLocalDate()
+            val time = formatTime(balance.asOf, zone)
+            val at = if (date == today) time else stringResource(R.string.tx_date_time, formatDate(date, today), time)
+            Text(
+                text = stringResource(R.string.overview_balance_inline, CardMaskFormat.format(balance.cardMask), at),
+                style = FoldTextStyles.caption,
+                color = palette.textMuted,
+            )
+        },
+        amount = { index ->
+            val balance = balances[index]
+            MoneyText(amountMinor = balance.amountMinor, currency = balance.currency, style = MoneyStyle.Inline, color = palette.textSoft)
+        },
+    )
 }
 
-/** Right pane of the book layout (and the bottom of tabletop): the list the left side filters. */
+// ---------------------------------------------------------------- Operations panel
+
+/** Right panel of the book layout (and the bottom of tabletop): the list the left side filters. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ListPane(
     state: OverviewUiState,
     actions: OverviewActions,
     zone: ZoneId,
     modifier: Modifier,
-    contentStart: androidx.compose.ui.unit.Dp,
-    contentEnd: androidx.compose.ui.unit.Dp,
+    horizontal: Dp,
     showTitle: Boolean = true,
 ) {
     val palette = FoldFinanceTheme.palette
     val chips = selectionChips(state, actions)
-    Box(modifier) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = contentStart, end = contentEnd, top = if (showTitle) 16.dp else 4.dp, bottom = if (showTitle) 96.dp else 8.dp),
-        ) {
-            if (showTitle) {
-                item(key = "title") {
-                    // In a narrow pane «Разобрать N» goes under the title instead of breaking it.
-                    FlowRow(
-                        Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        itemVerticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.overview_list_title),
-                            modifier = Modifier.semantics { heading() },
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = palette.text,
-                            maxLines = 1,
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(start = horizontal, end = horizontal, top = if (showTitle) 20.dp else 8.dp, bottom = if (showTitle) 20.dp else 88.dp),
+    ) {
+        if (showTitle) {
+            item(key = "title") {
+                Row(Modifier.fillMaxWidth().padding(start = 8.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    ScreenTitle(stringResource(R.string.overview_list_title), Modifier.weight(1f))
+                    if (state.hasAnyTransactions) {
+                        IconCircleButton(
+                            icon = Icons.Outlined.Search,
+                            contentDescription = stringResource(R.string.overview_search),
+                            onClick = actions::openHistory,
                         )
-                        if (state.reviewCount > 0) ReviewButton(state.reviewCount, actions::openReview, compact = true)
                     }
                 }
-            }
-            if (chips.isNotEmpty()) {
-                item(key = "selection") {
-                    Row(Modifier.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        chips.forEach { (label, onClear) -> SelectionChip(label, onClear) }
-                    }
-                }
-            }
-            when {
-                !state.hasAnyTransactions -> item(key = "empty") {
-                    Box(Modifier.padding(top = 24.dp)) { OverviewEmptyState(onAdd = actions::add) }
-                }
-                state.transactions.isEmpty() -> item(key = "none") {
-                    Text(
-                        text = stringResource(if (chips.isEmpty()) R.string.overview_feed_empty else R.string.overview_list_nothing),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = palette.textMuted,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
-                    )
-                }
-                else -> feed(state, state.transactions, zone, actions::openTransaction)
             }
         }
-        if (showTitle) {
-            FloatingActionButton(
-                onClick = actions::add,
-                shape = FoldShapes.fab,
-                containerColor = palette.saffron,
-                contentColor = palette.onSaffron,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = contentEnd, bottom = 16.dp),
-            ) {
-                Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.tx_add))
+        if (state.hasAnyTransactions) {
+            item(key = "chips") {
+                androidx.compose.foundation.layout.BoxWithConstraints {
+                val wide = maxWidth >= 420.dp
+                val summary = stringResource(
+                    R.string.overview_list_summary,
+                    pluralStringResource(R.plurals.overview_list_count, state.transactions.size, state.transactions.size),
+                    moneyLabel(state.listExpenseMinor, state.currency),
+                )
+                Column {
+                FlowRow(
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
+                    chips.forEach { chip ->
+                        FilterPill(
+                            text = chip.label,
+                            onClick = chip.onClear,
+                            active = true,
+                            leading = chip.color?.let { color -> { Box(Modifier.size(8.dp).background(color, FoldShapes.pill)) } },
+                            trailingIcon = Icons.Outlined.Close,
+                            trailingDescription = stringResource(R.string.overview_selection_clear),
+                        )
+                    }
+                    if (showTitle) {
+                        Box(Modifier.heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+                            Text(
+                                periodTitle(state.period, state.periodStart),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal),
+                                color = palette.textSoft,
+                                modifier = Modifier
+                                    .background(palette.surfaceRaised, FoldShapes.chip)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
+                    if (wide) {
+                        Box(Modifier.weight(1f).heightIn(min = 48.dp), contentAlignment = Alignment.CenterEnd) {
+                            Text(summary, style = MaterialTheme.typography.bodyMedium, color = palette.textMuted, maxLines = 1)
+                        }
+                    }
+                }
+                if (!wide) {
+                    Text(summary, style = MaterialTheme.typography.bodyMedium, color = palette.textMuted, modifier = Modifier.padding(horizontal = 8.dp).padding(bottom = 6.dp))
+                }
+                }
+                }
             }
+        }
+        when {
+            !state.hasAnyTransactions -> item(key = "empty") {
+                Box(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) { OverviewEmptyState(onAdd = actions::add) }
+            }
+            state.transactions.isEmpty() -> item(key = "none") {
+                Text(
+                    text = stringResource(if (chips.isEmpty()) R.string.overview_feed_empty else R.string.overview_list_nothing),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = palette.textMuted,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
+                )
+            }
+            else -> feed(state, state.transactions, zone, actions::openTransaction, palette.surface)
         }
     }
 }
 
+/** Grouped rows of [items]: overline day headers with the day's expenses, flat rows. */
+private fun LazyListScope.feed(
+    state: OverviewUiState,
+    items: List<Transaction>,
+    zone: ZoneId,
+    onOpen: (Long) -> Unit,
+    background: Color,
+) {
+    groupByDay(items, zone).forEach { (date, dayItems) ->
+        item(key = "d-${date.toEpochDay()}", contentType = "header") {
+            val total = dayItems.filter { it.currency == state.currency }.sumOf(AnalyticsCalculator::netExpenseContribution)
+            DayHeader(title = dayTitle(date, state.today), totalMinor = total, currency = state.currency, background = background, modifier = Modifier.padding(top = 6.dp))
+        }
+        itemsIndexed(dayItems, key = { _, tx -> tx.id }, contentType = { _, _ -> "row" }) { index, tx ->
+            TransactionListItem(
+                transaction = tx,
+                category = tx.categoryId?.let(state.categories::get),
+                zone = zone,
+                index = index,
+                groupSize = dayItems.size,
+                onClick = { onOpen(tx.id) },
+            )
+        }
+    }
+}
+
+/** An active selection from the summary panel; a tap clears it. */
+private data class SelectionChip(val label: String, val color: Color?, val onClear: () -> Unit)
+
 @Composable
-private fun selectionChips(state: OverviewUiState, actions: OverviewActions): List<Pair<String, () -> Unit>> {
-    val result = ArrayList<Pair<String, () -> Unit>>()
+private fun selectionChips(state: OverviewUiState, actions: OverviewActions): List<SelectionChip> {
+    val result = ArrayList<SelectionChip>()
     state.selectedCategory?.let { selection ->
         val category = (selection as? CategorySelection.Of)?.let { state.categories[it.categoryId] }
-        result += categoryVisualOrNone(category).name to { actions.toggleCategory(selection) }
+        val visual = categoryVisualOrNone(category)
+        result += SelectionChip(visual.name, visual.color) { actions.toggleCategory(selection) }
     }
     state.selectedBar?.let { key ->
         val date = LocalDate.ofEpochDay(key)
         val label = if (state.period == Period.Year) monthTitle(date) else formatDate(date, state.today)
-        result += label to { actions.toggleBar(key) }
+        result += SelectionChip(label, null) { actions.toggleBar(key) }
     }
     return result
-}
-
-/** An active selection from the left side; a tap clears it. */
-@Composable
-private fun SelectionChip(label: String, onClear: () -> Unit) {
-    val palette = FoldFinanceTheme.palette
-    val clear = stringResource(R.string.overview_selection_clear)
-    Surface(onClick = onClear, shape = FoldShapes.pill, color = palette.saffronContainer, modifier = Modifier.heightIn(min = 40.dp)) {
-        Row(Modifier.heightIn(min = 40.dp).padding(start = 14.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = palette.onSaffronContainer)
-            Spacer(Modifier.width(4.dp))
-            Icon(Icons.Outlined.Close, contentDescription = clear, modifier = Modifier.size(16.dp), tint = palette.onSaffronContainer)
-        }
-    }
 }

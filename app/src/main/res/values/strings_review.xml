@@ -45,4 +45,30 @@
         <item quantity="many">Подтвердить %d</item>
         <item quantity="other">Подтвердить %d</item>
     </plurals>
+
+    <!-- Obsidian: карточка проверки -->
+    <string name="review_hint">Вправо — подтвердить · влево — сменить категорию</string>
+    <string name="review_skip">Пропустить</string>
+    <string name="review_counter_done">Готово</string>
+    <plurals name="review_counter">
+        <item quantity="one">%d осталась</item>
+        <item quantity="few">%d осталось</item>
+        <item quantity="many">%d осталось</item>
+        <item quantity="other">%d осталось</item>
+    </plurals>
+    <string name="review_reason_category">Нет категории</string>
+    <string name="review_reason_type">Неуверенный тип</string>
+    <string name="review_reason_check">Проверьте данные</string>
+    <string name="review_raw_title">Исходный текст</string>
+    <string name="review_question_where">Куда отнести?</string>
+    <string name="review_question_category">Категория верна?</string>
+    <!-- «SMS · 900» -->
+    <string name="review_source_tag">%1$s · %2$s</string>
+    <string name="review_source_sms">SMS</string>
+    <string name="review_source_push">Push</string>
+    <string name="review_source_manual">Вручную</string>
+    <!-- «Карта •• 1234 · сегодня, 12:41» -->
+    <string name="review_card_line">Карта %1$s · %2$s</string>
+    <!-- «сегодня, 12:41» -->
+    <string name="review_card_when">%1$s, %2$s</string>
 </resources>

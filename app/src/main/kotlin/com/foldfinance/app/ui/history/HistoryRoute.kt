@@ -37,7 +37,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material3.ExtendedFloatingActionButton
+import com.foldfinance.app.ui.components.AccentFab
+import androidx.compose.ui.graphics.Color
+import com.foldfinance.app.ui.components.ChipStyle
+import com.foldfinance.app.ui.components.Panel
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -97,7 +100,6 @@ import com.foldfinance.app.ui.theme.FoldMotion
 import com.foldfinance.app.ui.theme.FoldShapes
 import com.foldfinance.app.ui.transaction.DayHeader
 import com.foldfinance.app.ui.transaction.FormMode
-import com.foldfinance.app.ui.transaction.HingeSeamOverlay
 import com.foldfinance.app.ui.transaction.LocalAppSnackbar
 import com.foldfinance.app.ui.transaction.MerchantRuleDialog
 import com.foldfinance.app.ui.transaction.SavedSnackbarEffect
@@ -218,7 +220,8 @@ fun historyDirective(layout: AppLayout = LocalAppLayout.current): PaneScaffoldDi
     // up the keyboard every time History opens or the window folds.
     return PaneScaffoldDirective(
         maxHorizontalPartitions = if (tabletop) 1 else base.maxHorizontalPartitions,
-        horizontalPartitionSpacerSize = base.horizontalPartitionSpacerSize,
+        // No spacer: the boundary is the hinge itself; each panel keeps 8 dp clear of it (16 dp gap).
+        horizontalPartitionSpacerSize = 0.dp,
         maxVerticalPartitions = if (tabletop) 1 else base.maxVerticalPartitions,
         verticalPartitionSpacerSize = base.verticalPartitionSpacerSize,
         defaultPanePreferredWidth = base.defaultPanePreferredWidth,
@@ -290,6 +293,7 @@ fun HistoryScreen(
                 navigator = navigator,
                 listPane = {
                     HistoryAnimatedPane(reducedMotion) {
+                        HistoryPaneFrame(twoPane, Modifier.padding(top = 16.dp, bottom = 16.dp, end = 8.dp)) {
                         HistoryListPane(
                             state = state,
                             listState = listState,
@@ -303,12 +307,15 @@ fun HistoryScreen(
                             now = now,
                             zone = zone,
                             sharedRow = { id -> sharedModifier(shared, this, "tx-$id", enabled = !twoPane && !reducedMotion) },
+                            background = if (layout is AppLayout.Compact) FoldFinanceTheme.palette.ink else FoldFinanceTheme.palette.surface,
                         )
+                        }
                     }
                 },
                 detailPane = {
                     HistoryAnimatedPane(reducedMotion) {
                         val visibility: AnimatedVisibilityScope = this
+                        HistoryPaneFrame(twoPane, Modifier.padding(top = 16.dp, bottom = 16.dp, start = 8.dp, end = 8.dp)) {
                         HistoryDetailPane(
                             contentKey = selectedId,
                             twoPane = twoPane,
@@ -323,6 +330,7 @@ fun HistoryScreen(
                             onBack = { scope.launch { navigator.navigateBack(BackNavigationBehavior.PopUntilScaffoldValueChange) } },
                             sharedHeader = { id -> sharedModifier(shared, visibility, "tx-$id", enabled = !twoPane && !reducedMotion) },
                         )
+                        }
                     }
                 },
             )
@@ -339,21 +347,32 @@ fun HistoryScreen(
             modifier = modifier.fillMaxSize(),
             first = { HistorySummary(state, Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 20.dp)) },
             second = {
-                if (addState.isOpen) {
-                    TransactionForm(addState, addActions, now, zone, Modifier.fillMaxSize(), fillHeight = true)
-                } else {
-                    scaffold(Modifier.fillMaxSize())
+                Panel(Modifier.fillMaxSize(), shape = FoldShapes.sheet) {
+                    if (addState.isOpen) {
+                        TransactionForm(addState, addActions, now, zone, Modifier.fillMaxSize(), fillHeight = true, contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp))
+                    } else {
+                        scaffold(Modifier.fillMaxSize().padding(top = 8.dp))
+                    }
                 }
             },
         )
         is AppLayout.Book -> Box(modifier.fillMaxSize()) {
             scaffold(Modifier.fillMaxSize())
-            HingeSeamOverlay(layout)
         }
         is AppLayout.Compact -> Box(modifier.fillMaxSize()) {
             scaffold(Modifier.fillMaxSize())
             TransactionFormSheet(addState, addActions, now, zone)
         }
+    }
+}
+
+/** A pane of the inner screen as an Obsidian panel (28 dp, `surface`); on one pane — no frame. */
+@Composable
+private fun HistoryPaneFrame(twoPane: Boolean, padding: Modifier, content: @Composable () -> Unit) {
+    if (twoPane) {
+        Panel(padding.fillMaxSize()) { content() }
+    } else {
+        Box(Modifier.fillMaxSize()) { content() }
     }
 }
 
@@ -404,18 +423,17 @@ private fun HistoryListPane(
     now: Instant,
     zone: ZoneId,
     sharedRow: @Composable (Long) -> Modifier,
+    background: Color,
 ) {
     val palette = FoldFinanceTheme.palette
     val today = now.atZone(zone).toLocalDate()
-    val sidePadding = 16.dp
-    // In two panes the list ends on the hinge: keep 12 dp clear so nothing scrolls under the fold.
-    val hingeClearance = if (twoPane) 12.dp else 0.dp
-    Box(Modifier.fillMaxSize().padding(end = hingeClearance).clipToBounds().testTag("history.list")) {
+    val sidePadding = if (twoPane) 8.dp else 10.dp
+    Box(Modifier.fillMaxSize().clipToBounds().testTag("history.list")) {
         Column(Modifier.fillMaxSize()) {
             Text(
                 text = stringResource(R.string.section_history),
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp).semantics { heading() },
-                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = if (twoPane) 22.dp else 16.dp, bottom = 10.dp).semantics { heading() },
+                style = MaterialTheme.typography.headlineMedium,
                 color = palette.text,
             )
             HistoryFilterBar(
@@ -461,7 +479,7 @@ private fun HistoryListPane(
                         val date = section.date
                         if (date != null) {
                             stickyHeader(key = "h-${date.toEpochDay()}", contentType = "header") {
-                                DayHeader(dayTitle(date, today), section.netExpenseMinor, section.currency)
+                                DayHeader(dayTitle(date, today), section.netExpenseMinor, section.currency, background = background)
                             }
                         } else {
                             item(key = "h-sorted", contentType = "header") { Spacer(Modifier.height(8.dp)) }
@@ -484,15 +502,14 @@ private fun HistoryListPane(
                 }
             }
         }
-        if (!state.isEmpty) {
-            ExtendedFloatingActionButton(
+        // In two panes the rail has the lime «+»; on the outer screen and in tabletop it floats here.
+        if (!state.isEmpty && !twoPane) {
+            AccentFab(
+                icon = Icons.Outlined.Add,
+                contentDescription = stringResource(R.string.tx_add),
                 onClick = onAdd,
-                icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.tx_add)) },
-                shape = FoldShapes.fab,
-                containerColor = palette.saffron,
-                contentColor = palette.onSaffron,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                ringColor = background,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 12.dp),
             )
         }
     }
@@ -551,6 +568,8 @@ private fun CategoryDropChip(category: Category, selected: Boolean, onClick: () 
     CategoryChip(
         name = visual.name,
         color = visual.color,
+        style = ChipStyle.Outlined,
+        height = 36.dp,
         selected = selected || hovered,
         onClick = onClick,
         modifier = Modifier.dragAndDropTarget(
@@ -592,7 +611,7 @@ private fun HistoryDetailPane(
         label = "historyDetail",
         modifier = Modifier.fillMaxSize().testTag("history.detail"),
     ) { (shown, key) ->
-        val padding = if (twoPane) PaddingValues(start = 16.dp, end = 24.dp, top = 8.dp, bottom = 8.dp) else PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+        val padding = if (twoPane) PaddingValues(horizontal = 24.dp, vertical = 18.dp) else PaddingValues(horizontal = 20.dp, vertical = 8.dp)
         when (shown) {
             DetailContent.Add -> TransactionForm(addState, addActions, now, zone, Modifier.fillMaxSize(), fillHeight = true, contentPadding = padding)
             DetailContent.Edit -> TransactionForm(editorState, editorActions, now, zone, Modifier.fillMaxSize(), fillHeight = true, contentPadding = padding)

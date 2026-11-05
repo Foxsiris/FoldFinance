@@ -209,8 +209,8 @@ private fun PrimaryAction(label: String, onClick: () -> Unit) {
             .widthIn(max = 420.dp)
             .fillMaxWidth()
             .heightIn(min = 56.dp),
-        shape = FoldShapes.pill,
-        colors = ButtonDefaults.buttonColors(containerColor = palette.saffron, contentColor = palette.onSaffron),
+        shape = FoldShapes.key,
+        colors = ButtonDefaults.buttonColors(containerColor = palette.accent, contentColor = palette.onAccent),
     ) {
         Text(label, style = MaterialTheme.typography.labelLarge)
     }

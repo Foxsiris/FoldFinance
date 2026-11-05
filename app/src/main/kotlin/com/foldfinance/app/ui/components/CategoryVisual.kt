@@ -137,11 +137,17 @@ object CategoryIcons {
  */
 fun categoryPaletteArgb(slot: Int): Int = PaletteTokens.LightCategories[slot].toArgb()
 
-/** Palette slot of a stored colour (from either theme), or −1 when it is not a palette colour. */
+/**
+ * Palette slot of a stored colour (from either theme, or from the palette of the previous design
+ * system), or −1 when it is not a palette colour.
+ */
 fun categoryPaletteSlotOf(colorArgb: Int): Int {
-    val light = PaletteTokens.LightCategories.colors.indexOfFirst { it.toArgb() == colorArgb }
-    if (light >= 0) return light
-    return PaletteTokens.DarkCategories.colors.indexOfFirst { it.toArgb() == colorArgb }
+    val palettes = listOf(PaletteTokens.LightCategories.colors, PaletteTokens.DarkCategories.colors) + PaletteTokens.LegacyCategories
+    for (colors in palettes) {
+        val slot = colors.indexOfFirst { it.toArgb() == colorArgb }
+        if (slot >= 0) return slot
+    }
+    return -1
 }
 
 /**

@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -27,64 +28,73 @@ import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.parser.Direction
 
 /**
- * Size/role of a [MoneyText].
+ * Size/role of a [MoneyText]. Every style is Onest 600 with tabular digits.
  *
- * Display variants use Unbounded (big numbers are the headlines of a screen); inline variants
- * use Onest with tabular digits so that amounts in a column line up.
- *
- * @property minorScale size of kopecks and currency sign relative to the integer part:
- *   55% for display sizes (docs/design.md), 80% inline where 55% would be unreadable.
+ * @property minorScale size of the kopecks relative to the integer part: 60 % for big amounts,
+ *   100 % in rows.
+ * @property currencyScale size of the currency sign: big amounts keep the sign at full size but
+ *   quiet («23 640 ₽» on the System board), rows likewise.
+ * @property quietMinor kopecks and the sign in the quiet colour (big amounts) or in the amount's
+ *   own colour (rows, where «−1 500 ₽» reads as one word).
  * @property groupSpacing extra tracking after the narrow no-break space between digit groups:
- *   tabular digits are wide, so inline amounts need a slightly wider group gap to stay legible.
- * @property shrinkToFit the amount scales down (whole, keeping the proportions of the integer
- *   part, kopecks and the sign) when it does not fit the width — display sizes in narrow panes.
- *   Inline amounts are never squeezed: rows give them their intrinsic width.
+ *   with −4.5 % tracking the narrow space alone is too tight.
+ * @property shrinkToFit the amount scales down (whole, keeping proportions) when it does not fit
+ *   the width — big sizes in narrow panes. Row amounts are never squeezed.
  */
-enum class MoneyStyle(val minorScale: Float, val groupSpacing: TextUnit, val shrinkToFit: Boolean) {
-    /** Unbounded 60 — one hero number per screen at most. */
-    Hero(0.55f, 0.08.em, shrinkToFit = true),
+enum class MoneyStyle(
+    val minorScale: Float,
+    val currencyScale: Float,
+    val quietMinor: Boolean,
+    val groupSpacing: TextUnit,
+    val shrinkToFit: Boolean,
+) {
+    /** 60 — tabletop hero. */
+    Hero(0.6f, 1f, quietMinor = true, groupSpacing = 0.12.em, shrinkToFit = true),
 
-    /** Unbounded 48 — «Сегодня» on the summary card. */
-    Display(0.55f, 0.08.em, shrinkToFit = true),
+    /** 48 — «Потрачено за месяц» of the outer screen. */
+    Display(0.6f, 1f, quietMinor = true, groupSpacing = 0.12.em, shrinkToFit = true),
 
-    /** Unbounded 38. */
-    DisplayMedium(0.55f, 0.08.em, shrinkToFit = true),
+    /** 42 — review card, detail of an operation. */
+    DisplayMedium(0.6f, 1f, quietMinor = true, groupSpacing = 0.12.em, shrinkToFit = true),
 
-    /** Unbounded 30 — month total, secondary big numbers. */
-    DisplaySmall(0.55f, 0.08.em, shrinkToFit = true),
+    /** 30 — the selected day, secondary big numbers. */
+    DisplaySmall(0.65f, 1f, quietMinor = true, groupSpacing = 0.1.em, shrinkToFit = true),
 
-    /** Onest 15 tnum — amounts in rows. */
-    Inline(0.8f, 0.16.em, shrinkToFit = false),
+    /** 22 — numbers on tiles («Сегодня»). */
+    Tile(0.7f, 1f, quietMinor = false, groupSpacing = 0.08.em, shrinkToFit = true),
 
-    /** Onest 15 tnum SemiBold — totals inside lists. */
-    InlineStrong(0.8f, 0.16.em, shrinkToFit = false),
+    /** 15 / 600 — amounts in rows. */
+    Inline(1f, 1f, quietMinor = false, groupSpacing = 0.1.em, shrinkToFit = false),
+
+    /** 15 / 700 — totals inside lists. */
+    InlineStrong(1f, 1f, quietMinor = false, groupSpacing = 0.1.em, shrinkToFit = false),
 }
 
 /** Smallest size a [MoneyStyle.shrinkToFit] amount goes down to, relative to its style size. */
 private const val MinShrinkFraction = 0.4f
 
-/** Display amounts never get smaller than this, even in the narrowest window. */
+/** Big amounts never get smaller than this, even in the narrowest window. */
 private val MinShrinkSize = 15.sp
 
 /**
- * An amount of money, typeset the FoldFinance way: integer part large, kopecks and the currency
- * sign smaller and muted, `,00` hidden, ru-RU grouping with a narrow no-break space
- * (`1 240,50 ₽`).
+ * An amount of money, typeset the Obsidian way: integer part with tabular digits and tight
+ * tracking, kopecks smaller, the currency sign quiet («23 640 ₽»), `,00` hidden, ru-RU grouping
+ * with a narrow no-break space.
  *
- * The amount is never cut and never wraps: it is one line, and display styles
+ * The amount is never cut and never wraps: it is one line, and big styles
  * ([MoneyStyle.shrinkToFit]) scale down as a whole to the available width (Compose
- * `TextAutoSize.StepBased`); the kopecks and the currency sign are sized in `em` of the integer
- * part, so they keep the 55 % proportion at any size.
+ * `TextAutoSize.StepBased`); kopecks and the sign are sized in `em` of the integer part.
  *
  * Colour follows [direction]: expense — neutral text (spending is normal, not an alarm), income —
- * mint, refund — lavender, internal transfer — muted. `null` direction means a neutral total.
+ * green, refund — soft neutral, internal transfer — muted. `null` direction means a neutral total.
  *
- * @param amountMinor amount in minor units (kopecks). Usually positive; [direction] carries the meaning.
+ * @param amountMinor amount in minor units (kopecks). Usually positive; [direction] carries the
+ *   meaning. Pass a negative amount to show «−» (rows of expenses).
  * @param currency ISO 4217 code.
  * @param direction money direction relative to the user; drives colour and the default sign.
  * @param style size/role, see [MoneyStyle].
- * @param signDisplay sign policy; by default `+` for income and refunds, nothing for expenses.
- * @param color overrides the direction colour (the minor part derives its muted colour from it).
+ * @param signDisplay sign policy; by default `+` for income and refunds, `−` only when negative.
+ * @param color overrides the direction colour.
  * @param hideZeroFraction drop `,00`.
  */
 @Composable
@@ -101,13 +111,11 @@ fun MoneyText(
 ) {
     val textStyle = moneyTextStyle(style)
     val mainColor = if (color.isSpecified) color else moneyColor(direction)
-    val minorColor = moneyMinorColor(mainColor)
+    val minorColor = if (style.quietMinor) moneyMinorColor(mainColor) else mainColor
     val parts = remember(amountMinor, currency, signDisplay, hideZeroFraction) {
         MoneyFormat.parts(amountMinor, currency, signDisplay, hideZeroFraction)
     }
     val text = remember(parts, mainColor, minorColor, style) {
-        // Relative size: under auto-size the integer part changes size, the minor part follows it.
-        val minor = SpanStyle(fontSize = style.minorScale.em, color = minorColor)
         buildAnnotatedString {
             withStyle(SpanStyle(color = mainColor)) {
                 append(parts.sign)
@@ -119,8 +127,17 @@ fun MoneyText(
                     }
                 }
             }
-            withStyle(minor) {
-                parts.fraction?.let { append(it) }
+            // Relative sizes: under auto-size the integer part changes size, the rest follows it.
+            parts.fraction?.let {
+                withStyle(SpanStyle(fontSize = style.minorScale.em, color = minorColor)) { append(it) }
+            }
+            withStyle(
+                SpanStyle(
+                    fontSize = style.currencyScale.em,
+                    color = minorColor,
+                    fontWeight = if (style.quietMinor) FontWeight.Medium else null,
+                ),
+            ) {
                 append(parts.separator)
                 append(parts.currency)
             }
@@ -157,11 +174,18 @@ fun MoneyText(
     }
 }
 
-/** Default sign: `+` for money coming in (income, refund), none otherwise. */
+/** Default sign: `+` for money coming in (income, refund), `−` only for negative amounts. */
 fun defaultSignDisplay(direction: Direction?): SignDisplay = when (direction) {
     Direction.INCOME, Direction.REFUND -> SignDisplay.Always
     else -> SignDisplay.NegativeOnly
 }
+
+/**
+ * Amount of a list row as the mockups show it: expenses with «−», income and refunds with «+»,
+ * transfers between own cards without a sign.
+ */
+fun signedRowAmount(amountMinor: Long, direction: Direction): Long =
+    if (direction == Direction.EXPENSE) -amountMinor else amountMinor
 
 /** Text style of a [MoneyStyle]. */
 @Composable
@@ -173,6 +197,7 @@ fun moneyTextStyle(style: MoneyStyle): TextStyle {
         MoneyStyle.Display -> money.display
         MoneyStyle.DisplayMedium -> money.displayMedium
         MoneyStyle.DisplaySmall -> money.displaySmall
+        MoneyStyle.Tile -> money.tile
         MoneyStyle.Inline -> money.inline
         MoneyStyle.InlineStrong -> money.inlineStrong
     }
@@ -185,8 +210,8 @@ fun moneyColor(direction: Direction?): Color {
     val palette = FoldFinanceTheme.palette
     return when (direction) {
         null, Direction.EXPENSE -> palette.text
-        Direction.INCOME -> palette.mint
-        Direction.REFUND -> palette.lavender
+        Direction.INCOME -> palette.income
+        Direction.REFUND -> palette.refund
         Direction.INTERNAL_TRANSFER -> palette.textMuted
     }
 }
@@ -195,5 +220,5 @@ fun moneyColor(direction: Direction?): Color {
 @ReadOnlyComposable
 private fun moneyMinorColor(main: Color): Color {
     val palette = FoldFinanceTheme.palette
-    return if (main == palette.text) palette.textMuted else main.copy(alpha = 0.72f)
+    return if (main == palette.text) palette.textDisabled else main.copy(alpha = 0.6f)
 }

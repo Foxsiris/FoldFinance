@@ -77,6 +77,9 @@ sealed interface AppLayout {
      * @property splitAtDp x of the pane boundary: the hinge centre, or a proportion of the width.
      * @property hingeWidthDp physical width of the hinge to keep clear (0 for Fold's seamless hinge
      *   or when there is no hinge).
+     * @property separating the hinge separates the window (`isSeparating` or HALF_OPENED): every
+     *   two-pane screen puts its boundary on it. While FLAT a screen may size its panes freely
+     *   (Analytics gives the chart pane more room).
      */
     @Immutable
     data class Book(
@@ -85,6 +88,7 @@ sealed interface AppLayout {
         val splitAtDp: Float,
         val hingeWidthDp: Float,
         val splitSource: SplitSource,
+        val separating: Boolean = false,
     ) : AppLayout
 
     /**
@@ -176,6 +180,7 @@ fun computeAppLayout(widthDp: Float, heightDp: Float, folds: List<Fold>): AppLay
             splitAtDp = vertical.bounds.centerX,
             hingeWidthDp = vertical.bounds.width.coerceAtLeast(0f),
             splitSource = SplitSource.Hinge,
+            separating = vertical.isSeparating || vertical.state == FoldState.HALF_OPENED,
         )
     }
 

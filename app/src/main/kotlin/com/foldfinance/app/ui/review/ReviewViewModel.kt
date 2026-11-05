@@ -93,8 +93,10 @@ class ReviewViewModel @Inject constructor(
     val rulePrompt: StateFlow<RulePrompt?> = categoryEditor.prompt
 
     val state: StateFlow<ReviewUiState> = combine(
-        combine(transactions.observeReviewQueue(), dismissed, deletion.pending) { queue, gone, deleting ->
-            queue.filterNot { it.id in gone || it.id in deleting }
+        combine(transactions.observeReviewQueue(), dismissed, deletion.pending, handle.getStateFlow(KEY_SKIPPED, LongArray(0))) { queue, gone, deleting, skipped ->
+            // «Пропустить» moves an operation to the end of the queue, in the order of skipping.
+            val order = skipped.withIndex().associate { (i, id) -> id to i }
+            queue.filterNot { it.id in gone || it.id in deleting }.sortedBy { order[it.id] ?: -1 }
         },
         categoryRepository.observeAll(),
         combine(
@@ -145,6 +147,12 @@ class ReviewViewModel @Inject constructor(
     override fun delete(transactionId: Long) = deletion.request(transactionId)
 
     fun undoDelete(transactionId: Long) = deletion.undo(transactionId)
+
+    /** «Пропустить»: the operation stays uncertain and goes to the end of the queue. */
+    fun skip(id: Long) {
+        val skipped = handle.get<LongArray>(KEY_SKIPPED) ?: LongArray(0)
+        handle[KEY_SKIPPED] = (skipped.filterNot { it == id } + id).toLongArray()
+    }
 
     fun toggleSelected(id: Long) {
         val current = state.value.selectedIds
@@ -224,6 +232,7 @@ class ReviewViewModel @Inject constructor(
         const val KEY_SELECTED = "review.selected"
         const val KEY_FOCUSED = "review.focused"
         const val KEY_PICKER = "review.picker"
+        const val KEY_SKIPPED = "review.skipped"
         const val KEY_RULE = "review.rulePrompt"
         const val KEY_UNRECOGNIZED_OPEN = "review.unrecognizedOpen"
         const val KEY_PENDING_RAW = "review.pendingRawMessage"

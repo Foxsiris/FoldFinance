@@ -21,10 +21,10 @@ import kotlin.math.roundToInt
 /** Defaults of [TwoPane]. */
 object TwoPaneDefaults {
     /**
-     * Empty space kept on each side of the hinge. No text or touch target of a pane can be
+     * Empty space kept on each side of the hinge (2 × 8 = the 16 dp hinge gap of Obsidian). No text or touch target of a pane can be
      * closer to the hinge than this (plus the physical hinge width from the folding feature).
      */
-    val SeamClearance: Dp = 12.dp
+    val SeamClearance: Dp = 8.dp
 
     /** A pane narrower than this means the hinge is not inside this container: split evenly. */
     val MinPane: Dp = 160.dp
@@ -70,7 +70,9 @@ data class PaneSplit(val firstSize: Int, val gapStart: Int, val gapEnd: Int, val
 }
 
 /**
- * Two panes split exactly along the hinge, with the [HingeSeam] drawn on it.
+ * Two panes split exactly along the hinge, with a 16 dp gap on it (8 dp each side, docs/design.md):
+ * screens usually draw each pane as a [com.foldfinance.app.ui.components.Panel]. The perforated
+ * [HingeSeam] of the previous design is off by default ([showSeam]).
  *
  * - [AppLayout.Book]: [first] on the left, [second] on the right.
  * - [AppLayout.Tabletop]: [first] on top (to look at), [second] at the bottom (to touch).
@@ -93,7 +95,7 @@ fun TwoPane(
     modifier: Modifier = Modifier,
     layout: AppLayout = LocalAppLayout.current,
     seamClearance: Dp = TwoPaneDefaults.SeamClearance,
-    showSeam: Boolean = true,
+    showSeam: Boolean = false,
 ) {
     if (layout is AppLayout.Compact) {
         Box(modifier) { first() }

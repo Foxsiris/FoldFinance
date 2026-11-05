@@ -127,7 +127,7 @@ class ShellViewModelTest {
 
     @Test fun `compact bar has five items without subscriptions, the rail has all six`() {
         val bar = barSections(Section.entries, compactBar = true)
-        assertThat(bar).containsExactly(Section.Overview, Section.History, Section.Review, Section.Analytics, Section.Settings).inOrder()
+        assertThat(bar).containsExactly(Section.Overview, Section.History, Section.Analytics, Section.Review, Section.Settings).inOrder()
         assertThat(bar.size).isAtMost(MaxCompactBarItems)
         assertThat(barSections(Section.entries, compactBar = false)).isEqualTo(Section.entries)
     }
