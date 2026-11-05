@@ -19,8 +19,8 @@ android {
         minSdk = 31
         // Android 16 (Fold 8). Поведение Android 17 включим отдельно после проверки на устройстве.
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     buildTypes {
