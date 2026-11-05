@@ -1,9 +1,7 @@
 package com.foldfinance.app.widget
 
 import android.content.Context
-import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -11,224 +9,310 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
-import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.PreviewSizeMode
 import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.appWidgetBackground
-import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.semantics.contentDescription
-import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
-import com.foldfinance.app.AppIntents
-import com.foldfinance.app.MainActivity
 import com.foldfinance.app.R
-import com.foldfinance.app.ui.format.MoneyFormat
-import com.foldfinance.app.ui.theme.PaletteTokens
 import kotlinx.coroutines.CancellationException
 
 /**
- * Glance-виджет для рабочего стола внешнего экрана (этап 10): расходы за сегодня и за месяц,
- * счётчик «на проверку» (тап — очередь проверки), кнопка «+» (ручное добавление).
+ * Glance-виджет «Расходы» для рабочего стола внешнего экрана (docs/design-v2/Widgets.dc.html):
+ * сегодня и месяц, мини-график по дням, счётчик «на проверку» (тап — очередь проверки) и «+»
+ * (ручное добавление). Раскладка по размеру — [FinanceWidgetLayout].
  *
  * **Приватность.** Виджет живёт на рабочем столе вне блокировки приложения и FLAG_SECURE:
- * это осознанный выбор пользователя, поставившего виджет. Он показывает только две суммы и
- * число операций — без мерчантов, карт и текстов сообщений. Для тех, кому и этого много, есть
- * настройка «Скрывать суммы в виджете» (по умолчанию выкл.): суммы заменяются на «•••».
- * Тапы ведут в `MainActivity`, а она сама требует разблокировку.
+ * это осознанный выбор пользователя, поставившего виджет. Он показывает только суммы и число
+ * операций — без мерчантов, карт и текстов сообщений. Настройка «Скрывать суммы в виджете»
+ * (по умолчанию выкл.) заменяет суммы на «••••» и гасит график. Тапы ведут в `MainActivity`,
+ * а она сама требует разблокировку.
  *
  * Данные загружаются при каждом обновлении ([FinanceWidgetUpdater.requestUpdate],
  * `updatePeriodMillis`); если БД недоступна, виджет предлагает открыть приложение.
- * Цвета — палитра «Шов», светлая/тёмная по теме системы.
  */
 class FinanceWidget internal constructor(private val loader: FinanceWidgetDataLoader) : GlanceAppWidget() {
 
     constructor() : this(DatabaseWidgetDataLoader())
 
-    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(FinanceWidgetSizes.Small, FinanceWidgetSizes.Wide))
+    override val sizeMode: SizeMode = SizeMode.Responsive(FinanceWidgetLayout.sizes)
+
+    override val previewSizeMode: PreviewSizeMode = SizeMode.Responsive(FinanceWidgetLayout.sizes)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = try {
-            loader.load(context)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            // Ключ БД недоступен и т. п. Ничего не логируем: в данных суммы.
-            null
-        }
+        val data = loadOrNull(loader, context)
         provideContent { FinanceWidgetContent(data) }
+    }
+
+    /** Превью в списке виджетов (Android 15+): образец из макета, не данные пользователя. */
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        provideContent { FinanceWidgetContent(WidgetSamples.finance()) }
     }
 }
 
-/** Размеры раскладок: узкий (3×2 ячейки внешнего экрана) и широкий (4×2 и больше). */
-object FinanceWidgetSizes {
-    val Small = DpSize(180.dp, 110.dp)
-    val Wide = DpSize(260.dp, 110.dp)
+/** Загрузка без исключений: `null` — «данные недоступны». Ничего не логируем: в данных суммы. */
+internal suspend fun loadOrNull(loader: FinanceWidgetDataLoader, context: Context): FinanceWidgetData? = try {
+    loader.load(context)
+} catch (e: CancellationException) {
+    throw e
+} catch (_: Exception) {
+    null
 }
 
-private object WidgetColors {
-    val background = ColorProvider(day = PaletteTokens.Light.surface, night = PaletteTokens.Dark.surface)
-    val text = ColorProvider(day = PaletteTokens.Light.text, night = PaletteTokens.Dark.text)
-    val textMuted = ColorProvider(day = PaletteTokens.Light.textMuted, night = PaletteTokens.Dark.textMuted)
-    val saffron = ColorProvider(day = PaletteTokens.Light.saffron, night = PaletteTokens.Dark.saffron)
-    val onSaffron = ColorProvider(day = PaletteTokens.Light.onSaffron, night = PaletteTokens.Dark.onSaffron)
-    val saffronContainer = ColorProvider(
-        day = PaletteTokens.Light.saffronContainer,
-        night = PaletteTokens.Dark.saffronContainer,
-    )
-    val onSaffronContainer = ColorProvider(
-        day = PaletteTokens.Light.onSaffronContainer,
-        night = PaletteTokens.Dark.onSaffronContainer,
-    )
-}
+/**
+ * Раскладки по размеру виджета (сетка внешнего экрана 4 колонки; макет: 4×3, 4×2, 4×1, 2×2).
+ * В `SizeMode.Responsive` система берёт самую большую раскладку, которая помещается, поэтому
+ * пороги — минимальные размеры, при которых раскладка ещё влезает.
+ */
+enum class FinanceWidgetLayout(val minSize: DpSize) {
+    /** 2×1: только «сегодня» и «+». */
+    StripCompact(DpSize(120.dp, 44.dp)),
 
-private fun appIntent(context: Context, action: String?): Intent =
-    Intent(context, MainActivity::class.java)
-        .setAction(action ?: Intent.ACTION_MAIN)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    /** 4×1: сегодня | месяц | счётчик | «+». */
+    Strip(DpSize(280.dp, 44.dp)),
+
+    /** 2×2: сегодня, месяц, счётчик и «+» снизу. */
+    Small(DpSize(140.dp, 130.dp)),
+
+    /** 4×2: сегодня, месяц, мини-график; справа счётчик и «+». */
+    Medium(DpSize(280.dp, 130.dp)),
+
+    /** 4×3: месяц крупно, доход, мини-график, две кнопки. */
+    Large(DpSize(280.dp, 220.dp)),
+    ;
+
+    companion object {
+        val sizes: Set<DpSize> = entries.map { it.minSize }.toSet()
+
+        /** Самая крупная раскладка, которая помещается в [size] (меньше всех — [StripCompact]). */
+        fun forSize(size: DpSize): FinanceWidgetLayout =
+            entries
+                .filter { size.width >= it.minSize.width && size.height >= it.minSize.height }
+                .maxByOrNull { it.minSize.width.value * it.minSize.height.value }
+                ?: StripCompact
+    }
+}
 
 @Composable
 internal fun FinanceWidgetContent(data: FinanceWidgetData?) {
-    val context = LocalContext.current
-    val wide = LocalSize.current.width >= FinanceWidgetSizes.Wide.width
-    Box(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .appWidgetBackground()
-            .cornerRadius(24.dp)
-            .background(WidgetColors.background)
-            .clickable(actionStartActivity(appIntent(context, null)))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+    val layout = FinanceWidgetLayout.forSize(LocalSize.current)
+    val strip = layout == FinanceWidgetLayout.Strip || layout == FinanceWidgetLayout.StripCompact
+    val large = layout == FinanceWidgetLayout.Large
+    WidgetCard(
+        radius = if (strip) 24.dp else 28.dp,
+        padding = if (strip) 0.dp else if (large) 18.dp else 16.dp,
+        paddingStart = if (strip || large) 18.dp else 16.dp,
+        paddingEnd = if (strip) 12.dp else if (large) 18.dp else 16.dp,
     ) {
-        if (data == null) {
-            Unavailable(context)
-        } else {
-            Summary(context, data, wide)
+        when {
+            data == null -> UnavailableState(compact = strip)
+            !data.hasTransactions -> EmptyState(data, compact = strip)
+            else -> when (layout) {
+                FinanceWidgetLayout.Large -> LargeLayout(data)
+                FinanceWidgetLayout.Medium -> MediumLayout(data)
+                FinanceWidgetLayout.Small -> SmallLayout(data)
+                FinanceWidgetLayout.Strip -> StripLayout(data, showMonth = true)
+                FinanceWidgetLayout.StripCompact -> StripLayout(data, showMonth = false)
+            }
         }
     }
 }
 
+/** 4×3: «Ноябрь · потрачено», месяц крупно, доход, график 64 dp, кнопки «N на проверку» и «Добавить». */
 @Composable
-private fun Unavailable(context: Context) {
-    Row(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = context.getString(R.string.widget_unavailable),
-            modifier = GlanceModifier.defaultWeight(),
-            style = TextStyle(color = WidgetColors.textMuted, fontSize = 14.sp),
-        )
-        Spacer(GlanceModifier.width(12.dp))
-        AddButton(context)
-    }
-}
-
-@Composable
-private fun Summary(context: Context, data: FinanceWidgetData, wide: Boolean) {
-    fun amount(minor: Long): String =
-        if (data.hideAmounts) {
-            context.getString(R.string.widget_hidden_amount) + MoneyFormat.NARROW_NBSP + MoneyFormat.symbol(data.currency)
-        } else {
-            MoneyFormat.format(minor, data.currency)
+private fun LargeLayout(data: FinanceWidgetData) {
+    val context = LocalContext.current
+    Column(GlanceModifier.fillMaxSize()) {
+        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            if (data.hideAmounts) {
+                HiddenLabel(13.sp, GlanceModifier.defaultWeight())
+            } else {
+                val monthName = context.resources.getStringArray(R.array.widget_months)[data.month.monthValue - 1]
+                WidgetText(
+                    context.getString(R.string.widget_month_spent, monthName),
+                    13.sp,
+                    WidgetPalette.textSecondary,
+                    GlanceModifier.defaultWeight(),
+                )
+                Spacer(GlanceModifier.width(8.dp))
+                WidgetText(
+                    context.getString(R.string.widget_today_inline, WidgetMoney.display(context, data, data.todayNetExpenseMinor)),
+                    13.sp,
+                    WidgetPalette.textSecondary,
+                )
+            }
         }
-    val today = context.getString(R.string.widget_today)
-    val month = amount(data.monthNetExpenseMinor) + " " + context.getString(R.string.widget_month)
-    val labelStyle = TextStyle(color = WidgetColors.textMuted, fontSize = 13.sp)
-
-    if (wide) {
-        // Широкий: сумма за сегодня рядом с «+», снизу месяц и счётчик полной подписью.
-        Column(GlanceModifier.fillMaxSize()) {
-            Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                Column(GlanceModifier.defaultWeight()) {
-                    Text(text = today, style = labelStyle)
-                    Text(
-                        text = amount(data.todayNetExpenseMinor),
-                        style = TextStyle(color = WidgetColors.text, fontSize = 30.sp, fontWeight = FontWeight.Medium),
-                        maxLines = 1,
+        Spacer(GlanceModifier.height(8.dp))
+        Amount(data, data.monthNetExpenseMinor, 38)
+        Spacer(GlanceModifier.height(6.dp))
+        when {
+            data.hideAmounts -> WidgetText(context.getString(R.string.widget_hidden_hint), 13.sp, WidgetPalette.textMuted)
+            data.monthIncomeMinor > 0 -> WidgetText(
+                context.getString(R.string.widget_income, WidgetMoney.format(data.monthIncomeMinor, data.currency)),
+                13.sp,
+                WidgetPalette.income,
+            )
+        }
+        Spacer(GlanceModifier.defaultWeight())
+        DayBars(data, height = 64.dp, gap = 3.dp, minBar = 4.dp)
+        Spacer(GlanceModifier.height(14.dp))
+        Row(GlanceModifier.fillMaxWidth()) {
+            ReviewBadge(data.needsReviewCount, GlanceModifier.defaultWeight().height(44.dp), radius = 14.dp) { color ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WidgetIcon(R.drawable.widget_ic_review, 18.dp, color)
+                    Spacer(GlanceModifier.width(8.dp))
+                    WidgetText(
+                        context.getString(R.string.widget_review_count, data.needsReviewCount),
+                        14.sp,
+                        color,
+                        weight = FontWeight.Medium,
                     )
                 }
-                Spacer(GlanceModifier.width(8.dp))
-                AddButton(context, 48.dp)
             }
-            Spacer(GlanceModifier.defaultWeight())
-            Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = month, modifier = GlanceModifier.defaultWeight(), style = labelStyle.copy(fontSize = 14.sp), maxLines = 1)
-                if (data.needsReviewCount > 0) {
-                    Spacer(GlanceModifier.width(8.dp))
-                    ReviewChip(context, data.needsReviewCount, compact = false)
-                }
-            }
-        }
-    } else {
-        // Узкий (3×2): сумма за сегодня на всю ширину, счётчик — числом в углу, «+» снизу справа.
-        Column(GlanceModifier.fillMaxSize()) {
-            Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = today, modifier = GlanceModifier.defaultWeight(), style = labelStyle, maxLines = 1)
-                if (data.needsReviewCount > 0) ReviewChip(context, data.needsReviewCount, compact = true)
-            }
-            Text(
-                text = amount(data.todayNetExpenseMinor),
-                style = TextStyle(color = WidgetColors.text, fontSize = 24.sp, fontWeight = FontWeight.Medium),
-                maxLines = 1,
+            Spacer(GlanceModifier.width(8.dp))
+            AddButton(
+                GlanceModifier.defaultWeight().height(44.dp),
+                radius = 14.dp,
+                iconSize = 18.dp,
+                label = context.getString(R.string.widget_add_short),
             )
-            Spacer(GlanceModifier.defaultWeight())
-            Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = month, modifier = GlanceModifier.defaultWeight(), style = labelStyle, maxLines = 1)
-                Spacer(GlanceModifier.width(8.dp))
-                AddButton(context, 40.dp)
-            }
         }
     }
 }
 
-/** Счётчик «на проверку»; [compact] — только число (описание для TalkBack полное). */
+/** 4×2: слева «Сегодня», сумма, месяц и график 30 dp; справа колонка 108 dp — счётчик и «+». */
 @Composable
-private fun ReviewChip(context: Context, count: Int, compact: Boolean) {
-    val label = context.getString(R.string.widget_review_count, count)
-    Box(
-        modifier = GlanceModifier
-            .height(if (compact) 28.dp else 32.dp)
-            .cornerRadius(if (compact) 14.dp else 16.dp)
-            .background(WidgetColors.saffronContainer)
-            .clickable(actionStartActivity(appIntent(context, AppIntents.ACTION_OPEN_REVIEW)))
-            .semantics { contentDescription = label }
-            .padding(horizontal = if (compact) 10.dp else 12.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = if (compact) count.toString() else label,
-            style = TextStyle(color = WidgetColors.onSaffronContainer, fontSize = 13.sp, fontWeight = FontWeight.Medium),
-            maxLines = 1,
+private fun MediumLayout(data: FinanceWidgetData) {
+    val context = LocalContext.current
+    Row(GlanceModifier.fillMaxSize()) {
+        Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
+            TodayLabel(data, 12.5f)
+            Spacer(GlanceModifier.height(4.dp))
+            Amount(data, data.todayNetExpenseMinor, 30)
+            Spacer(GlanceModifier.height(4.dp))
+            WidgetText(
+                if (data.hideAmounts) {
+                    context.getString(R.string.widget_hidden_hint)
+                } else {
+                    context.getString(R.string.widget_month_inline, WidgetMoney.format(data.monthNetExpenseMinor, data.currency))
+                },
+                13.sp,
+                if (data.hideAmounts) WidgetPalette.textMuted else WidgetPalette.textSecondary,
+                maxLines = if (data.hideAmounts) 2 else 1,
+            )
+            Spacer(GlanceModifier.defaultWeight())
+            DayBars(data, height = 30.dp, gap = 2.dp, minBar = 3.dp)
+        }
+        Spacer(GlanceModifier.width(12.dp))
+        Column(GlanceModifier.width(108.dp).fillMaxHeight()) {
+            ReviewBadge(data.needsReviewCount, GlanceModifier.fillMaxWidth().defaultWeight(), radius = 18.dp) { color ->
+                Column(GlanceModifier.fillMaxWidth().padding(horizontal = 14.dp)) {
+                    WidgetText(data.needsReviewCount.toString(), 24.sp, color, weight = FontWeight.Bold)
+                    Spacer(GlanceModifier.height(2.dp))
+                    WidgetText(context.getString(R.string.widget_review_label), 12.sp, color, weight = FontWeight.Medium)
+                }
+            }
+            Spacer(GlanceModifier.height(8.dp))
+            AddButton(GlanceModifier.fillMaxWidth().height(56.dp), radius = 18.dp, iconSize = 24.dp)
+        }
+    }
+}
+
+/** 2×2: «Сегодня», сумма, месяц; снизу счётчик (растягивается) и «+» 44 dp. */
+@Composable
+private fun SmallLayout(data: FinanceWidgetData) {
+    val context = LocalContext.current
+    Column(GlanceModifier.fillMaxSize()) {
+        TodayLabel(data, 12.5f)
+        Spacer(GlanceModifier.height(4.dp))
+        Amount(data, data.todayNetExpenseMinor, 28)
+        Spacer(GlanceModifier.height(4.dp))
+        WidgetText(
+            context.getString(R.string.widget_month_inline, WidgetMoney.display(context, data, data.monthNetExpenseMinor)),
+            12.sp,
+            WidgetPalette.textSecondary,
+        )
+        Spacer(GlanceModifier.defaultWeight())
+        Row(GlanceModifier.fillMaxWidth()) {
+            ReviewBadge(data.needsReviewCount, GlanceModifier.defaultWeight().height(44.dp), radius = 14.dp) { color ->
+                WidgetText(data.needsReviewCount.toString(), 15.sp, color, weight = FontWeight.Bold)
+            }
+            Spacer(GlanceModifier.width(8.dp))
+            AddButton(GlanceModifier.size(44.dp), radius = 14.dp, iconSize = 20.dp)
+        }
+    }
+}
+
+/** 4×1 (и 2×1 без месяца и счётчика): две колонки сумм через разделитель, круглый счётчик, «+». */
+@Composable
+private fun StripLayout(data: FinanceWidgetData, showMonth: Boolean) {
+    val context = LocalContext.current
+    Row(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        StripValue(context.getString(R.string.widget_today), WidgetMoney.display(context, data, data.todayNetExpenseMinor), data, if (showMonth) GlanceModifier else GlanceModifier.defaultWeight())
+        if (showMonth) {
+            Spacer(GlanceModifier.width(14.dp))
+            Box(GlanceModifier.width(1.dp).height(32.dp).background(WidgetPalette.line)) {}
+            Spacer(GlanceModifier.width(14.dp))
+            StripValue(
+                context.getString(R.string.widget_month_title),
+                WidgetMoney.display(context, data, data.monthNetExpenseMinor),
+                data,
+                GlanceModifier.defaultWeight(),
+            )
+            Spacer(GlanceModifier.width(14.dp))
+            ReviewBadge(data.needsReviewCount, GlanceModifier.size(44.dp), radius = 22.dp) { color ->
+                WidgetText(data.needsReviewCount.toString(), 16.sp, color, weight = FontWeight.Bold)
+            }
+        }
+        Spacer(GlanceModifier.width(if (showMonth) 14.dp else 8.dp))
+        AddButton(GlanceModifier.size(if (showMonth) 52.dp else 44.dp), radius = if (showMonth) 18.dp else 14.dp, iconSize = 22.dp)
+    }
+}
+
+@Composable
+private fun StripValue(label: String, value: String, data: FinanceWidgetData, modifier: GlanceModifier) {
+    Column(modifier) {
+        WidgetText(label, 11.5.sp, WidgetPalette.textSecondary)
+        Spacer(GlanceModifier.height(2.dp))
+        WidgetText(
+            value,
+            19.sp,
+            if (data.hideAmounts) WidgetPalette.hiddenAmount else WidgetPalette.text,
+            weight = FontWeight.Medium,
         )
     }
 }
 
+/** «Сегодня» или «Суммы скрыты» с иконкой. */
 @Composable
-private fun AddButton(context: Context, size: Dp = 48.dp) {
-    val description = context.getString(R.string.widget_add)
-    Box(
-        modifier = GlanceModifier
-            .size(size)
-            .cornerRadius(size * 0.4f)
-            .background(WidgetColors.saffron)
-            .clickable(actionStartActivity(appIntent(context, AppIntents.ACTION_QUICK_ADD)))
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = "+", style = TextStyle(color = WidgetColors.onSaffron, fontSize = 24.sp, fontWeight = FontWeight.Medium))
+private fun TodayLabel(data: FinanceWidgetData, sizeSp: Float) {
+    if (data.hideAmounts) {
+        HiddenLabel(sizeSp.sp)
+    } else {
+        WidgetText(LocalContext.current.getString(R.string.widget_today), sizeSp.sp, WidgetPalette.textSecondary)
     }
+}
+
+/** Крупная сумма; скрытая — «•••• ₽» приглушённым цветом. */
+@Composable
+private fun Amount(data: FinanceWidgetData, amountMinor: Long, sizeSp: Int) {
+    WidgetText(
+        WidgetMoney.display(LocalContext.current, data, amountMinor),
+        sizeSp.sp,
+        if (data.hideAmounts) WidgetPalette.hiddenAmount else WidgetPalette.text,
+        weight = FontWeight.Medium,
+    )
 }

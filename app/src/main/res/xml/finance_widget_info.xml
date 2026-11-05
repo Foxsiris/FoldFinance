@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Виджет «Расходы»: по умолчанию 4×2, растягивается от 2×1 до любого размера; раскладка по
+  размеру — FinanceWidgetLayout (SizeMode.Responsive). Превью: сгенерированное (Android 15+,
+  FinanceWidget.providePreview) или статичное previewLayout.
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_description"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:minWidth="180dp"
+    android:previewLayout="@layout/widget_preview_finance"
+    android:minWidth="250dp"
     android:minHeight="110dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="40dp"
     android:resizeMode="horizontal|vertical"
-    android:targetCellWidth="3"
+    android:targetCellWidth="4"
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen" />

@@ -79,6 +79,19 @@
                 android:resource="@xml/finance_widget_info" />
         </receiver>
 
+        <!-- Glance-виджет «На проверку» (2×2, только очередь проверки) -->
+        <receiver
+            android:name=".widget.ReviewWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_review_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/review_widget_info" />
+        </receiver>
+
         <!-- Первичное сканирование SMS — foreground-задача WorkManager с уведомлением о прогрессе -->
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"

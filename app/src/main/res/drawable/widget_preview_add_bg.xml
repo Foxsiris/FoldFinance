@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Фон для статичного превью виджета (layout/widget_preview_*.xml). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FFD2F65A" />
+    <corners android:radius="18dp" />
+</shape>

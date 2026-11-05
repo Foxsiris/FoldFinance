@@ -1,10 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Строки Glance-виджета (widget/). Название и описание виджета — в strings.xml. -->
+<!-- Строки Glance-виджетов (widget/). Название и описание виджета «Расходы» — в strings.xml. -->
 <resources>
     <string name="widget_today">Сегодня</string>
-    <string name="widget_month">за месяц</string>
+    <string name="widget_month_title">Месяц</string>
+    <!-- «месяц 23 640 ₽» под суммой за сегодня -->
+    <string name="widget_month_inline">месяц %1$s</string>
+    <!-- «сегодня 1 840 ₽» в шапке 4×3 -->
+    <string name="widget_today_inline">сегодня %1$s</string>
+    <!-- «Ноябрь · потрачено» -->
+    <string name="widget_month_spent">%1$s · потрачено</string>
+    <string-array name="widget_months">
+        <item>Январь</item>
+        <item>Февраль</item>
+        <item>Март</item>
+        <item>Апрель</item>
+        <item>Май</item>
+        <item>Июнь</item>
+        <item>Июль</item>
+        <item>Август</item>
+        <item>Сентябрь</item>
+        <item>Октябрь</item>
+        <item>Ноябрь</item>
+        <item>Декабрь</item>
+    </string-array>
+    <string name="widget_income">+%1$s доход</string>
+
     <string name="widget_add">Добавить операцию</string>
-    <string name="widget_hidden_amount">•••</string>
-    <string name="widget_unavailable">Откройте FoldFinance, чтобы увидеть расходы</string>
+    <string name="widget_add_short">Добавить</string>
+
     <string name="widget_review_count">%1$d на проверку</string>
+    <string name="widget_review_label">на проверку</string>
+    <string name="widget_review_title">На проверку</string>
+    <string name="widget_review_action">Разобрать</string>
+    <string name="widget_review_done">Всё разобрано</string>
+    <plurals name="widget_review_waiting">
+        <item quantity="one">операция ждёт решения</item>
+        <item quantity="few">операции ждут решения</item>
+        <item quantity="many">операций ждут решения</item>
+        <item quantity="other">операции ждут решения</item>
+    </plurals>
+    <plurals name="widget_review_description">
+        <item quantity="one">%d операция на проверку</item>
+        <item quantity="few">%d операции на проверку</item>
+        <item quantity="many">%d операций на проверку</item>
+        <item quantity="other">%d операции на проверку</item>
+    </plurals>
+
+    <string name="widget_hidden_amount">••••</string>
+    <string name="widget_hidden_title">Суммы скрыты</string>
+    <string name="widget_hidden_hint">Откройте приложение, чтобы увидеть</string>
+
+    <string name="widget_empty_title">Пока нет операций</string>
+    <string name="widget_empty_sms">Разрешите доступ к SMS в приложении</string>
+    <string name="widget_empty_waiting">Появятся после первой SMS от банка</string>
+    <string name="widget_empty_setup">Настроить</string>
+
+    <string name="widget_unavailable_title">Данные недоступны</string>
+    <string name="widget_unavailable">Откройте приложение, чтобы обновить</string>
+    <string name="widget_open_app">Открыть приложение</string>
+
+    <!-- Второй виджет: только очередь проверки -->
+    <string name="widget_review_widget_label">На проверку</string>
+    <string name="widget_review_widget_description">Сколько операций ждут проверки</string>
+
+    <!-- Статичное превью в списке виджетов (до Android 15 и пока не опубликовано сгенерированное) -->
+    <string name="widget_preview_today_amount">1 840 ₽</string>
+    <string name="widget_preview_month">месяц 23 640 ₽</string>
+    <string name="widget_preview_review_count">3</string>
+    <string name="widget_preview_review_waiting">операции ждут решения</string>
 </resources>
