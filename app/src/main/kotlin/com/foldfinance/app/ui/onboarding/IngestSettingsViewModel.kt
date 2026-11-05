@@ -57,8 +57,19 @@ class IngestSettingsViewModel @Inject constructor(
         scheduler.observeFullScan().onStart { emit(ScanState.Idle) },
         combine(apps, handle.getStateFlow(KEY_DRAFT, emptyList<String>())) { a, d -> SourcesState(a, d.toSet()) },
     ) { perms, (listener, failures), whitelist, scan, sources ->
-        IngestSettingsUiState(perms, listener.connection, whitelist.size, scan, sources, failures)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IngestSettingsUiState(permissions = permissionState.value))
+        IngestSettingsUiState(
+            permissions = perms,
+            listener = listener.connection,
+            whitelistSize = whitelist.size,
+            scan = scan,
+            sources = sources,
+            pushFailures = failures,
+        )
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        IngestSettingsUiState(permissions = permissionState.value),
+    )
 
     init {
         // The settings block is a natural «app is in use» moment: make sure background work exists.

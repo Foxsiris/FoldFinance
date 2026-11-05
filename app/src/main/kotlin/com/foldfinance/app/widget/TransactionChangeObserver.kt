@@ -20,7 +20,7 @@ import javax.inject.Singleton
  * в каждом месте записи. Подписки пишутся в свою таблицу, поэтому цикла нет.
  */
 @Singleton
-class WidgetRefresher @Inject constructor(
+class TransactionChangeObserver @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: FoldFinanceDatabase,
     private val refreshSubscriptions: RefreshSubscriptionsUseCase,

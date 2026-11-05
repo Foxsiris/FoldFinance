@@ -4,7 +4,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.fragment.app.FragmentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.fragment.app.FragmentActivity
 import com.foldfinance.app.ui.layout.LocalAppLayout
 import com.foldfinance.app.ui.layout.LocalWindowReadings
 import com.foldfinance.app.ui.layout.rememberWindowReadings
@@ -65,25 +65,25 @@ class MainActivity : FragmentActivity() {
 
     @Composable
     private fun AppContent(dark: Boolean, dynamicColor: Boolean) {
-            DisposableEffect(dark) {
-                // Transparent bars with icons matching the theme (the window background is ink/paper).
-                val style = if (dark) {
-                    SystemBarStyle.dark(Color.TRANSPARENT)
-                } else {
-                    SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-                }
-                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
-                onDispose { }
+        DisposableEffect(dark) {
+            // Transparent bars with icons matching the theme (the window background is ink/paper).
+            val style = if (dark) {
+                SystemBarStyle.dark(Color.TRANSPARENT)
+            } else {
+                SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
             }
-            val readings = rememberWindowReadings(this)
-            val layout = remember(readings) { readings.toAppLayout() }
-            CompositionLocalProvider(
-                LocalAppLayout provides layout,
-                LocalWindowReadings provides readings,
-            ) {
-                FoldFinanceTheme(darkTheme = dark, dynamicColor = dynamicColor) {
-                    FoldFinanceAppUi(viewModel = shell)
-                }
+            enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+            onDispose { }
+        }
+        val readings = rememberWindowReadings(this)
+        val layout = remember(readings) { readings.toAppLayout() }
+        CompositionLocalProvider(
+            LocalAppLayout provides layout,
+            LocalWindowReadings provides readings,
+        ) {
+            FoldFinanceTheme(darkTheme = dark, dynamicColor = dynamicColor) {
+                FoldFinanceAppUi(viewModel = shell)
             }
+        }
     }
 }

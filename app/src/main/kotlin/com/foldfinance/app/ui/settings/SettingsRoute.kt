@@ -6,6 +6,7 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -16,6 +17,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.foldfinance.app.backup.BackupManager
+import com.foldfinance.app.ingest.debug.IngestDebugTools
 import com.foldfinance.app.prefs.RelockTimeout
 import com.foldfinance.app.prefs.ThemeMode
 import com.foldfinance.app.ui.categories.CategoriesRoute
@@ -23,8 +25,6 @@ import com.foldfinance.app.ui.diagnostics.WindowDiagnosticsRoute
 import com.foldfinance.app.ui.onboarding.IngestSettingsSection
 import com.foldfinance.app.ui.shell.LocalShellNavigation
 import com.foldfinance.app.ui.shell.Section
-import com.foldfinance.app.ingest.debug.IngestDebugTools
-import androidx.compose.foundation.layout.Column
 import java.time.LocalDate
 
 /**
@@ -44,7 +44,9 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshDeviceAuth() }
 
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BackupManager.MIME_TYPE)) { uri ->
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(BackupManager.MIME_TYPE),
+    ) { uri ->
         viewModel.onDocumentPicked(BackupKind.EXPORT, uri)
     }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -68,22 +70,19 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
             override fun submitPassword(password: CharArray) = viewModel.onPasswordEntered(password)
 
             override fun startExport() {
-                viewModel.onLeavingForSystemUi()
-                launchSafely(viewModel::onSystemUiLaunchFailed) {
+                viewModel.launchSystemUi {
                     exportLauncher.launch(BackupManager.suggestedFileName(LocalDate.now()))
                 }
             }
 
             override fun startImport() {
-                viewModel.onLeavingForSystemUi()
-                launchSafely(viewModel::onSystemUiLaunchFailed) {
+                viewModel.launchSystemUi {
                     importLauncher.launch(arrayOf(BackupManager.MIME_TYPE, "*/*"))
                 }
             }
 
             override fun openSecuritySettings() {
-                viewModel.onLeavingForSystemUi()
-                launchSafely(viewModel::onSystemUiLaunchFailed) { openSecuritySettings(context) }
+                viewModel.launchSystemUi { startSecuritySettings(context) }
             }
         }
     }
@@ -108,17 +107,18 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
 
 /**
  * Запуск системного экрана. Если его нет на телефоне, кнопка ничего не делает, а льгота
- * блокировки, выданная перед запуском, отменяется ([onFailure]), чтобы не «залипнуть».
+ * блокировки, выданная перед запуском, отменяется, чтобы не «залипнуть».
  */
-private inline fun launchSafely(onFailure: () -> Unit, block: () -> Unit) {
+private inline fun SettingsViewModel.launchSystemUi(block: () -> Unit) {
+    onLeavingForSystemUi()
     try {
         block()
     } catch (_: ActivityNotFoundException) {
-        onFailure()
+        onSystemUiLaunchFailed()
     }
 }
 
-private fun openSecuritySettings(context: Context) {
+private fun startSecuritySettings(context: Context) {
     try {
         context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (_: ActivityNotFoundException) {

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -66,7 +67,7 @@ class ShellViewModel(
         .catch { emit(0) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    val onboarding: StateFlow<OnboardingState> = (onboardingFlag?.done ?: kotlinx.coroutines.flow.flowOf(true))
+    val onboarding: StateFlow<OnboardingState> = (onboardingFlag?.done ?: flowOf(true))
         .map { done -> if (done) OnboardingState.Done else OnboardingState.Required }
         .stateIn(viewModelScope, SharingStarted.Eagerly, OnboardingState.Unknown)
 

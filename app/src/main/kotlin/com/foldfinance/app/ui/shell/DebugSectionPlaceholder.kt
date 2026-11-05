@@ -27,7 +27,7 @@ fun DebugSectionPlaceholder(
     modifier: Modifier = Modifier,
     extra: (@Composable () -> Unit)? = null,
 ) {
-    Column(modifier.padding(horizontal = 24.dp, vertical = 24.dp)) {
+    Column(modifier.padding(24.dp)) {
         Text(
             text = stringResource(section.labelRes),
             modifier = Modifier.semantics { heading() },

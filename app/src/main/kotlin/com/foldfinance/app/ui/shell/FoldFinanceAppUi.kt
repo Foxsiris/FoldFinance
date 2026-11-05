@@ -47,6 +47,7 @@ import com.foldfinance.app.ui.onboarding.OnboardingRoute
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldMotion
 import com.foldfinance.app.ui.theme.FoldShapes
+import com.foldfinance.app.ui.theme.PaletteTokens
 import com.foldfinance.app.ui.transaction.LocalAppSnackbar
 
 /**
@@ -162,17 +163,10 @@ fun ShellScaffold(
             items.forEach { section ->
                 val isSelected = section == selected
                 val badge = badges[section] ?: 0
-                val badgeDescription = if (badge > 0) {
-                    pluralStringResource(R.plurals.shell_badge_review, badge, badge)
-                } else {
-                    null
-                }
                 NavigationSuiteItem(
                     selected = isSelected,
                     onClick = { onSelect(section) },
-                    icon = {
-                        NavigationIcon(section, isSelected, badge, badgeDescription)
-                    },
+                    icon = { NavigationIcon(section, isSelected, badge) },
                     label = { Text(stringResource(section.labelRes), maxLines = 1) },
                     navigationSuiteType = type,
                     colors = itemColors,
@@ -217,14 +211,14 @@ fun ShellScaffold(
                         .align(Alignment.BottomCenter)
                         .windowInsetsPadding(WindowInsets.safeDrawing)
                         // Above the thumb-zone action row of the outer screen.
-                        .padding(bottom = if (layout is AppLayout.Compact) 84.dp else 16.dp),
+                        .padding(bottom = if (compactBar) 84.dp else 16.dp),
                 ) { data ->
                     Snackbar(
                         snackbarData = data,
                         shape = FoldShapes.tile,
                         containerColor = palette.text,
                         contentColor = palette.ink,
-                        actionColor = if (palette.isDark) com.foldfinance.app.ui.theme.PaletteTokens.Light.saffron else com.foldfinance.app.ui.theme.PaletteTokens.Dark.saffron,
+                        actionColor = if (palette.isDark) PaletteTokens.Light.saffron else PaletteTokens.Dark.saffron,
                     )
                 }
             }
@@ -233,16 +227,17 @@ fun ShellScaffold(
 }
 
 @Composable
-private fun NavigationIcon(section: Section, selected: Boolean, badge: Int, badgeDescription: String?) {
+private fun NavigationIcon(section: Section, selected: Boolean, badge: Int) {
     val palette = FoldFinanceTheme.palette
     val icon = if (selected) section.selectedIcon else section.icon
     if (badge > 0) {
+        val badgeDescription = pluralStringResource(R.plurals.shell_badge_review, badge, badge)
         BadgedBox(
             badge = {
                 Badge(
                     containerColor = palette.saffron,
                     contentColor = palette.onSaffron,
-                    modifier = Modifier.semantics { if (badgeDescription != null) contentDescription = badgeDescription },
+                    modifier = Modifier.semantics { contentDescription = badgeDescription },
                 ) { Text(if (badge > 99) "99+" else badge.toString()) }
             },
         ) { Icon(imageVector = icon, contentDescription = null) }
