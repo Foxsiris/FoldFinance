@@ -5,12 +5,17 @@ import androidx.sqlite.db.SimpleSQLiteQuery
 import com.foldfinance.core.data.db.FoldFinanceDatabase
 import com.foldfinance.core.data.db.TextNorm
 import com.foldfinance.core.data.db.entity.TransactionEntity
+import com.foldfinance.core.data.db.aliasDisplayNames
 import com.foldfinance.core.data.db.toModel
+import com.foldfinance.core.data.db.toModels
+import com.foldfinance.core.domain.category.MerchantNormalizer
 import com.foldfinance.core.di.DataClock
 import com.foldfinance.core.model.RawMessage
 import com.foldfinance.core.model.Source
 import com.foldfinance.core.model.Transaction
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.time.Clock
 import java.util.UUID
@@ -25,14 +30,20 @@ class TransactionRepositoryImpl @Inject constructor(
 
     private val dao = db.transactionDao()
     private val rawDao = db.rawMessageDao()
+    private val aliasDao = db.merchantAliasDao()
+
+    /** Ключ мерчанта → отображаемое имя; меняется только при изменении таблицы алиасов. */
+    private val displayNames: Flow<Map<String, String>> =
+        aliasDao.observeAll().map { it.aliasDisplayNames() }.distinctUntilChanged()
 
     override fun observe(filter: TransactionFilter): Flow<List<Transaction>> =
-        dao.observeByQuery(buildQuery(filter)).map { list -> list.map { it.toModel() } }
+        combine(dao.observeByQuery(buildQuery(filter)), displayNames) { list, names -> list.toModels(names) }
 
-    override fun observeById(id: Long): Flow<Transaction?> = dao.observeById(id).map { it?.toModel() }
+    override fun observeById(id: Long): Flow<Transaction?> =
+        combine(dao.observeById(id), displayNames) { e, names -> e?.let { listOf(it).toModels(names).single() } }
 
     override fun observeReviewQueue(): Flow<List<Transaction>> =
-        dao.observeReviewQueue().map { list -> list.map { it.toModel() } }
+        combine(dao.observeReviewQueue(), displayNames) { list, names -> list.toModels(names) }
 
     override fun observeReviewCount(): Flow<Int> = dao.observeReviewCount()
 
@@ -91,6 +102,8 @@ class TransactionRepositoryImpl @Inject constructor(
                     searchText = TextNorm.searchText(transaction.merchant, transaction.note),
                     linkedTransactionId = transaction.linkedTransactionId,
                     userEdited = true,
+                    // Пользователь сохранил операцию — категория больше не «предложение ИИ».
+                    aiCategory = false,
                     updatedAt = clock.instant(),
                 ),
             )
@@ -99,7 +112,16 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override suspend fun confirmReview(ids: Collection<Long>) {
         if (ids.isEmpty()) return
-        dao.confirmReview(ids.toList(), clock.millis())
+        db.withTransaction {
+            val now = clock.millis()
+            // Подтверждённое предложение модели запоминается для мерчанта: следующие его операции
+            // получат эту категорию без очереди проверки.
+            dao.getByIds(ids.toList()).filter { it.aiCategory && it.categoryId != null }.forEach { tx ->
+                val key = MerchantNormalizer.canonical(tx.merchant)
+                if (key.isNotEmpty()) aliasDao.confirmCategory(key, requireNotNull(tx.categoryId), now)
+            }
+            dao.confirmReview(ids.toList(), now)
+        }
     }
 
     override suspend fun setCategory(ids: Collection<Long>, categoryId: Long?) {

@@ -9,6 +9,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.foldfinance.app.ai.backfill.AiBackfillScheduler
 import com.foldfinance.app.ingest.sms.DeltaSmsScanWorker
 import com.foldfinance.app.ingest.sms.InitialSmsScanWorker
 import com.foldfinance.app.ingest.sms.LiveScanProgress
@@ -95,12 +96,14 @@ class IngestScheduler @Inject constructor(
     }
 
     /**
-     * Everything that must exist after the app starts: the periodic delta scan and a reparse check.
+     * Everything that must exist after the app starts: the periodic delta scan, a reparse check and a
+     * local-AI backfill pass (returns at once when the AI is off or the model is not ready).
      * Idempotent (KEEP policies). Called on app start, when the listener connects, after onboarding.
      */
     fun ensureScheduled() {
         schedulePeriodicDelta()
         ensureReparse()
+        AiBackfillScheduler.enqueue(appContext)
     }
 
     /**

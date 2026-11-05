@@ -26,6 +26,13 @@ enum class Source { SMS, PUSH, MANUAL }
  * @property needsReview тип или сумма не уверены — операция в очереди проверки.
  * @property userEdited пользователь правил вручную; перепарсинг не перезаписывает поля.
  * @property linkedTransactionId для [Direction.REFUND] — исходная покупка, если найдена.
+ * @property aiParsed операцию извлекла локальная модель (regex-парсер не справился); значения сверены
+ *   с текстом сообщения. UI показывает пометку «Разобрано ИИ» в детали операции.
+ * @property aiCategory категорию предложила модель, пользователь её ещё не подтвердил (операция при этом
+ *   в очереди проверки). Подтверждение или ручная смена категории снимает флаг.
+ * @property merchantDisplayName понятное имя мерчанта (`YANDEX*GO*TAXI` → «Яндекс Go») из таблицы
+ *   алиасов: переименование пользователем приоритетнее имени от модели. `null` — алиаса нет.
+ *   [merchant] остаётся как в сообщении: по нему работают поиск и правила категорий.
  */
 data class Transaction(
     val id: Long = 0,
@@ -46,8 +53,14 @@ data class Transaction(
     val userEdited: Boolean = false,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val aiParsed: Boolean = false,
+    val aiCategory: Boolean = false,
+    val merchantDisplayName: String? = null,
 ) {
     val money: Money get() = Money(amountMinor, currency)
+
+    /** Что показывать в списках, аналитике и подписках: отображаемое имя, иначе мерчант из сообщения. */
+    val displayMerchant: String? get() = merchantDisplayName ?: merchant
 }
 
 /** Статус разбора исходного сообщения. */
@@ -59,6 +72,8 @@ enum class ParseStatus { PARSED, UNCERTAIN, NOT_FINANCIAL, FAILED }
  *
  * @property sourceKey идентичность источника: SMS `_id|date|хеш текста` (старые записи — просто `_id`)
  *   или `key|postTime|хеш текста` уведомления.
+ * @property parserId кто разобрал сообщение: id банковского парсера, `generic` или
+ *   [com.foldfinance.parser.ai.AI_PARSER_ID] (`"ai"`) — локальная модель.
  */
 data class RawMessage(
     val id: Long = 0,
@@ -71,6 +86,30 @@ data class RawMessage(
     val parseStatus: ParseStatus,
     val parserVersion: Int,
     val transactionId: Long?,
+    val parserId: String? = null,
+)
+
+/** Кто задал отображаемое имя мерчанта. Имя пользователя всегда приоритетнее. */
+enum class AliasSource { AI, USER }
+
+/**
+ * Понятное имя мерчанта (`PYATEROCHKA 1234` → «Пятёрочка») и кэш ответа модели по этому мерчанту.
+ *
+ * @property merchantKey [com.foldfinance.core.domain.category.MerchantNormalizer.canonical] сырого названия.
+ * @property displayName имя для показа (имя пользователя, иначе имя от модели); `null` — показывать сырое.
+ * @property source кто задал [displayName].
+ * @property aiCategoryId категория, предложенная моделью (используется, только если правило пользователя
+ *   и словарь ничего не дали).
+ * @property categoryConfirmed пользователь подтвердил предложенную категорию — следующие операции
+ *   мерчанта получают её без очереди проверки.
+ */
+data class MerchantAlias(
+    val merchantKey: String,
+    val displayName: String?,
+    val source: AliasSource,
+    val aiCategoryId: Long?,
+    val categoryConfirmed: Boolean,
+    val updatedAt: Instant,
 )
 
 /**

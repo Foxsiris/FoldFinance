@@ -9,10 +9,12 @@ import com.foldfinance.core.data.db.FoldFinanceDatabase
 import com.foldfinance.core.data.db.dao.CardDao
 import com.foldfinance.core.data.db.dao.CategoryDao
 import com.foldfinance.core.data.db.dao.KnownBalanceDao
+import com.foldfinance.core.data.db.dao.MerchantAliasDao
 import com.foldfinance.core.data.db.dao.MerchantRuleDao
 import com.foldfinance.core.data.db.dao.RawMessageDao
 import com.foldfinance.core.data.db.dao.SubscriptionDao
 import com.foldfinance.core.data.db.dao.TransactionDao
+import com.foldfinance.core.data.ingest.IngestObserver
 import com.foldfinance.core.data.ingest.IngestRepository
 import com.foldfinance.core.data.ingest.IngestRepositoryImpl
 import com.foldfinance.core.data.repository.BalanceRepository
@@ -21,6 +23,8 @@ import com.foldfinance.core.data.repository.CardRepository
 import com.foldfinance.core.data.repository.CardRepositoryImpl
 import com.foldfinance.core.data.repository.CategoryRepository
 import com.foldfinance.core.data.repository.CategoryRepositoryImpl
+import com.foldfinance.core.data.repository.MerchantAliasRepository
+import com.foldfinance.core.data.repository.MerchantAliasRepositoryImpl
 import com.foldfinance.core.data.repository.MerchantRuleRepository
 import com.foldfinance.core.data.repository.MerchantRuleRepositoryImpl
 import com.foldfinance.core.data.repository.SubscriptionRepository
@@ -38,6 +42,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.Multibinds
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import java.io.File
 import java.time.Clock
@@ -87,6 +92,7 @@ object DaoModule {
     @Provides fun cardDao(db: FoldFinanceDatabase): CardDao = db.cardDao()
     @Provides fun knownBalanceDao(db: FoldFinanceDatabase): KnownBalanceDao = db.knownBalanceDao()
     @Provides fun subscriptionDao(db: FoldFinanceDatabase): SubscriptionDao = db.subscriptionDao()
+    @Provides fun merchantAliasDao(db: FoldFinanceDatabase): MerchantAliasDao = db.merchantAliasDao()
 }
 
 @Module
@@ -120,4 +126,8 @@ abstract class RepositoryModule {
     @Binds abstract fun subscriptions(impl: SubscriptionRepositoryImpl): SubscriptionRepository
     @Binds abstract fun ingest(impl: IngestRepositoryImpl): IngestRepository
     @Binds abstract fun unrecognized(impl: UnrecognizedMessagesRepositoryImpl): UnrecognizedMessagesRepository
+    @Binds abstract fun merchantAliases(impl: MerchantAliasRepositoryImpl): MerchantAliasRepository
+
+    /** Наблюдатели приёма (`:app` добавляет запуск дообработки локальной моделью); может быть пусто. */
+    @Multibinds abstract fun ingestObservers(): Set<IngestObserver>
 }

@@ -20,6 +20,7 @@ class IngestRepositoryImpl @Inject constructor(
     private val db: FoldFinanceDatabase,
     private val registry: ParserRegistry,
     @DataClock clock: Clock,
+    private val observers: Set<@JvmSuppressWildcards IngestObserver> = emptySet(),
 ) : IngestRepository {
 
     private val rawDao = db.rawMessageDao()
@@ -43,7 +44,7 @@ class IngestRepositoryImpl @Inject constructor(
             ),
         )
 
-        return db.withTransaction {
+        val outcome = db.withTransaction {
             findDuplicate(input, textHash)?.let { return@withTransaction IngestOutcome.AlreadyProcessed(it.id) }
 
             val raw = newRaw(input, textHash)
@@ -66,6 +67,16 @@ class IngestRepositoryImpl @Inject constructor(
                     needsReview = applied.needsReview,
                 )
             }
+        }
+        notify(outcome)
+        return outcome
+    }
+
+    private fun notify(outcome: IngestOutcome) {
+        if (outcome is IngestOutcome.AlreadyProcessed) return
+        for (observer in observers) {
+            // Наблюдатель не может сломать приём: операция уже записана.
+            runCatching { observer.onIngested(outcome) }
         }
     }
 

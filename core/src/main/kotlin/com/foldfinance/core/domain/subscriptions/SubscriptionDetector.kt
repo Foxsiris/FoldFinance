@@ -178,7 +178,7 @@ object SubscriptionDetector {
         val category = chain.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
             .maxByOrNull { it.value }?.key
         return SubscriptionCandidate(
-            merchant = last.merchant ?: merchantKey,
+            merchant = last.displayMerchant ?: merchantKey,
             merchantKey = merchantKey,
             currency = currency,
             typicalAmountMinor = median(chain.map { it.amountMinor }),

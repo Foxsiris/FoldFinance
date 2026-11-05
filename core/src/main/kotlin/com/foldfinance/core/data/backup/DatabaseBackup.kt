@@ -41,6 +41,7 @@ class DatabaseBackup @Inject constructor(
             rawMessages = sql.rows("SELECT * FROM raw_messages ORDER BY id") { readRawMessage() },
             knownBalances = sql.rows("SELECT * FROM known_balances ORDER BY id") { readBalance() },
             subscriptions = sql.rows("SELECT * FROM subscriptions ORDER BY id") { readSubscription() },
+            merchantAliases = sql.rows("SELECT * FROM merchant_alias ORDER BY merchant_key") { readAlias() },
         )
     }
 
@@ -68,6 +69,7 @@ class DatabaseBackup @Inject constructor(
             snapshot.rawMessages.forEach { sql.put("raw_messages", it.values()) }
             snapshot.knownBalances.forEach { sql.put("known_balances", it.values()) }
             snapshot.subscriptions.forEach { sql.put("subscriptions", it.values()) }
+            snapshot.merchantAliases.forEach { sql.put("merchant_alias", it.values()) }
 
             CategorySeeder.seed(db.categoryDao())
         }
@@ -76,6 +78,7 @@ class DatabaseBackup @Inject constructor(
     companion object {
         /** Таблицы данных в порядке удаления (сначала зависимые). */
         val TABLES_DELETE_ORDER: List<String> = listOf(
+            "merchant_alias",
             "known_balances",
             "raw_messages",
             "subscriptions",
@@ -154,6 +157,8 @@ private fun Cursor.readTransaction() = TransactionRow(
     createdAt = long("created_at"),
     updatedAt = long("updated_at"),
     reviewConfirmed = bool("review_confirmed"),
+    aiParsed = bool("ai_parsed"),
+    aiCategory = bool("ai_category"),
 )
 
 private fun Cursor.readRawMessage() = RawMessageRow(
@@ -170,6 +175,7 @@ private fun Cursor.readRawMessage() = RawMessageRow(
     parserId = strOrNull("parser_id"),
     transactionId = longOrNull("transaction_id"),
     userDeleted = bool("user_deleted"),
+    aiAttemptedAt = longOrNull("ai_attempted_at"),
 )
 
 private fun Cursor.readBalance() = KnownBalanceRow(
@@ -251,6 +257,8 @@ private fun TransactionRow.values() = ContentValues().apply {
     put("created_at", createdAt)
     put("updated_at", updatedAt)
     put("review_confirmed", reviewConfirmed.int())
+    put("ai_parsed", aiParsed.int())
+    put("ai_category", aiCategory.int())
 }
 
 private fun RawMessageRow.values() = ContentValues().apply {
@@ -267,6 +275,7 @@ private fun RawMessageRow.values() = ContentValues().apply {
     put("parser_id", parserId)
     put("transaction_id", transactionId)
     put("user_deleted", userDeleted.int())
+    put("ai_attempted_at", aiAttemptedAt)
 }
 
 private fun KnownBalanceRow.values() = ContentValues().apply {
@@ -288,4 +297,24 @@ private fun SubscriptionRow.values() = ContentValues().apply {
     put("next_charge_at", nextChargeAt)
     put("status", status)
     put("category_id", categoryId)
+}
+
+private fun Cursor.readAlias() = MerchantAliasRow(
+    merchantKey = str("merchant_key"),
+    aiName = strOrNull("ai_name"),
+    userName = strOrNull("user_name"),
+    aiCategoryId = longOrNull("ai_category_id"),
+    categoryConfirmed = bool("category_confirmed"),
+    aiCheckedAt = longOrNull("ai_checked_at"),
+    updatedAt = long("updated_at"),
+)
+
+private fun MerchantAliasRow.values() = ContentValues().apply {
+    put("merchant_key", merchantKey)
+    put("ai_name", aiName)
+    put("user_name", userName)
+    put("ai_category_id", aiCategoryId)
+    put("category_confirmed", categoryConfirmed.int())
+    put("ai_checked_at", aiCheckedAt)
+    put("updated_at", updatedAt)
 }

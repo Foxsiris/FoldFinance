@@ -5,7 +5,9 @@ import com.foldfinance.core.data.db.FoldFinanceDatabase
 import com.foldfinance.core.di.DataClock
 import com.foldfinance.parser.MessageMeta
 import com.foldfinance.parser.PARSER_VERSION
+import com.foldfinance.parser.ParseResult
 import com.foldfinance.parser.ParserRegistry
+import com.foldfinance.parser.ai.AI_PARSER_ID
 import kotlinx.coroutines.CancellationException
 import java.time.Clock
 import javax.inject.Inject
@@ -27,6 +29,8 @@ data class ReparseReport(
  *
  * - Операции с `userEdited = true` не перезаписываются.
  * - Операции, удалённые пользователем, не воскрешаются.
+ * - Сообщения, разобранные локальной моделью (`parserId = "ai"`), перезаписываются, только если новая
+ *   версия regex-парсера распознала операцию; иначе у них обновляется лишь `parserVersion`.
  * - Операции, которых новый парсер больше не находит, не удаляются, а уходят на проверку.
  * - У сообщения обновляются статус и `parserVersion`. Каждое сообщение — отдельная транзакция БД,
  *   поэтому прерванный перепарсинг продолжается с места остановки.
@@ -72,7 +76,16 @@ class ReparseUseCase @Inject constructor(
                 val applied = try {
                     db.withTransaction {
                         val raw = rawDao.getById(stale.id)
-                        if (raw == null || raw.parserVersion >= PARSER_VERSION) null else writer.apply(raw, result)
+                        when {
+                            raw == null || raw.parserVersion >= PARSER_VERSION -> null
+                            // Разбор моделью (сверенный с текстом) не откатывается к «не распознано»:
+                            // новая версия regex заменяет его, только если сама распознала операцию.
+                            raw.parserId == AI_PARSER_ID && result !is ParseResult.Parsed -> {
+                                rawDao.setParserVersion(raw.id, PARSER_VERSION)
+                                null
+                            }
+                            else -> writer.apply(raw, result)
+                        }
                     }
                 } catch (e: CancellationException) {
                     throw e

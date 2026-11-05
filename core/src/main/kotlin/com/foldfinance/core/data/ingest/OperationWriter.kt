@@ -8,6 +8,8 @@ import com.foldfinance.core.data.db.entity.RawMessageEntity
 import com.foldfinance.core.data.db.entity.TransactionEntity
 import com.foldfinance.core.data.db.toModel
 import com.foldfinance.core.domain.category.Categorizer
+import com.foldfinance.core.domain.category.CategorySource
+import com.foldfinance.core.domain.category.MerchantNormalizer
 import com.foldfinance.core.model.Category
 import com.foldfinance.core.model.MerchantRule
 import com.foldfinance.core.model.ParseStatus
@@ -16,6 +18,7 @@ import com.foldfinance.parser.PARSER_VERSION
 import com.foldfinance.parser.ParseResult
 import com.foldfinance.parser.ParsedBalance
 import com.foldfinance.parser.ParsedOperation
+import com.foldfinance.parser.ai.AI_PARSER_ID
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -31,6 +34,7 @@ internal class OperationWriter(
     private val txDao = db.transactionDao()
     private val rawDao = db.rawMessageDao()
     private val cardDao = db.cardDao()
+    private val aliasDao = db.merchantAliasDao()
 
     data class Applied(
         val transactionIds: List<Long>,
@@ -44,6 +48,8 @@ internal class OperationWriter(
         val ownMasks: Set<String>,
         val rules: List<MerchantRule>,
         val categories: List<Category>,
+        /** Операции сообщения извлекла локальная модель. */
+        val aiParsed: Boolean,
     )
 
     /**
@@ -76,6 +82,7 @@ internal class OperationWriter(
             ownMasks = cardDao.getOwnMasks().toSet(),
             rules = db.merchantRuleDao().getAll().map { it.toModel() },
             categories = db.categoryDao().getAll().map { it.toModel() },
+            aiParsed = parserId == AI_PARSER_ID,
         )
         val existingByIndex = txDao.getByRawMessage(raw.id).associateBy { it.opIndex }
         val ids = mutableListOf<Long>()
@@ -209,6 +216,8 @@ internal class OperationWriter(
             opIndex = index,
             createdAt = now,
             updatedAt = now,
+            aiParsed = ctx.aiParsed,
+            aiCategory = fields.aiCategory,
         )
         val id = txDao.insertIgnore(entity)
         if (id == -1L) {
@@ -282,6 +291,8 @@ internal class OperationWriter(
             reviewConfirmed = confirmed,
             searchText = TextNorm.searchText(effective.merchant, existing.note),
             linkedTransactionId = fields.linkedTransactionId,
+            aiParsed = ctx.aiParsed,
+            aiCategory = fields.aiCategory && !confirmed,
         )
         return if (candidate == existing) existing else candidate.copy(updatedAt = clock.instant())
     }
@@ -291,6 +302,8 @@ internal class OperationWriter(
         val categoryId: Long?,
         val needsReview: Boolean,
         val linkedTransactionId: Long?,
+        /** Категорию предложила модель, и пользователь её для этого мерчанта ещё не подтверждал. */
+        val aiCategory: Boolean,
     )
 
     private suspend fun resolveFields(
@@ -303,14 +316,29 @@ internal class OperationWriter(
         val direction = TransferClassifier.direction(op.kind, op.direction, op.counterpartyCardMask, ctx.ownMasks)
         val purchase = if (direction == Direction.REFUND) findPurchaseFor(op, occurredAt, excludeId) else null
         // Возврат уменьшает расходы своей категории — берём категорию исходной покупки.
-        val categoryId = purchase?.categoryId ?: Categorizer.resolve(
+        if (purchase?.categoryId != null) {
+            return Fields(direction, purchase.categoryId, needsReview(op, uncertain), purchase.id, aiCategory = false)
+        }
+        // Кэш модели по мерчанту (без вызова модели: приём не ждёт ИИ).
+        val alias = MerchantNormalizer.canonical(op.merchant).takeIf { it.isNotEmpty() }?.let { aliasDao.get(it) }
+        val resolution = Categorizer.resolveWithSource(
             merchant = op.merchant,
             direction = direction,
             kind = op.kind,
             rules = ctx.rules,
             categories = ctx.categories,
+            aiCategoryId = alias?.aiCategoryId,
         )
-        return Fields(direction, categoryId, needsReview(op, uncertain), purchase?.id)
+        // Предложение модели не принимается молча: пока пользователь не подтвердил категорию
+        // для этого мерчанта, операция идёт в очередь проверки с пометкой «предложено ИИ».
+        val aiCategory = resolution.source == CategorySource.AI && alias?.categoryConfirmed != true
+        return Fields(
+            direction = direction,
+            categoryId = resolution.categoryId,
+            needsReview = needsReview(op, uncertain) || aiCategory,
+            linkedTransactionId = purchase?.id,
+            aiCategory = aiCategory,
+        )
     }
 
     private suspend fun findPurchaseFor(op: ParsedOperation, occurredAt: Instant, excludeId: Long?): TransactionEntity? {

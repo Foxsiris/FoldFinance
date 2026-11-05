@@ -40,6 +40,8 @@ enum class RelockTimeout(val millis: Long) {
  * @property lockEnabled блокировка BiometricPrompt + PIN устройства при запуске и после фона.
  * @property hideWidgetAmounts виджет показывает «•••» вместо сумм (счётчик «на проверку» остаётся).
  * @property defaultCurrency ISO 4217: валюта сводок «Сегодня / Месяц» и ручного ввода.
+ * @property localAiEnabled локальная модель (Gemini Nano через AICore): разбор нераспознанных SMS, имена
+ *   мерчантов, предложения категорий. Выключено — всё работает как без ИИ.
  */
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -49,6 +51,7 @@ data class AppSettings(
     val relockTimeout: RelockTimeout = RelockTimeout.ONE_MINUTE,
     val defaultCurrency: String = DEFAULT_CURRENCY,
     val hideWidgetAmounts: Boolean = false,
+    val localAiEnabled: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_CURRENCY: String = "RUB"
@@ -97,6 +100,13 @@ class AppPreferences @Inject constructor(
         store.edit { it[HIDE_WIDGET_AMOUNTS] = hide }
     }
 
+    /** «Локальный ИИ» в настройках. Меняется только при смене значения. */
+    val localAiEnabled: Flow<Boolean> = settings.map { it.localAiEnabled }.distinctUntilChanged()
+
+    suspend fun setLocalAiEnabled(enabled: Boolean) {
+        store.edit { it[LOCAL_AI_ENABLED] = enabled }
+    }
+
     /** @param currency ISO 4217, три заглавные буквы. */
     suspend fun setDefaultCurrency(currency: String) {
         require(currency.matches(Regex("^[A-Z]{3}$"))) { "currency must be ISO 4217" }
@@ -113,6 +123,7 @@ class AppPreferences @Inject constructor(
             relockTimeout = enumOr(this[RELOCK_TIMEOUT], defaults.relockTimeout),
             defaultCurrency = this[DEFAULT_CURRENCY] ?: defaults.defaultCurrency,
             hideWidgetAmounts = this[HIDE_WIDGET_AMOUNTS] ?: defaults.hideWidgetAmounts,
+            localAiEnabled = this[LOCAL_AI_ENABLED] ?: defaults.localAiEnabled,
         )
     }
 
@@ -127,6 +138,7 @@ class AppPreferences @Inject constructor(
         val RELOCK_TIMEOUT = stringPreferencesKey("relock_timeout")
         val DEFAULT_CURRENCY = stringPreferencesKey("default_currency")
         val HIDE_WIDGET_AMOUNTS = booleanPreferencesKey("hide_widget_amounts")
+        val LOCAL_AI_ENABLED = booleanPreferencesKey("local_ai_enabled")
     }
 }
 

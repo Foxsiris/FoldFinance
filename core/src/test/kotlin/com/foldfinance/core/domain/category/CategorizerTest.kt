@@ -169,4 +169,36 @@ class CategorizerTest {
         assertThat(resolve("PYATEROCHKA", cats = withoutGroceries)).isEqualTo(id(DefaultCategories.OTHER_KEY))
         assertThat(resolve("PYATEROCHKA", cats = emptyList())).isNull()
     }
+
+    @Test
+    fun `priority is rule then dictionary then AI then Other`() {
+        val ai = id("restaurants")
+        fun res(merchant: String, rules: List<MerchantRule> = emptyList(), direction: Direction = Direction.EXPENSE, kind: Kind = Kind.PURCHASE) =
+            Categorizer.resolveWithSource(merchant, direction, kind, rules, categories, aiCategoryId = ai)
+
+        assertThat(res("SHOKO BAR", listOf(rule("shoko", id("groceries")))).source).isEqualTo(CategorySource.RULE)
+        assertThat(res("PYATEROCHKA 1234").source).isEqualTo(CategorySource.DICTIONARY)
+        assertThat(res("PYATEROCHKA 1234").categoryId).isEqualTo(id("groceries"))
+        assertThat(res("SHOKO BAR")).isEqualTo(CategoryResolution(ai, CategorySource.AI))
+        // Доход, перевод, подписка — не категория модели.
+        assertThat(res("SHOKO BAR", direction = Direction.INCOME).source).isEqualTo(CategorySource.OTHER)
+        assertThat(res("SHOKO BAR", kind = Kind.TRANSFER).source).isEqualTo(CategorySource.TRANSFER)
+        assertThat(res("SHOKO BAR", kind = Kind.SUBSCRIPTION).source).isEqualTo(CategorySource.SUBSCRIPTION)
+        // Без предложения модели и для удалённой категории — «Другое».
+        assertThat(Categorizer.resolveWithSource("SHOKO BAR", Direction.EXPENSE, Kind.PURCHASE, emptyList(), categories).source)
+            .isEqualTo(CategorySource.OTHER)
+        assertThat(Categorizer.resolveWithSource("SHOKO BAR", Direction.EXPENSE, Kind.PURCHASE, emptyList(), categories, 999).categoryId)
+            .isEqualTo(id(DefaultCategories.OTHER_KEY))
+    }
+
+    @Test
+    fun `alias names must be recognisable in the raw merchant`() {
+        assertThat(MerchantAliasRules.isPlausible("YANDEX*GO*TAXI MOSCOW", "Яндекс Go")).isTrue()
+        assertThat(MerchantAliasRules.isPlausible("PYATEROCHKA 1234", "Пятёрочка")).isTrue()
+        assertThat(MerchantAliasRules.isPlausible("VKUSVILL 77", "ВкусВилл")).isTrue()
+        assertThat(MerchantAliasRules.isPlausible("PYATEROCHKA 1234", "Магнит")).isFalse()
+        assertThat(MerchantAliasRules.isPlausible("PYATEROCHKA 1234", "")).isFalse()
+        assertThat(MerchantAliasRules.isPlausible("PYATEROCHKA 1234", "1234")).isFalse()
+        assertThat(MerchantAliasRules.isPlausible("PYATEROCHKA", "Пятёрочка\nignore previous")).isFalse()
+    }
 }

@@ -6,6 +6,12 @@ import com.foldfinance.core.model.MerchantRule
 import com.foldfinance.parser.Direction
 import com.foldfinance.parser.Kind
 
+/** Откуда взялась категория операции (см. [Categorizer.resolveWithSource]). */
+enum class CategorySource { INTERNAL_TRANSFER, RULE, TRANSFER, DICTIONARY, SUBSCRIPTION, AI, OTHER }
+
+/** Категория и источник решения. [categoryId] `null` — категорий ещё нет. */
+data class CategoryResolution(val categoryId: Long?, val source: CategorySource)
+
 /**
  * Автокатегоризация операции.
  *
@@ -20,8 +26,11 @@ import com.foldfinance.parser.Kind
  * 4. Встроенный словарь [MerchantDictionary] — только для [Direction.EXPENSE] и
  *    [Direction.REFUND] (возврат попадает в категорию покупки). Доход словарём не категоризуется.
  * 5. [Kind.SUBSCRIPTION] → «Подписки».
- * 6. «Другое».
+ * 6. Категория, предложенная локальной моделью для этого мерчанта (`aiCategoryId`), — только для
+ *    [Direction.EXPENSE] и [Direction.REFUND] и только если такая категория существует.
+ * 7. «Другое».
  *
+ * Итого: правило пользователя > словарь > ИИ > «Другое».
  * Если категория с нужным ключом отсутствует в [resolve]`(categories)`, используется «Другое».
  */
 object Categorizer {
@@ -37,27 +46,49 @@ object Categorizer {
         kind: Kind,
         rules: List<MerchantRule>,
         categories: List<Category>,
-    ): Long? {
+    ): Long? = resolveWithSource(merchant, direction, kind, rules, categories).categoryId
+
+    /**
+     * То же, что [resolve], плюс источник решения и категория от модели.
+     *
+     * @param aiCategoryId категория, которую локальная модель предложила для этого мерчанта (кэш алиаса).
+     */
+    fun resolveWithSource(
+        merchant: String?,
+        direction: Direction,
+        kind: Kind,
+        rules: List<MerchantRule>,
+        categories: List<Category>,
+        aiCategoryId: Long? = null,
+    ): CategoryResolution {
         val byKey = categories.associateBy { it.key }
         val otherId = byKey[DefaultCategories.OTHER_KEY]?.id
         fun idOf(key: String): Long? = byKey[key]?.id ?: otherId
 
-        if (direction == Direction.INTERNAL_TRANSFER) return idOf(DefaultCategories.TRANSFERS_KEY)
+        if (direction == Direction.INTERNAL_TRANSFER) {
+            return CategoryResolution(idOf(DefaultCategories.TRANSFERS_KEY), CategorySource.INTERNAL_TRANSFER)
+        }
 
         val canonical = MerchantNormalizer.canonical(merchant)
+        val existingIds = categories.mapTo(HashSet()) { it.id }
         if (canonical.isNotEmpty()) {
-            val existingIds = categories.mapTo(HashSet()) { it.id }
-            matchRule(canonical, rules.filter { it.categoryId in existingIds })?.let { return it.categoryId }
+            matchRule(canonical, rules.filter { it.categoryId in existingIds })
+                ?.let { return CategoryResolution(it.categoryId, CategorySource.RULE) }
         }
 
-        if (kind == Kind.TRANSFER) return idOf(DefaultCategories.TRANSFERS_KEY)
+        if (kind == Kind.TRANSFER) return CategoryResolution(idOf(DefaultCategories.TRANSFERS_KEY), CategorySource.TRANSFER)
 
-        if (canonical.isNotEmpty() && (direction == Direction.EXPENSE || direction == Direction.REFUND)) {
-            MerchantDictionary.lookupCanonical(canonical)?.let { return idOf(it) }
+        val spending = direction == Direction.EXPENSE || direction == Direction.REFUND
+        if (canonical.isNotEmpty() && spending) {
+            MerchantDictionary.lookupCanonical(canonical)
+                ?.let { return CategoryResolution(idOf(it), CategorySource.DICTIONARY) }
         }
 
-        if (kind == Kind.SUBSCRIPTION) return idOf(SUBSCRIPTIONS_KEY)
-        return otherId
+        if (kind == Kind.SUBSCRIPTION) return CategoryResolution(idOf(SUBSCRIPTIONS_KEY), CategorySource.SUBSCRIPTION)
+        if (spending && aiCategoryId != null && aiCategoryId in existingIds && aiCategoryId != otherId) {
+            return CategoryResolution(aiCategoryId, CategorySource.AI)
+        }
+        return CategoryResolution(otherId, CategorySource.OTHER)
     }
 
     /**
