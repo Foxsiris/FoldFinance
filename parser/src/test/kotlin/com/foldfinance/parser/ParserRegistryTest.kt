@@ -22,6 +22,16 @@ class ParserRegistryTest {
         assertThat(registry.parserFor(sms("WB Bank")).id).isEqualTo("wbbank")
         assertThat(registry.parserFor(sms("WBBank")).id).isEqualTo("wbbank")
         assertThat(registry.parserFor(sms("Wildberries")).id).isEqualTo("wbbank")
+        // Реальные отправители с телефона пользователя (2026-11-05).
+        assertThat(registry.parserFor(sms("WB-Bank")).id).isEqualTo("wbbank")
+    }
+
+    @Test fun realPackagesFromUserPhone() {
+        // Проверено `adb shell pm list packages` на Fold 8 пользователя (2026-11-05).
+        assertThat(registry.parserFor(push("ru.sberbankmobile")).id).isEqualTo("sber")
+        assertThat(registry.parserFor(push("com.idamob.tinkoff.android")).id).isEqualTo("tbank")
+        assertThat(registry.parserFor(push("ru.sovcomcard.halva.v1")).id).isEqualTo("sovcombank")
+        assertThat(registry.parserFor(push("com.wildberries.ru")).id).isEqualTo("wbbank")
     }
 
     @Test fun senderMatchIsCaseInsensitiveAndTrimmed() {

@@ -27,11 +27,10 @@ data class BankSource(
 /**
  * Единственное место, где перечислены отправители SMS и пакеты приложений банков.
  *
- * **Имена пакетов не проверены на устройстве**: пользователь подтверждает их в белом списке
- * уведомлений (этап 4), а этот список только поднимает банки наверх экрана выбора.
- * У Совкомбанка и ВБ Банка не проверены также **адреса SMS-отправителей** — они взяты из
- * постановки задачи, а не из реальных сообщений. При появлении реальных образцов
- * (`fixtures/raw/<bank>/`) список нужно сверить.
+ * **Проверено на Fold 8 пользователя 2026-11-05** (`adb shell pm list packages`, отправители SMS
+ * из входящих): пакеты всех четырёх банков; SMS-отправители `900`, `T-Bank`, `Sovcombank`, `WB-Bank`.
+ * Остальные варианты отправителей оставлены как синонимы. Пользователь всё равно подтверждает
+ * пакеты в белом списке уведомлений (этап 4); этот список только поднимает банки наверх.
  */
 object KnownBankSources {
 
@@ -51,7 +50,7 @@ object KnownBankSources {
         notificationPackages = setOf("com.idamob.tinkoff.android"),
     )
 
-    /** Совкомбанк (включая карту «Халва»). Отправители и пакет не проверены. */
+    /** Совкомбанк (включая карту «Халва», приложение «Халва-Совкомбанк»). */
     val SOVCOMBANK: BankSource = BankSource(
         bankId = "sovcombank",
         displayName = "Совкомбанк",
@@ -59,12 +58,15 @@ object KnownBankSources {
         notificationPackages = setOf("ru.sovcomcard.halva.v1"),
     )
 
-    /** ВБ Банк (Wildberries Bank). Отправители и пакет не проверены. */
+    /**
+     * ВБ Банк (Wildberries Bank). Отдельного приложения нет: push приходят из приложения Wildberries,
+     * поэтому там же и реклама магазина — её отсекает разбор (NotFinancial).
+     */
     val WBBANK: BankSource = BankSource(
         bankId = "wbbank",
         displayName = "ВБ Банк",
-        smsSenders = setOf("WB Bank", "WBBank", "Wildberries"),
-        notificationPackages = setOf("ru.wildberries.bank"),
+        smsSenders = setOf("WB-Bank", "WB Bank", "WBBank", "Wildberries"),
+        notificationPackages = setOf("com.wildberries.ru"),
     )
 
     /** Все известные банки в порядке приоритета выбора. */

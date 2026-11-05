@@ -1,0 +1,9 @@
+{
+  "description": "РЕАЛЬНЫЙ отправитель SMS ВБ Банка «WB-Bank» (обезличен: код заменён): код подтверждения → не операция",
+  "meta": {
+    "channel": "SMS",
+    "sender": "WB-Bank",
+    "receivedAt": "2026-11-05T22:40:00+03:00"
+  },
+  "result": "NOT_FINANCIAL"
+}

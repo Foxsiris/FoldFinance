@@ -107,6 +107,6 @@ class RobustnessTest {
     }
 
     @Test
-    // v2: реальные форматы Сбера («Счёт карты MIR-») и Халвы («ХАЛВА пополнена … https://»).
-    fun parserVersionIsTwo() = assertThat(PARSER_VERSION).isEqualTo(2)
+    // v3: мерчант из заголовка push (Т-Банк), реальные источники ВБ Банка.
+    fun parserVersionIsThree() = assertThat(PARSER_VERSION).isEqualTo(3)
 }

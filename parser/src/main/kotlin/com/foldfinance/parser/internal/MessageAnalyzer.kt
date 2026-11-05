@@ -149,7 +149,11 @@ internal class MessageAnalyzer(private val profile: BankProfile, private val zon
         }
 
         val balance = balanceOf(balanceAmount, own)
-        val merchant = if (type == OpType.FX) null else extractMerchant(norm, lower, opAmount.range.last + 1)
+        val merchant = if (type == OpType.FX) null else {
+            // Push Т-Банка: «Яндекс Еда» в заголовке, «Покупка на 432 ₽, счет карты *7311» в тексте.
+            extractMerchant(norm, lower, opAmount.range.last + 1)
+                ?: if (kind == Kind.PURCHASE || kind == Kind.SUBSCRIPTION) merchantFromTitle(title) else null
+        }
 
         var confidence = profile.baseConfidence
         if (own == null) confidence -= 0.1f
@@ -293,7 +297,23 @@ internal class MessageAnalyzer(private val profile: BankProfile, private val zon
     private fun uncertain(reason: String, partial: ParsedOperation? = null, balance: ParsedBalance? = null) =
         ParseResult.Uncertain(reason = reason, partial = partial, balance = balance, parserId = profile.parserId)
 
+    /**
+     * Заголовок уведомления как мерчант: только если это не название банка, не вид операции
+     * и в нём нет цифр (суммы, маски, коды) — иначе мерчант остаётся неизвестным.
+     */
+    private fun merchantFromTitle(title: String?): String? {
+        val candidate = title?.trim()?.trimEnd('.', ',', ':')?.takeIf { it.isNotEmpty() } ?: return null
+        if (candidate.length > MAX_MERCHANT_LENGTH || candidate.any { it.isDigit() } || candidate.none { it.isLetter() }) return null
+        val lc = TextNormalizer.matchingForm(TextNormalizer.normalize(candidate))
+        if (TITLE_NOT_MERCHANT.containsMatchIn(lc) || Signals.findOperation(lc) != null) return null
+        return candidate
+    }
+
     private companion object {
+        private val TITLE_NOT_MERCHANT = Regex(
+            "(банк|bank|сбер|sber|tinkoff|тинькофф|халва|halva|совком|sovcom|вайлдберриз|кошел|уведомлен|операци|списан|зачислен|перевод)",
+        )
+
         const val ROLE_WINDOW = 30
         const val MAX_MERCHANT_LENGTH = 64
         private val URL_LIKE = Regex("^(https?://|www\\.)")

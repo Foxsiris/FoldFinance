@@ -1,0 +1,29 @@
+{
+  "description": "РЕАЛЬНЫЙ формат push Т-Банка (обезличен: цифры заменены): мерчант только в заголовке уведомления",
+  "meta": {
+    "channel": "PUSH",
+    "sender": "com.idamob.tinkoff.android",
+    "receivedAt": "2026-11-05T22:40:00+03:00",
+    "title": "Яндекс Еда"
+  },
+  "result": "PARSED",
+  "parserId": "tbank",
+  "operations": [
+    {
+      "amountMinor": 43200,
+      "currency": "RUB",
+      "direction": "EXPENSE",
+      "kind": "PURCHASE",
+      "merchant": "Яндекс Еда",
+      "cardMask": "*7311",
+      "counterpartyCardMask": null,
+      "occurredAt": null,
+      "needsReview": false
+    }
+  ],
+  "balance": {
+    "amountMinor": 1234567,
+    "currency": "RUB",
+    "cardMask": "*7311"
+  }
+}
