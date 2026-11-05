@@ -17,6 +17,12 @@ interface LocalAi {
     /** Готовность модели; UI показывает статус и прячет ИИ-функции, пока не [AiStatus.Ready]. */
     val status: StateFlow<AiStatus>
 
+    /**
+     * Модель готова и принимает изображения (чеки). `false`, пока статус не [AiStatus.Ready] или модель
+     * на устройстве только текстовая. Запрос с [AiRequest.images] без поддержки → [AiResponse.Failed].
+     */
+    val supportsImages: StateFlow<Boolean>
+
     /** Проверить доступность и, если модель можно скачать, запустить загрузку через AICore. */
     suspend fun prepare()
 
@@ -59,6 +65,7 @@ sealed interface AiStatus {
 class UnavailableLocalAi @Inject constructor() : LocalAi {
     private val state = MutableStateFlow<AiStatus>(AiStatus.Unavailable("not_implemented"))
     override val status: StateFlow<AiStatus> = state.asStateFlow()
+    override val supportsImages: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
     override suspend fun prepare() = Unit
     override suspend fun generate(request: AiRequest): AiResponse = AiResponse.Failed("not_implemented")
 }

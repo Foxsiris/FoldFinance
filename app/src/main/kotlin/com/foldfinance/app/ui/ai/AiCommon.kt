@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,13 +23,12 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.foldfinance.app.R
-import com.foldfinance.app.ai.features.common.AiAvailability
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
 
 /**
- * Card of an AI element. Colours come from `MaterialTheme.colorScheme` only, so the card follows
- * whatever palette the app theme provides.
+ * Card of an AI element: the Obsidian `card` colour of the tiles (it reads on the window background
+ * of the outer screen and inside a `surface` panel of the inner one), list-group corners.
  */
 @Composable
 fun AiCard(
@@ -39,7 +37,7 @@ fun AiCard(
     trailing: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Surface(modifier = modifier, shape = FoldShapes.listGroup, color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(modifier = modifier, shape = FoldShapes.listGroup, color = FoldFinanceTheme.palette.card) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -59,19 +57,6 @@ fun AiCard(
             }
             content()
         }
-    }
-}
-
-/** «Модель загружается…» with the download progress when AICore reports it. */
-@Composable
-fun AiLoadingCard(availability: AiAvailability.Loading, title: String, modifier: Modifier = Modifier) {
-    AiCard(title = title, modifier = modifier) {
-        Text(
-            text = stringResource(R.string.aif_model_loading),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        AiProgress(Modifier.fillMaxWidth(), availability.progress)
     }
 }
 

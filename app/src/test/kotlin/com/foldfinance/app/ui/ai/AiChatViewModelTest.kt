@@ -74,12 +74,12 @@ class AiChatViewModelTest {
         assertThat((turn as ChatTurn.NotUnderstood).reason).isEqualTo(QueryRejection.UNKNOWN_CATEGORY)
     }
 
-    @Test fun `hidden while the model is not ready, loading while it downloads`() = runTest {
+    @Test fun `hidden while the model is not ready, also while it downloads`() = runTest {
         val ai = FakeLocalAi(AiStatus.Unavailable("no_aicore"), respond = { AiResponse.Text(taxiToday) })
         val chat = vm(ai)
         assertThat(chat.state.first { it.categories.isNotEmpty() }.availability).isEqualTo(AiAvailability.Hidden)
         ai.state.value = AiStatus.Downloading(50, 200)
-        assertThat(chat.state.first { it.availability is AiAvailability.Loading }.availability).isEqualTo(AiAvailability.Loading(0.25f))
+        assertThat(chat.state.first { it.categories.isNotEmpty() }.availability).isEqualTo(AiAvailability.Hidden)
         chat.actions.setInput("вопрос")
         assertThat(chat.state.first { it.input == "вопрос" }.canSend).isFalse()
     }

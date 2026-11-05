@@ -27,6 +27,8 @@ class FakeLocalAi(
     val requests = mutableListOf<AiRequest>()
     val state = MutableStateFlow(initial)
     override val status = state
+    val images = MutableStateFlow(false)
+    override val supportsImages = images
     override suspend fun prepare() = Unit
     override suspend fun generate(request: AiRequest): AiResponse {
         requests += request

@@ -48,6 +48,7 @@ class AiBackfillFlowTest {
     /** Фейковая модель: отвечает по типу запроса (системному промпту) и считает вызовы. */
     private class FakeLocalAi : LocalAi {
         override val status = MutableStateFlow<AiStatus>(AiStatus.Ready)
+        override val supportsImages = MutableStateFlow(false)
         val requests = mutableListOf<AiRequest>()
         var smsReply: AiResponse = AiResponse.Failed(AiFailureReasons.NOT_READY)
         var merchantReply: AiResponse = AiResponse.Failed(AiFailureReasons.NOT_READY)

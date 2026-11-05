@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.foldfinance.app.ai.features.common.ImageInputSupport
+import com.foldfinance.app.ai.LocalAi
 import com.foldfinance.app.ai.features.receipt.ReceiptImages
 import com.foldfinance.app.ai.features.receipt.ReceiptRecognizer
 import com.foldfinance.app.ai.features.receipt.ReceiptResult
@@ -102,7 +102,7 @@ class ReceiptViewModel @Inject constructor(
     private val recognizer: ReceiptRecognizer,
     private val images: ReceiptImages,
     private val store: ReceiptSplitStore,
-    imageSupport: ImageInputSupport,
+    ai: LocalAi,
     private val transactions: TransactionRepository,
     private val categories: CategoryRepository,
 ) : ViewModel() {
@@ -131,7 +131,7 @@ class ReceiptViewModel @Inject constructor(
         saving,
     ) { phase, lines, printed, isSaving -> Edits(ReceiptPhase.valueOf(phase), decode(lines), printed.takeIf { it > 0 }, isSaving) }
 
-    val state: StateFlow<ReceiptUiState> = combine(edits, transaction, categories.observeAll(), imageSupport.supported) { e, tx, cats, supported ->
+    val state: StateFlow<ReceiptUiState> = combine(edits, transaction, categories.observeAll(), ai.supportsImages) { e, tx, cats, supported ->
         ReceiptUiState(
             phase = e.phase,
             imagesSupported = supported,

@@ -2,7 +2,6 @@
 <!-- ИИ-функции (локальная модель). Префикс aif_. Все суммы в этих строках подставляет приложение. -->
 <resources>
     <!-- Общее -->
-    <string name="aif_model_loading">Модель загружается…</string>
     <string name="aif_footnote_model">Цифры посчитало приложение, текст написала модель на телефоне.</string>
     <string name="aif_footnote_template">Цифры посчитало приложение.</string>
     <string name="aif_close">Закрыть</string>

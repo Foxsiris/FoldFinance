@@ -65,6 +65,8 @@ import com.foldfinance.app.ai.features.receipt.SplitMode
 import com.foldfinance.app.ai.features.receipt.SplitPlan
 import com.foldfinance.app.ui.ai.AiCard
 import com.foldfinance.app.ui.components.MoneyText
+import com.foldfinance.app.ui.components.OutlineButton
+import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
 import com.foldfinance.app.ui.transaction.title
 import com.foldfinance.core.model.Category
@@ -99,12 +101,13 @@ fun ReceiptScanButton(
 
     if (!state.imagesSupported || transaction.direction != Direction.EXPENSE) return
     Box(modifier) {
-        OutlinedButton(onClick = { menu = true }) {
-            Icon(Icons.AutoMirrored.Outlined.ReceiptLong, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.aif_receipt_button))
-        }
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+        ReceiptActionButton(onClick = { menu = true })
+        DropdownMenu(
+            expanded = menu,
+            onDismissRequest = { menu = false },
+            containerColor = FoldFinanceTheme.palette.card,
+            shape = FoldShapes.tile,
+        ) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.aif_receipt_pick)) },
                 leadingIcon = { Icon(Icons.Outlined.PhotoLibrary, contentDescription = null) },
@@ -127,6 +130,18 @@ fun ReceiptScanButton(
         }
     }
     ReceiptReviewSheet(viewModel)
+}
+
+/** Stateless look of [ReceiptScanButton]: «Чек» as an Obsidian outline button (40 dp, like «Изменить»). */
+@Composable
+fun ReceiptActionButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlineButton(
+        text = stringResource(R.string.aif_receipt_button),
+        icon = Icons.AutoMirrored.Outlined.ReceiptLong,
+        onClick = onClick,
+        modifier = modifier,
+        height = 40.dp,
+    )
 }
 
 /** The review as a bottom sheet over the current screen, while a receipt is being read or edited. */

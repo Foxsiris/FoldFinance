@@ -5,9 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.foldfinance.app.ai.features.common.ImageInputSupport
-import com.foldfinance.app.ai.features.common.ProbingImageInputSupport
-import com.foldfinance.app.ai.features.receipt.NoteReceiptSplitStore
+import com.foldfinance.app.ai.features.receipt.CoreReceiptSplitStore
 import com.foldfinance.app.ai.features.receipt.ReceiptSplitStore
 import dagger.Binds
 import dagger.Module
@@ -27,14 +25,9 @@ annotation class AiFeaturesStore
 @InstallIn(SingletonComponent::class)
 abstract class AiFeaturesModule {
 
-    /** Swap for an implementation reading an explicit `LocalAi` capability once it exists. */
+    /** Receipt splits go to `transaction_split` (DB v4); analytics counts each part in its category. */
     @Binds
-    @Singleton
-    abstract fun bindImageInputSupport(impl: ProbingImageInputSupport): ImageInputSupport
-
-    /** Interim: the receipt breakdown goes to the note. With the core split API: bind `CoreReceiptSplitStore`. */
-    @Binds
-    abstract fun bindReceiptSplitStore(impl: NoteReceiptSplitStore): ReceiptSplitStore
+    abstract fun bindReceiptSplitStore(impl: CoreReceiptSplitStore): ReceiptSplitStore
 
     companion object {
         @Provides

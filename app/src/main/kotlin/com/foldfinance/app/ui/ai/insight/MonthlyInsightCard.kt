@@ -27,9 +27,10 @@ import com.foldfinance.app.ai.features.summary.MonthlyInsightGenerator
 import com.foldfinance.app.prefs.AppPreferences
 import com.foldfinance.app.ui.ai.AiCard
 import com.foldfinance.app.ui.ai.AiFootnote
-import com.foldfinance.app.ui.ai.AiLoadingCard
 import com.foldfinance.app.ui.transaction.UiClock
 import com.foldfinance.core.data.repository.CategoryRepository
+import com.foldfinance.core.data.repository.MerchantAliasRepository
+import com.foldfinance.core.domain.category.MerchantNormalizer
 import com.foldfinance.core.data.repository.SubscriptionRepository
 import com.foldfinance.core.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -49,7 +50,6 @@ import javax.inject.Inject
 /** What the monthly card shows. */
 sealed interface InsightCardState {
     data object Hidden : InsightCardState
-    data class Loading(val availability: AiAvailability.Loading) : InsightCardState
 
     /** @property text `null` while the model is writing. */
     data class Ready(val facts: MonthlyFacts, val text: InsightText?) : InsightCardState
@@ -67,14 +67,20 @@ class MonthlyInsightViewModel @Inject constructor(
     transactions: TransactionRepository,
     categories: CategoryRepository,
     subscriptions: SubscriptionRepository,
+    aliases: MerchantAliasRepository,
     preferences: AppPreferences,
     @UiClock clock: Clock,
 ) : ViewModel() {
 
+    private val subscriptionsShown = combine(subscriptions.observeAll(), aliases.observeAll()) { subs, names ->
+        val byKey = names.mapNotNull { a -> a.displayName?.let { a.merchantKey to it } }.toMap()
+        subs.map { s -> byKey[MerchantNormalizer.canonical(s.merchant)]?.let { s.copy(merchant = it) } ?: s }
+    }
+
     private val facts = combine(
         transactions.observe(),
         categories.observeAll(),
-        subscriptions.observeAll(),
+        subscriptionsShown,
         preferences.defaultCurrency,
     ) { txs, cats, subs, currency ->
         MonthlyFactsBuilder.build(txs, cats, subs, LocalDate.now(clock), clock.zone, currency)
@@ -84,8 +90,7 @@ class MonthlyInsightViewModel @Inject constructor(
         .distinctUntilChanged()
         .flatMapLatest { (availability, f) ->
             when {
-                availability is AiAvailability.Loading -> flowOf(InsightCardState.Loading(availability))
-                availability != AiAvailability.Ready || !f.hasData -> flowOf(InsightCardState.Hidden)
+                availability != AiAvailability.Ready || !f.hasData -> flowOf<InsightCardState>(InsightCardState.Hidden)
                 else -> flow {
                     emit(InsightCardState.Ready(f, null))
                     emit(InsightCardState.Ready(f, generator.generate(f)))
@@ -110,7 +115,6 @@ fun MonthlyInsightCardContent(state: InsightCardState, modifier: Modifier = Modi
     val title = stringResource(R.string.aif_insight_title)
     when (state) {
         InsightCardState.Hidden -> Unit
-        is InsightCardState.Loading -> AiLoadingCard(state.availability, title, modifier)
         is InsightCardState.Ready -> AiCard(title = title, modifier = modifier) {
             Text(
                 FactFormat.period(state.facts.current),

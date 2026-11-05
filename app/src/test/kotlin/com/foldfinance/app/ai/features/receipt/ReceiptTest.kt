@@ -1,5 +1,10 @@
 package com.foldfinance.app.ai.features.receipt
 
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.Flow
+import com.foldfinance.core.model.TransactionSplit
+import com.foldfinance.core.data.repository.TransactionSplitRepository
+import com.foldfinance.core.data.repository.SplitPartInput
 import com.foldfinance.app.ai.features.AiData
 import com.foldfinance.app.ui.fakes.FakeTransactionRepository
 import com.google.common.truth.Truth.assertThat
@@ -64,6 +69,35 @@ class ReceiptTest {
         val over = ReceiptSplitPlanner.plan(parent, listOf(ReceiptSplitPlanner.Line("Телевизор", 150_000, other)))
         assertThat(over.remainderMinor).isEqualTo(-50_000)
         assertThat(over.isValid).isFalse()
+    }
+
+    @Test fun `core store saves the parts as a split with their receipt lines`() = runTest {
+        val parent = AiData.tx("2026-11-05T13:42", 100_000, "Пятёрочка", "groceries", id = 7)
+        val other = AiData.category("other").id
+        val saved = mutableListOf<Pair<Long, List<SplitPartInput>>>()
+        val repo = object : TransactionSplitRepository {
+            override fun observe(parentId: Long): Flow<List<TransactionSplit>> = flowOf(emptyList())
+            override suspend fun replace(parentId: Long, parts: List<SplitPartInput>) {
+                saved += parentId to parts
+            }
+        }
+        val store = CoreReceiptSplitStore(repo)
+        assertThat(store.mode).isEqualTo(SplitMode.CATEGORY_SPLIT)
+        val plan = ReceiptSplitPlanner.plan(
+            parent,
+            listOf(
+                ReceiptSplitPlanner.Line("Сыр", 40_000, groceries),
+                ReceiptSplitPlanner.Line("Хлеб", 5_000, groceries),
+                ReceiptSplitPlanner.Line("Губки", 20_000, other),
+            ),
+        )
+        store.save(plan, "ignored")
+        val (id, parts) = saved.single()
+        assertThat(id).isEqualTo(7L)
+        assertThat(parts).containsExactly(
+            SplitPartInput(groceries, 45_000, "Сыр, Хлеб"),
+            SplitPartInput(other, 20_000, "Губки"),
+        ).inOrder()
     }
 
     @Test fun `interim store writes the breakdown to the note without touching the amount`() = runTest {

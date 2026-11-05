@@ -8,7 +8,6 @@ import com.foldfinance.app.ai.AiRequest
 import com.foldfinance.app.ai.AiResponse
 import com.foldfinance.app.ai.AiTier
 import com.foldfinance.app.ai.LocalAi
-import com.foldfinance.app.ai.features.common.ImageInputSupport
 import com.foldfinance.core.model.Category
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +33,6 @@ sealed interface ReceiptResult {
  */
 class ReceiptRecognizer @Inject constructor(
     private val ai: LocalAi,
-    private val images: ImageInputSupport,
 ) {
     suspend fun recognize(image: Bitmap, categories: List<Category>): ReceiptResult {
         val request = AiRequest(
@@ -47,10 +45,7 @@ class ReceiptRecognizer @Inject constructor(
             jsonOnly = true,
         )
         return when (val response = ai.generate(request)) {
-            is AiResponse.Failed -> {
-                images.onImageRequestFailed(response.reason)
-                ReceiptResult.Failed(response.reason)
-            }
+            is AiResponse.Failed -> ReceiptResult.Failed(response.reason)
             is AiResponse.Text -> ReceiptParser.parse(response.text, categories)?.let { ReceiptResult.Read(it) } ?: ReceiptResult.Unreadable
         }
     }

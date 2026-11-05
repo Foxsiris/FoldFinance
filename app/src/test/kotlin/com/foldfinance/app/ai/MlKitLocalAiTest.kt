@@ -22,6 +22,9 @@ class MlKitLocalAiTest {
         var downloads: Map<AiTier, List<DownloadStatus>> = emptyMap()
         var answer: suspend (AiTier, AiRequest) -> String? = { _, _ -> "ok" }
         val generatedWith = mutableListOf<AiTier>()
+        var imageTiers: Set<AiTier> = emptySet()
+
+        override suspend fun supportsImages(tier: AiTier): Boolean = tier in imageTiers
 
         override suspend fun checkStatus(tier: AiTier): Int {
             statusError?.let { throw it }
@@ -49,6 +52,31 @@ class MlKitLocalAiTest {
         val ai = newAi()
         assertThat(ai.status.value).isEqualTo(AiStatus.Ready)
         assertThat(ai.generate(AiRequest("привет"))).isEqualTo(AiResponse.Text("ok"))
+    }
+
+    @Test
+    fun supportsImages_followsBackend_andEnabledSetting() = runTest(UnconfinedTestDispatcher()) {
+        val textOnly = newAi()
+        assertThat(textOnly.supportsImages.value).isFalse()
+
+        backend.imageTiers = setOf(AiTier.FULL)
+        val ai = newAi()
+        assertThat(ai.supportsImages.value).isTrue()
+
+        enabled.value = false
+        assertThat(ai.supportsImages.value).isFalse()
+        enabled.value = true
+        assertThat(ai.supportsImages.value).isTrue()
+    }
+
+    @Test
+    fun imageCapable_byBaseModelName() {
+        assertThat(MlKitNanoBackend.imageCapable("nano-v2")).isTrue()
+        assertThat(MlKitNanoBackend.imageCapable("gemini-nano-v3-xs")).isTrue()
+        assertThat(MlKitNanoBackend.imageCapable("Nano_V10")).isTrue()
+        assertThat(MlKitNanoBackend.imageCapable("nano-v1")).isFalse()
+        assertThat(MlKitNanoBackend.imageCapable("")).isFalse()
+        assertThat(MlKitNanoBackend.imageCapable(null)).isFalse()
     }
 
     @Test

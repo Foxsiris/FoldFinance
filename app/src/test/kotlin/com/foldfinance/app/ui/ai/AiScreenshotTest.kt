@@ -205,12 +205,11 @@ class AiScreenshotTest {
         }
     }
 
-    @Test fun voiceAndLoading() = captureInAllConfigs("ai_voice_loading", configs) {
+    @Test fun voice() = captureInAllConfigs("ai_voice", configs) {
         Cards {
             VoiceListeningContent(VoicePhase.Listening("кофе двести пятьдесят"))
             VoiceListeningContent(VoicePhase.Parsing("кофе двести пятьдесят наличными"))
             VoiceListeningContent(VoicePhase.Error(languageMissing = true))
-            AiLoadingCard(AiAvailability.Loading(0.42f), "Сводка месяца")
         }
     }
 }

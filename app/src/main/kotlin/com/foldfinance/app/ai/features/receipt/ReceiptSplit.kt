@@ -1,6 +1,8 @@
 package com.foldfinance.app.ai.features.receipt
 
+import com.foldfinance.core.data.repository.SplitPartInput
 import com.foldfinance.core.data.repository.TransactionRepository
+import com.foldfinance.core.data.repository.TransactionSplitRepository
 import com.foldfinance.core.model.Transaction
 import javax.inject.Inject
 
@@ -73,7 +75,25 @@ interface ReceiptSplitStore {
     suspend fun save(plan: SplitPlan, noteText: String)
 }
 
-/** Interim store: appends the receipt breakdown to the operation's note (a manual edit). */
+/**
+ * Real split: the parts go to `transaction_split` (replacing an earlier receipt of the operation).
+ * The operation itself is untouched; the remainder stays in its own category.
+ */
+class CoreReceiptSplitStore @Inject constructor(
+    private val splits: TransactionSplitRepository,
+) : ReceiptSplitStore {
+    override val mode: SplitMode = SplitMode.CATEGORY_SPLIT
+
+    override suspend fun save(plan: SplitPlan, noteText: String) {
+        require(plan.isValid) { "invalid split" }
+        splits.replace(
+            plan.parent.id,
+            plan.parts.map { SplitPartInput(it.categoryId, it.amountMinor, it.labels.filter(String::isNotBlank).joinToString(", ")) },
+        )
+    }
+}
+
+/** Fallback store: appends the receipt breakdown to the operation's note (a manual edit). */
 class NoteReceiptSplitStore @Inject constructor(
     private val transactions: TransactionRepository,
 ) : ReceiptSplitStore {

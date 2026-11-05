@@ -44,6 +44,9 @@ import javax.inject.Singleton
  * - **Запрос.** [generate] выбирает запрошенный вариант, а если он не готов — другой готовый (на
  *   части устройств FAST и FULL — одна модель). Таймаут [timeoutMillis]; любые ошибки →
  *   [AiResponse.Failed] с причиной из [AiFailureReasons]. Отмена корутины вызывающего пробрасывается.
+ * - **Изображения.** [supportsImages] — есть готовый вариант, принимающий картинки
+ *   ([NanoBackend.supportsImages], опрашивается вместе со статусом). Запрос с картинками идёт только в
+ *   такой вариант, иначе [AiFailureReasons.IMAGES_NOT_SUPPORTED].
  */
 @Singleton
 class MlKitLocalAi internal constructor(
@@ -63,6 +66,7 @@ class MlKitLocalAi internal constructor(
     private val enabled: StateFlow<Boolean?> = enabledSetting.stateIn(scope, SharingStarted.Eagerly, null)
     private val model = MutableStateFlow<AiStatus>(AiStatus.Checking)
     private val tierStatus = MutableStateFlow<Map<AiTier, Int>>(emptyMap())
+    private val imageTiers = MutableStateFlow<Set<AiTier>>(emptySet())
     private val refreshMutex = Mutex()
     private val downloadMutex = Mutex()
     private var downloadJob: Job? = null
@@ -74,6 +78,10 @@ class MlKitLocalAi internal constructor(
             true -> state
         }
     }.stateIn(scope, SharingStarted.Eagerly, AiStatus.Checking)
+
+    override val supportsImages: StateFlow<Boolean> = combine(status, imageTiers) { st, tiers ->
+        st == AiStatus.Ready && tiers.isNotEmpty()
+    }.stateIn(scope, SharingStarted.Eagerly, false)
 
     init {
         scope.launch {
@@ -107,6 +115,7 @@ class MlKitLocalAi internal constructor(
                 }
             }
             tierStatus.value = statuses
+            imageTiers.value = probeImages(statuses)
             if (downloadJob?.isActive == true) return
             model.value = aggregate(statuses, failure)
             if (statuses.values.any { it == FeatureStatus.DOWNLOADING }) {
@@ -156,6 +165,7 @@ class MlKitLocalAi internal constructor(
                 runCatching { backend.checkStatus(tier) }.getOrDefault(FeatureStatus.UNAVAILABLE)
             }
             tierStatus.value = statuses
+            imageTiers.value = probeImages(statuses)
             val aggregated = aggregate(statuses, null)
             model.value = if (failure != null && aggregated !is AiStatus.Ready) AiStatus.Unavailable(failure!!) else aggregated
             if (BuildConfig.DEBUG && failure != null) Timber.w("AICore download failed: %s", failure)
@@ -166,8 +176,13 @@ class MlKitLocalAi internal constructor(
         if (awaitEnabled() != true) return AiResponse.Failed(AiFailureReasons.DISABLED)
         if (tierStatus.value.isEmpty()) refresh()
         val tier = pickTier(request.tier) ?: return AiResponse.Failed(AiFailureReasons.NOT_READY)
+        val target = if (request.images.isEmpty()) {
+            tier
+        } else {
+            pickImageTier(request.tier) ?: return AiResponse.Failed(AiFailureReasons.IMAGES_NOT_SUPPORTED)
+        }
         return try {
-            val text = withTimeout(timeoutMillis(request)) { backend.generate(tier, request) }
+            val text = withTimeout(timeoutMillis(request)) { backend.generate(target, request) }
             when {
                 text.isNullOrBlank() -> AiResponse.Failed(AiFailureReasons.EMPTY_RESPONSE)
                 request.jsonOnly -> AiResponse.Text(AiJson.extractObject(text) ?: text.trim())
@@ -190,6 +205,23 @@ class MlKitLocalAi internal constructor(
         if (statuses[requested] == FeatureStatus.AVAILABLE) return requested
         return AiTier.entries.firstOrNull { statuses[it] == FeatureStatus.AVAILABLE }
     }
+
+    private fun pickImageTier(requested: AiTier): AiTier? {
+        val tiers = imageTiers.value
+        return if (requested in tiers) requested else AiTier.entries.firstOrNull { it in tiers }
+    }
+
+    /** Готовые варианты, принимающие изображения; ошибка опроса — вариант считается текстовым. */
+    private suspend fun probeImages(statuses: Map<AiTier, Int>): Set<AiTier> =
+        statuses.filterValues { it == FeatureStatus.AVAILABLE }.keys.filterTo(LinkedHashSet()) { tier ->
+            try {
+                backend.supportsImages(tier)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                false
+            }
+        }
 
     private suspend fun awaitEnabled(): Boolean? = enabled.value ?: enabled.filterNotNull().first()
 

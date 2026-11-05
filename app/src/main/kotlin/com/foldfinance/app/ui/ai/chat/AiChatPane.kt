@@ -61,13 +61,14 @@ import com.foldfinance.app.ai.features.query.QueryAnswer
 import com.foldfinance.app.ai.features.query.QueryCall
 import com.foldfinance.app.ai.features.query.QueryRejection
 import com.foldfinance.app.ai.features.query.RowLabel
-import com.foldfinance.app.ui.ai.AiLoadingCard
+import com.foldfinance.app.ui.components.IconCircleButton
 import com.foldfinance.app.ui.components.MoneyStyle
 import com.foldfinance.app.ui.components.MoneyText
 import com.foldfinance.app.ui.components.TransactionRow
 import com.foldfinance.app.ui.format.MoneyFormat
 import com.foldfinance.app.ui.format.SignDisplay
 import com.foldfinance.app.ui.format.monthTitle
+import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
 import com.foldfinance.app.ui.transaction.categoryVisualOrNone
 import com.foldfinance.app.ui.transaction.formatDate
@@ -91,16 +92,17 @@ fun AiChatPane(
     viewModel: AiChatViewModel = hiltViewModel(key = AiChatViewModel.KEY),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    when (val availability = state.availability) {
+    when (state.availability) {
         AiAvailability.Hidden -> fallback()
-        is AiAvailability.Loading -> Box(modifier.padding(16.dp)) {
-            AiLoadingCard(availability, stringResource(R.string.aif_chat_title), Modifier.fillMaxWidth())
-        }
         AiAvailability.Ready -> AiChatContent(state, viewModel.actions, scope, modifier)
     }
 }
 
-/** «Спросить» — opens [AiChatSheet] on the outer screen. Not shown unless the model is ready. */
+/**
+ * «Спросить» — opens [AiChatSheet] on the outer screen: a 44 dp round button for the screen header,
+ * next to search (Obsidian `IconCircleButton`, the sparkle in the accent text colour). Not shown
+ * unless the model is ready.
+ */
 @Composable
 fun AiChatLauncher(
     modifier: Modifier = Modifier,
@@ -108,11 +110,19 @@ fun AiChatLauncher(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     if (state.availability != AiAvailability.Ready) return
-    FilledTonalButton(onClick = { viewModel.actions.setSheetOpen(true) }, modifier = modifier) {
-        Icon(Icons.Outlined.AutoAwesome, contentDescription = null)
-        Spacer(Modifier.padding(start = 8.dp))
-        Text(stringResource(R.string.aif_open_chat))
-    }
+    AiChatLauncherButton(onClick = { viewModel.actions.setSheetOpen(true) }, modifier = modifier)
+}
+
+/** Stateless look of [AiChatLauncher] (screenshots). */
+@Composable
+fun AiChatLauncherButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    IconCircleButton(
+        icon = Icons.Outlined.AutoAwesome,
+        contentDescription = stringResource(R.string.aif_open_chat),
+        onClick = onClick,
+        modifier = modifier,
+        tint = FoldFinanceTheme.palette.accentContent,
+    )
 }
 
 /** Chat as a full-height sheet — the outer screen. Open state survives folding (SavedStateHandle). */

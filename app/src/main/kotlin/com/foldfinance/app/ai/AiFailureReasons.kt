@@ -31,6 +31,9 @@ object AiFailureReasons {
     const val DOWNLOAD_FAILED: String = "download_failed"
     const val NOT_ENOUGH_DISK: String = "not_enough_disk"
 
+    /** Запрос с изображением, а модель на устройстве принимает только текст ([LocalAi.supportsImages]). */
+    const val IMAGES_NOT_SUPPORTED: String = "images_not_supported"
+
     /** Прочие ошибки AICore: `error_<код GenAiException>` или просто `error`. */
     const val ERROR: String = "error"
 

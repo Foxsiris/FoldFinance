@@ -1,5 +1,6 @@
 package com.foldfinance.app.ai
 
+import com.foldfinance.app.BuildConfig
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.prompt.Content
 import com.google.mlkit.genai.prompt.GenerateContentRequest
@@ -13,6 +14,7 @@ import com.google.mlkit.genai.prompt.content
 import com.google.mlkit.genai.prompt.generationConfig
 import com.google.mlkit.genai.prompt.modelConfig
 import kotlinx.coroutines.flow.Flow
+import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,6 +30,12 @@ interface NanoBackend {
 
     /** Загрузка модели системным AICore (сам файл приложению не нужен, сеть — у AICore). */
     fun download(tier: AiTier): Flow<DownloadStatus>
+
+    /**
+     * Принимает ли готовая модель варианта [tier] изображения. Вызывается только для варианта со
+     * статусом AVAILABLE; ошибки пробрасываются (их разбирает [MlKitLocalAi]).
+     */
+    suspend fun supportsImages(tier: AiTier): Boolean
 
     /** Текст первого кандидата ответа или `null`, если кандидатов нет. */
     suspend fun generate(tier: AiTier, request: AiRequest): String?
@@ -65,6 +73,18 @@ class MlKitNanoBackend @Inject constructor() : NanoBackend {
 
     override fun download(tier: AiTier): Flow<DownloadStatus> = client(tier).download()
 
+    /**
+     * ML Kit Prompt API не отдаёт отдельного флага «изображения» (`getAvailableFeatures` знает только
+     * системный промпт, thinking, кэш, structured output и function calling). Мультимодальность
+     * определяется по имени базовой модели, которое сообщает AICore (`getBaseModelName`):
+     * изображения принимает Gemini Nano начиная с nano-v2. Неизвестное имя — только текст.
+     */
+    override suspend fun supportsImages(tier: AiTier): Boolean {
+        val name = client(tier).getBaseModelName()
+        if (BuildConfig.DEBUG) Timber.d("AICore base model for %s: %s", tier, name)
+        return imageCapable(name)
+    }
+
     override suspend fun generate(tier: AiTier, request: AiRequest): String? {
         val model = client(tier)
         val system = request.system?.takeIf { it.isNotBlank() }
@@ -96,7 +116,15 @@ class MlKitNanoBackend @Inject constructor() : NanoBackend {
         return supported
     }
 
-    private companion object {
-        const val JSON_ONLY_SUFFIX = "\n\nОтветь только одним JSON-объектом, без пояснений и без Markdown."
+    companion object {
+        private val NANO_VERSION = Regex("""nano[-_ ]?v(\d+)""", RegexOption.IGNORE_CASE)
+
+        /** `nano-v2`, `gemini-nano-v3`, `Nano_V4` → да; `nano-v1`, пусто, неизвестное — нет. */
+        fun imageCapable(baseModelName: String?): Boolean {
+            val version = baseModelName?.let { NANO_VERSION.find(it) }?.groupValues?.get(1)?.toIntOrNull() ?: return false
+            return version >= 2
+        }
+
+        private const val JSON_ONLY_SUFFIX = "\n\nОтветь только одним JSON-объектом, без пояснений и без Markdown."
     }
 }

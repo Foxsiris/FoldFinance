@@ -30,7 +30,6 @@ import com.foldfinance.app.ai.features.common.AiAvailability
 import com.foldfinance.app.ai.features.common.toAvailability
 import com.foldfinance.app.ui.ai.AiCard
 import com.foldfinance.app.ui.ai.AiFootnote
-import com.foldfinance.app.ui.ai.AiLoadingCard
 import com.foldfinance.app.ui.components.MoneyText
 import com.foldfinance.app.ui.transaction.UiClock
 import com.foldfinance.app.ui.transaction.formatDate
@@ -57,7 +56,6 @@ import javax.inject.Inject
 /** What the anomalies card shows. */
 sealed interface AnomaliesState {
     data object Hidden : AnomaliesState
-    data class Loading(val availability: AiAvailability.Loading) : AnomaliesState
 
     /** @property explanations accepted model texts by [Anomaly.key]; missing → template sentence. */
     data class Ready(
@@ -89,8 +87,7 @@ class AnomaliesViewModel @Inject constructor(
         .distinctUntilChanged()
         .flatMapLatest { (availability, list) ->
             when {
-                availability is AiAvailability.Loading -> flowOf(AnomaliesState.Loading(availability))
-                availability != AiAvailability.Ready || list.isEmpty() -> flowOf(AnomaliesState.Hidden)
+                availability != AiAvailability.Ready || list.isEmpty() -> flowOf<AnomaliesState>(AnomaliesState.Hidden)
                 else -> flow {
                     val today = LocalDate.now(clock)
                     emit(AnomaliesState.Ready(list, emptyMap(), explaining = true, today, clock.zone))
@@ -124,7 +121,6 @@ fun AnomaliesCardContent(state: AnomaliesState, modifier: Modifier = Modifier, o
     val title = stringResource(R.string.aif_anomalies_title)
     when (state) {
         AnomaliesState.Hidden -> Unit
-        is AnomaliesState.Loading -> AiLoadingCard(state.availability, title, modifier)
         is AnomaliesState.Ready -> AiCard(title = title, modifier = modifier) {
             state.anomalies.forEachIndexed { index, anomaly ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
