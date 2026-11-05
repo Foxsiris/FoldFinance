@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Add
@@ -43,6 +44,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,9 +67,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.foldfinance.app.R
+import com.foldfinance.app.ai.features.common.AiAvailability
 import com.foldfinance.app.ai.features.query.ChatScope
 import com.foldfinance.app.ui.ai.anomalies.AnomaliesCard
 import com.foldfinance.app.ui.ai.chat.AiChatLauncher
+import com.foldfinance.app.ui.ai.chat.AiChatLauncherButton
+import com.foldfinance.app.ui.ai.chat.AiChatPane
+import com.foldfinance.app.ui.ai.chat.AiChatViewModel
 import com.foldfinance.app.ui.ai.chat.AiChatSheet
 import com.foldfinance.app.ui.ai.insight.MonthlyInsightCard
 import com.foldfinance.app.ui.components.AccentFab
@@ -162,6 +168,21 @@ fun OverviewRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addState by addForm.state.collectAsStateWithLifecycle()
+    val chatShown by viewModel.chatShown.collectAsStateWithLifecycle()
+    val chatVm: AiChatViewModel = hiltViewModel(key = AiChatViewModel.KEY)
+    val chatState by chatVm.state.collectAsStateWithLifecycle()
+    val chatReady = chatState.availability == AiAvailability.Ready
+    val layout = LocalAppLayout.current
+    // The conversation follows the fold: the pane inside becomes the sheet outside and back.
+    LaunchedEffect(layout is AppLayout.Compact, chatShown, chatState.sheetOpen) {
+        if (layout is AppLayout.Compact && chatShown) {
+            viewModel.showChat(false)
+            chatVm.actions.setSheetOpen(true)
+        } else if (layout !is AppLayout.Compact && chatState.sheetOpen) {
+            chatVm.actions.setSheetOpen(false)
+            viewModel.showChat(true)
+        }
+    }
     val shell = LocalShellNavigation.current
     SavedSnackbarEffect(addForm.formEvents)
     val actions = remember(viewModel, addForm, shell) {
@@ -189,10 +210,19 @@ fun OverviewRoute(
             MonthlyInsightCard(cardModifier)
             AnomaliesCard(cardModifier)
         },
-        chatAction = { m -> AiChatLauncher(m) },
+        chatAction = { m ->
+            if (layout is AppLayout.Compact) {
+                AiChatLauncher(m, viewModel = chatVm)
+            } else if (chatReady) {
+                AiChatLauncherButton(onClick = { viewModel.showChat(true) }, modifier = m)
+            }
+        },
+        chatShown = chatShown && chatReady,
+        onCloseChat = { viewModel.showChat(false) },
+        chatPane = { m -> AiChatPane(scope = ChatScope(), modifier = m, viewModel = chatVm) },
     )
     // The chat sheet of the outer screen; its open state lives in the chat ViewModel (SavedStateHandle).
-    if (LocalAppLayout.current is AppLayout.Compact) AiChatSheet(ChatScope())
+    if (layout is AppLayout.Compact) AiChatSheet(ChatScope(), viewModel = chatVm)
 }
 
 @Composable
@@ -207,6 +237,9 @@ fun OverviewScreen(
     layout: AppLayout = LocalAppLayout.current,
     aiCards: @Composable (cardModifier: Modifier) -> Unit = {},
     chatAction: @Composable (Modifier) -> Unit = {},
+    chatShown: Boolean = false,
+    onCloseChat: () -> Unit = {},
+    chatPane: @Composable (Modifier) -> Unit = {},
 ) {
     if (state.loading) {
         Box(modifier.fillMaxSize())
@@ -214,6 +247,7 @@ fun OverviewScreen(
     }
     // In a pane the form closes with «Назад» (on the outer screen the sheet handles it itself).
     BackHandler(enabled = addState.isOpen && layout !is AppLayout.Compact) { addActions.close() }
+    BackHandler(enabled = chatShown && !addState.isOpen && layout is AppLayout.Book) { onCloseChat() }
     when (layout) {
         is AppLayout.Compact -> {
             CompactOverview(state, actions, zone, modifier, aiCards, chatAction)
@@ -243,8 +277,24 @@ fun OverviewScreen(
                             fillHeight = true,
                             contentPadding = PaddingValues(horizontal = 22.dp, vertical = 18.dp),
                         )
+                    } else if (chatShown) {
+                        Column(Modifier.fillMaxSize()) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(start = 12.dp, end = 22.dp, top = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                IconCircleButton(
+                                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                                    contentDescription = stringResource(R.string.overview_chat_back),
+                                    onClick = onCloseChat,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                ScreenTitle(stringResource(R.string.overview_chat_title), Modifier.weight(1f))
+                            }
+                            chatPane(Modifier.weight(1f).fillMaxWidth())
+                        }
                     } else {
-                        ListPane(state, actions, zone, Modifier.fillMaxSize(), horizontal = 14.dp)
+                        ListPane(state, actions, zone, Modifier.fillMaxSize(), horizontal = 14.dp, headerAction = chatAction)
                     }
                 }
             },
@@ -854,6 +904,7 @@ private fun ListPane(
     modifier: Modifier,
     horizontal: Dp,
     showTitle: Boolean = true,
+    headerAction: @Composable (Modifier) -> Unit = {},
 ) {
     val palette = FoldFinanceTheme.palette
     val chips = selectionChips(state, actions)
@@ -866,6 +917,7 @@ private fun ListPane(
                 Row(Modifier.fillMaxWidth().padding(start = 8.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     ScreenTitle(stringResource(R.string.overview_list_title), Modifier.weight(1f))
                     if (state.hasAnyTransactions) {
+                        headerAction(Modifier.padding(end = 8.dp))
                         IconCircleButton(
                             icon = Icons.Outlined.Search,
                             contentDescription = stringResource(R.string.overview_search),

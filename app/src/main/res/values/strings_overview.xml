@@ -87,4 +87,6 @@
     <string name="overview_days_range">%1$d–%2$s</string>
     <string name="overview_days_range_long">%1$s – %2$s</string>
     <string name="overview_chart_description_static">Расходы по дням месяца, больше всего за день %1$s.</string>
+    <string name="overview_chat_title">Спросить</string>
+    <string name="overview_chat_back">Вернуться к операциям</string>
 </resources>

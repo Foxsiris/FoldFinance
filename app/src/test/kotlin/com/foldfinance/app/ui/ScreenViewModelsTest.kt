@@ -219,6 +219,14 @@ class ScreenViewModelsTest {
         subscriptions, preferences, ScreenshotClock,
     )
 
+    @Test fun `overview chat pane survives recreation`() = runTest {
+        val handle = SavedStateHandle()
+        overview(handle).showChat(true)
+        assertThat(overview(handle).chatShown.value).isTrue()
+        overview(handle).showChat(false)
+        assertThat(overview(handle).chatShown.value).isFalse()
+    }
+
     @Test fun `overview totals are by known operations - refunds reduce, transfers and income do not count`() = runTest {
         overview(SavedStateHandle()).state.test {
             var state = awaitItem()

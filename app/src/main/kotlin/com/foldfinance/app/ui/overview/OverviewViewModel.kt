@@ -175,6 +175,13 @@ class OverviewViewModel @Inject constructor(
         handle[KEY_BAR] = null
     }
 
+    /** Book: the right panel shows the chat with the local model instead of the operations list. */
+    val chatShown: StateFlow<Boolean> = handle.getStateFlow(KEY_CHAT, false)
+
+    fun showChat(show: Boolean) {
+        handle[KEY_CHAT] = show
+    }
+
     private fun periodOf(choice: PeriodChoice, now: Instant): Period = when (choice) {
         PeriodChoice.Day -> Period.containing(PeriodType.DAY, now, clock.zone)
         PeriodChoice.Week -> Period.containing(PeriodType.WEEK, now, clock.zone)
@@ -304,6 +311,7 @@ class OverviewViewModel @Inject constructor(
         const val KEY_PERIOD = "overview.period"
         const val KEY_CATEGORY = "overview.category"
         const val KEY_BAR = "overview.bar"
+        const val KEY_CHAT = "overview.chat"
         private const val UNCATEGORIZED = -1L
 
         /** Operations in «Последние» of the outer screen; the rest is one tap away in History. */
