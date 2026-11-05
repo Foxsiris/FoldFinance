@@ -10,13 +10,14 @@
 | Скриншоты | `verifyRoborazziDebug` | Roborazzi + Robolectric | каждый основной экран × {внешний, внутренний, tabletop} × {светлая, тёмная} |
 | Безопасность | `:app:testDebugUnitTest` | Robolectric | merged manifest без INTERNET, allowBackup=false, экспорт/импорт AES-GCM round-trip, неверный пароль |
 
-## Конфигурации устройств (оценка до замера, этап 0)
+## Конфигурации устройств (замер на Fold 8, 2026-11-05)
 
-- Внешний: 411 × 658 dp (Compact).
-- Внутренний, книжная поза: 882 × 662 dp, вертикальный шарнир на x = 441 dp.
-- Tabletop: 662 × 882 dp, горизонтальный шарнир на y = 441 dp, HALF_OPENED.
+- Внешний: 475 × 751 dp (Compact).
+- Внутренний, книжная поза: 933 × 704 dp, вертикальный шарнир на x = 466.5 dp.
+- Tabletop: 704 × 933 dp, горизонтальный шарнир на y = 466.5 dp, HALF_OPENED.
+- Плюс узкие случаи: `inner_portrait` 674 × 841 (эмулятор 7.6"), `outer_narrow` 337 × 841.
 
-Значения живут в `app/src/test/.../DeviceConfigs.kt`; после замера на телефоне заменить.
+Значения живут в `app/src/test/.../DeviceConfigs.kt`.
 
 ## Что не покрывается автоматически
 

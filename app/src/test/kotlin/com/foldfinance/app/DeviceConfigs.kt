@@ -11,9 +11,9 @@ import com.foldfinance.app.ui.layout.computeAppLayout
 /**
  * A window configuration for screenshot tests.
  *
- * **Оценка до замера на устройстве** (docs/testing-strategy.md): sizes and hinge positions are
- * estimates for Galaxy Z Fold 8. After measuring with «Диагностика окна» on the phone, replace
- * the numbers here (and in CLAUDE.md) and re-record the screenshots.
+ * Sizes are **measured on Galaxy Z Fold 8 (SM-F971B, Android 17) on 2026-11-05** with `adb shell dumpsys`:
+ * inner 2448×1848 px, outer 1248×1972 px, both 420 dpi (2.625). The hinge is taken at the centre of the
+ * inner screen; confirm the exact FoldingFeature bounds with «Диагностика окна» and update here and in CLAUDE.md.
  *
  * @property id file-name part of screenshots.
  * @property folds folding features in window dp, as WindowManager would report them.
@@ -43,26 +43,26 @@ data class DeviceConfig(
 
 /** The three Fold 8 configurations every main screen is captured in. */
 object DeviceConfigs {
-    /** Outer screen, 5.5" 16:10 — Compact, one hand. Estimate. */
-    val Outer = DeviceConfig(id = "outer", widthDp = 411, heightDp = 658, folds = emptyList())
+    /** Outer screen, 16:10 — Compact, one hand. Measured: 475 × 751 dp. */
+    val Outer = DeviceConfig(id = "outer", widthDp = 475, heightDp = 751, folds = emptyList())
 
-    /** Inner screen unfolded flat, natural landscape, vertical hinge in the middle. Estimate. */
+    /** Inner screen unfolded flat, natural landscape, vertical hinge in the middle. Measured: 933 × 704 dp. */
     val Inner = DeviceConfig(
         id = "inner",
-        widthDp = 882,
-        heightDp = 662,
+        widthDp = 933,
+        heightDp = 704,
         folds = listOf(
-            Fold(DpBounds(441f, 0f, 441f, 662f), FoldState.FLAT, FoldOrientation.VERTICAL, isSeparating = false),
+            Fold(DpBounds(466.5f, 0f, 466.5f, 704f), FoldState.FLAT, FoldOrientation.VERTICAL, isSeparating = false),
         ),
     )
 
-    /** Inner screen rotated, half-opened: horizontal hinge, top to look, bottom to touch. Estimate. */
+    /** Inner screen rotated, half-opened: horizontal hinge, top to look, bottom to touch. Measured size. */
     val Tabletop = DeviceConfig(
         id = "tabletop",
-        widthDp = 662,
-        heightDp = 882,
+        widthDp = 704,
+        heightDp = 933,
         folds = listOf(
-            Fold(DpBounds(0f, 441f, 662f, 441f), FoldState.HALF_OPENED, FoldOrientation.HORIZONTAL, isSeparating = true),
+            Fold(DpBounds(0f, 466.5f, 704f, 466.5f), FoldState.HALF_OPENED, FoldOrientation.HORIZONTAL, isSeparating = true),
         ),
     )
 
