@@ -116,10 +116,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setAutoTracking(enabled: Boolean) = launch { ingestSettings.setAutoTrackingEnabled(enabled) }
 
-    fun setOwnCard(mask: String, own: Boolean) = launch { cards.setOwn(mask, own) }
-
-    fun setCardLabel(mask: String, label: String) = launch { cards.setLabel(mask, label.trim().ifEmpty { null }) }
-
     fun setDefaultCurrency(currency: String) = launch {
         preferences.setDefaultCurrency(currency)
         FinanceWidgetUpdater.requestUpdate(context)

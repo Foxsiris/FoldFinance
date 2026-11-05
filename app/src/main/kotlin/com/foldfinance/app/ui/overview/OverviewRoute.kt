@@ -102,6 +102,7 @@ import com.foldfinance.app.ui.layout.AppLayout
 import com.foldfinance.app.ui.layout.LocalAppLayout
 import com.foldfinance.app.ui.layout.TwoPane
 import com.foldfinance.app.ui.shell.LocalShellNavigation
+import com.foldfinance.app.ui.accounts.AccountsRoute
 import com.foldfinance.app.ui.shell.Section
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
@@ -138,6 +139,9 @@ interface OverviewActions {
     fun openHistory()
     fun openSubscriptions()
     fun add()
+
+    /** Tap on the known balances: «Счета и карты». */
+    fun openAccounts() {}
 }
 
 /** Periods of the overview chart (a single day has nothing to chart). */
@@ -184,6 +188,13 @@ fun OverviewRoute(
         }
     }
     val shell = LocalShellNavigation.current
+    val accountsShown by viewModel.accountsShown.collectAsStateWithLifecycle()
+    // The rail's «+» opens the add form of the overview: leave «Счета и карты» for it.
+    LaunchedEffect(addState.isOpen) { if (addState.isOpen) viewModel.showAccounts(false) }
+    if (accountsShown) {
+        AccountsRoute(modifier, onBack = { viewModel.showAccounts(false) })
+        return
+    }
     SavedSnackbarEffect(addForm.formEvents)
     val actions = remember(viewModel, addForm, shell) {
         object : OverviewActions {
@@ -196,6 +207,7 @@ fun OverviewRoute(
             override fun openHistory() = shell.openSection(Section.History)
             override fun openSubscriptions() = shell.openSection(Section.Subscriptions)
             override fun add() = addForm.openAdd()
+            override fun openAccounts() = viewModel.showAccounts(true)
         }
     }
     OverviewScreen(
@@ -415,7 +427,7 @@ private fun CompactOverview(
             // Hidden cards draw nothing, so the column collapses to zero height without the model.
             item(key = "ai") { Column { aiCards(Modifier.fillMaxWidth().padding(top = 10.dp)) } }
             if (state.balances.isNotEmpty()) {
-                item(key = "balances") { Balances(state.balances, state.today, zone, Modifier.padding(top = 14.dp)) }
+                item(key = "balances") { Balances(state.balances, state.today, zone, actions::openAccounts, Modifier.padding(top = 14.dp)) }
             }
             // The outer-screen bar has five items; «Подписки» live here (and in «Настройки»).
             item(key = "subscriptions") { SubscriptionsRow(state, actions::openSubscriptions, Modifier.padding(top = 10.dp)) }
@@ -665,7 +677,7 @@ private fun SummaryPanelContent(
         highlightColor = selectedCategoryColor(state),
         today = state.today,
     )
-    if (state.balances.isNotEmpty()) Balances(state.balances, state.today, zone)
+    if (state.balances.isNotEmpty()) Balances(state.balances, state.today, zone, actions::openAccounts)
     CategoryBreakdown(state, actions)
     aiCards(Modifier.fillMaxWidth())
 }
@@ -864,14 +876,39 @@ private fun CategoryFilterStrip(state: OverviewUiState, actions: OverviewActions
 
 /**
  * Known bank balances, never mixed with totals: «Остаток •• 1234 на 14:05 … 48 210 ₽». Caption and
- * amount side by side when every line fits; otherwise all captions go over their amounts.
+ * amount side by side when every line fits; otherwise all captions go over their amounts. The whole
+ * block opens «Счета и карты» ([onOpen]); its header says so.
  */
 @Composable
-private fun Balances(balances: List<KnownBalance>, today: LocalDate, zone: ZoneId, modifier: Modifier = Modifier) {
+private fun Balances(balances: List<KnownBalance>, today: LocalDate, zone: ZoneId, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val palette = FoldFinanceTheme.palette
+    val openLabel = stringResource(R.string.accounts_entry_description)
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(FoldShapes.key)
+            .clickable(role = Role.Button, onClickLabel = openLabel, onClick = onOpen)
+            .padding(vertical = 4.dp),
+    ) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 28.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.accounts_entry),
+                style = FoldTextStyles.caption,
+                color = palette.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = palette.textMuted, modifier = Modifier.size(18.dp))
+        }
+        BalanceLines(balances, today, zone)
+    }
+}
+
+@Composable
+private fun BalanceLines(balances: List<KnownBalance>, today: LocalDate, zone: ZoneId) {
     val palette = FoldFinanceTheme.palette
     LabeledAmountGroup(
         count = balances.size,
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         rowMinHeight = 26.dp,
         rowSpacing = 2.dp,
         label = { index ->

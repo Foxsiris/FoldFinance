@@ -35,6 +35,11 @@ enum class Source { SMS, PUSH, MANUAL }
  *   [merchant] остаётся как в сообщении: по нему работают поиск и правила категорий.
  * @property splits части операции по категориям (разбиение по чеку); пусто — операция целиком в
  *   [categoryId]. Сумма частей не больше [amountMinor], остаток — в [categoryId].
+ * @property counterpartyCardMask маска карты получателя/отправителя перевода из сообщения; `null` — не указана.
+ *   Только для чтения: правка операции её не меняет.
+ * @property parsedDirection направление, как его вернул парсер (до превращения в
+ *   [Direction.INTERNAL_TRANSFER]): `EXPENSE` — деньги ушли с [cardMask], `INCOME` — пришли на неё.
+ *   `null` — неизвестно (модель собрана не из БД). Только для чтения.
  */
 data class Transaction(
     val id: Long = 0,
@@ -59,6 +64,8 @@ data class Transaction(
     val aiCategory: Boolean = false,
     val merchantDisplayName: String? = null,
     val splits: List<TransactionSplit> = emptyList(),
+    val counterpartyCardMask: String? = null,
+    val parsedDirection: Direction? = null,
 ) {
     val money: Money get() = Money(amountMinor, currency)
 

@@ -6,12 +6,14 @@ import com.foldfinance.core.domain.category.MerchantNormalizer
 import com.foldfinance.core.data.repository.MerchantAliasRepository
 import com.foldfinance.core.data.repository.AddRuleResult
 import com.foldfinance.core.data.repository.BalanceRepository
+import com.foldfinance.core.data.repository.CardRepository
 import com.foldfinance.core.data.repository.CategoryRepository
 import com.foldfinance.core.data.repository.ManualTransactionInput
 import com.foldfinance.core.data.repository.MerchantRuleRepository
 import com.foldfinance.core.data.repository.TransactionFilter
 import com.foldfinance.core.data.repository.TransactionRepository
 import com.foldfinance.core.data.repository.TransactionSort
+import com.foldfinance.core.model.Card
 import com.foldfinance.core.model.Category
 import com.foldfinance.core.model.KnownBalance
 import com.foldfinance.core.model.MerchantRule
@@ -146,10 +148,27 @@ class FakeMerchantRuleRepository : MerchantRuleRepository {
     override suspend fun delete(id: Long) = rules.update { l -> l.filterNot { it.id == id } }
 }
 
+/** Every known balance (history); «latest» is the newest per card, like the Room query. */
 class FakeBalanceRepository(initial: List<KnownBalance> = emptyList()) : BalanceRepository {
     val items = MutableStateFlow(initial)
-    override fun observeLatest(): Flow<List<KnownBalance>> = items
-    override fun observeLatest(cardMask: String): Flow<KnownBalance?> = items.map { l -> l.firstOrNull { it.cardMask == cardMask } }
+    override fun observeLatest(): Flow<List<KnownBalance>> = items.map { l ->
+        l.groupBy { it.cardMask }.values.map { perCard -> perCard.maxBy { it.asOf } }.sortedBy { it.cardMask }
+    }
+    override fun observeLatest(cardMask: String): Flow<KnownBalance?> =
+        items.map { l -> l.filter { it.cardMask == cardMask }.maxByOrNull { it.asOf } }
+    override fun observeHistory(cardMask: String): Flow<List<KnownBalance>> =
+        items.map { l -> l.filter { it.cardMask == cardMask }.sortedByDescending { it.asOf } }
+}
+
+/** In-memory [CardRepository]: own cards first, then by mask; records the calls. */
+class FakeCardRepository(initial: List<Card> = emptyList()) : CardRepository {
+    val items = MutableStateFlow(initial)
+    override fun observeAll(): Flow<List<Card>> = items.map { l -> l.sortedWith(compareByDescending<Card> { it.isOwn }.thenBy { it.mask }) }
+    override suspend fun setOwn(mask: String, isOwn: Boolean) = upsert(mask) { it.copy(isOwn = isOwn) }
+    override suspend fun setLabel(mask: String, label: String?) = upsert(mask) { it.copy(label = label) }
+    private fun upsert(mask: String, change: (Card) -> Card) = items.update { l ->
+        if (l.any { it.mask == mask }) l.map { if (it.mask == mask) change(it) else it } else l + change(Card(mask, null, false))
+    }
 }
 
 class FakeMerchantAliasRepository(initial: List<MerchantAlias> = emptyList()) : MerchantAliasRepository {

@@ -182,6 +182,13 @@ class OverviewViewModel @Inject constructor(
         handle[KEY_CHAT] = show
     }
 
+    /** «Счета и карты» opened from the balances block, over the overview (saved: survives folding). */
+    val accountsShown: StateFlow<Boolean> = handle.getStateFlow(KEY_ACCOUNTS, false)
+
+    fun showAccounts(show: Boolean) {
+        handle[KEY_ACCOUNTS] = show
+    }
+
     private fun periodOf(choice: PeriodChoice, now: Instant): Period = when (choice) {
         PeriodChoice.Day -> Period.containing(PeriodType.DAY, now, clock.zone)
         PeriodChoice.Week -> Period.containing(PeriodType.WEEK, now, clock.zone)
@@ -312,6 +319,7 @@ class OverviewViewModel @Inject constructor(
         const val KEY_CATEGORY = "overview.category"
         const val KEY_BAR = "overview.bar"
         const val KEY_CHAT = "overview.chat"
+        const val KEY_ACCOUNTS = "overview.accounts"
         private const val UNCATEGORIZED = -1L
 
         /** Operations in «Последние» of the outer screen; the rest is one tap away in History. */

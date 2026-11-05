@@ -51,6 +51,8 @@ internal fun TransactionEntity.toModel(
     aiCategory = aiCategory,
     merchantDisplayName = displayName,
     splits = splits,
+    counterpartyCardMask = counterpartyCardMask,
+    parsedDirection = parsedDirection,
 )
 
 internal fun TransactionSplitEntity.toModel(): TransactionSplit = TransactionSplit(
