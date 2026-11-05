@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ИИ-функции (локальная модель). Префикс aif_. Все суммы в этих строках подставляет приложение. -->
+<resources>
+    <!-- Общее -->
+    <string name="aif_model_loading">Модель загружается…</string>
+    <string name="aif_footnote_model">Цифры посчитало приложение, текст написала модель на телефоне.</string>
+    <string name="aif_footnote_template">Цифры посчитало приложение.</string>
+    <string name="aif_close">Закрыть</string>
+    <string name="aif_not_now">Не сейчас</string>
+
+    <!-- Чат и вопросы -->
+    <string name="aif_chat_title">Спросить о расходах</string>
+    <string name="aif_chat_scope">По умолчанию: %1$s</string>
+    <string name="aif_chat_clear">Очистить чат</string>
+    <string name="aif_chat_empty">Спросите обычными словами — приложение посчитает по вашим операциям. Модель только понимает вопрос, суммы считает приложение.</string>
+    <string name="aif_chat_hint">Например: сколько ушло на такси в октябре?</string>
+    <string name="aif_chat_send">Отправить</string>
+    <string name="aif_chat_thinking">Разбираю вопрос…</string>
+    <string name="aif_open_chat">Спросить</string>
+    <string-array name="aif_chat_examples">
+        <item>Сколько ушло на такси в октябре?</item>
+        <item>Где я потратил больше, чем в прошлом месяце?</item>
+        <item>Топ-5 трат за месяц</item>
+        <item>Покажи операции в Пятёрочке за неделю</item>
+    </string-array>
+    <string name="aif_not_understood">Не понял вопрос</string>
+    <string name="aif_not_understood_category">Такой категории нет. Назовите одну из своих категорий или магазин.</string>
+    <string name="aif_not_understood_period">Не понял, за какой период. Попробуйте «в октябре», «за неделю», «в прошлом месяце».</string>
+    <string name="aif_not_understood_failed">Модель сейчас не ответила. Попробуйте ещё раз.</string>
+    <string name="aif_not_understood_topic">Я отвечаю только на вопросы о ваших расходах.</string>
+    <string name="aif_not_understood_generic">Попробуйте спросить иначе:</string>
+    <string name="aif_fn_spend">Расходы</string>
+    <string name="aif_fn_compare">Сравнение</string>
+    <string name="aif_fn_top">Самые большие траты</string>
+    <string name="aif_fn_list">Операции</string>
+    <string name="aif_merchant_chip">«%1$s»</string>
+    <string name="aif_compared_with">с %1$s</string>
+    <string name="aif_no_operations">Операций не найдено</string>
+    <plurals name="aif_operations_count">
+        <item quantity="one">%d операция</item>
+        <item quantity="few">%d операции</item>
+        <item quantity="many">%d операций</item>
+        <item quantity="other">%d операции</item>
+    </plurals>
+    <plurals name="aif_more_operations">
+        <item quantity="one">Ещё %d операция</item>
+        <item quantity="few">Ещё %d операции</item>
+        <item quantity="many">Ещё %d операций</item>
+        <item quantity="other">Ещё %d операции</item>
+    </plurals>
+    <string name="aif_was">было %1$s</string>
+    <string name="aif_change_pct">%1$s (%2$s)</string>
+    <string name="aif_no_merchant">Без названия</string>
+
+    <!-- Месячная сводка -->
+    <string name="aif_insight_title">Сводка месяца</string>
+    <string name="aif_insight_writing">Пишу сводку…</string>
+    <string name="aif_insight_t_more">За %1$s потрачено %2$s — на %3$s больше, чем за %4$s.</string>
+    <string name="aif_insight_t_less">За %1$s потрачено %2$s — на %3$s меньше, чем за %4$s.</string>
+    <string name="aif_insight_t_same">За %1$s потрачено %2$s — столько же, сколько за %3$s.</string>
+    <string name="aif_insight_t_up">Сильнее всего выросли расходы на «%1$s»: %2$s.</string>
+    <string name="aif_insight_t_down">Меньше стало на «%1$s»: %2$s.</string>
+    <string name="aif_insight_t_sub">Новая подписка: %1$s, %2$s.</string>
+
+    <!-- Аномалии и подписки -->
+    <string name="aif_anomalies_title">Стоит проверить</string>
+    <string name="aif_anomaly_double">Похоже на двойное списание</string>
+    <string name="aif_anomaly_price">Подписка подорожала</string>
+    <string name="aif_anomaly_unusual">Необычно большая сумма</string>
+    <string name="aif_anomaly_ok">Всё в порядке, скрыть</string>
+    <string name="aif_anomaly_unusual_t">%1$s — в %2$s раза больше, чем обычно здесь (около %3$s).</string>
+    <string name="aif_anomaly_double_t">Две одинаковые операции на %1$s с разницей %2$s мин. Проверьте, не списали ли дважды.</string>
+    <string name="aif_anomaly_price_t">Было %1$s, теперь %2$s (%3$s).</string>
+
+    <!-- Голосовой ввод -->
+    <string name="aif_voice_button">Добавить голосом</string>
+    <string name="aif_voice_listening">Слушаю…</string>
+    <string name="aif_voice_parsing">Разбираю…</string>
+    <string name="aif_voice_error">Не получилось</string>
+    <string name="aif_voice_example">Скажите, например: «кофе двести пятьдесят наличными»</string>
+    <string name="aif_voice_not_heard">Ничего не расслышал. Попробуйте ещё раз.</string>
+    <string name="aif_voice_language_missing">На телефоне нет русского языка для распознавания без интернета. Его можно скачать в настройках голосового ввода Samsung или Google.</string>
+    <string name="aif_voice_done">Готово</string>
+    <string name="aif_voice_cash_note">Наличные</string>
+    <string name="aif_mic_why_title">Зачем микрофон</string>
+    <string name="aif_mic_why_text">Чтобы записать трату голосом. Речь распознаётся прямо на телефоне: звук никуда не отправляется и не сохраняется. Сумму вы проверите в форме перед сохранением.</string>
+    <string name="aif_mic_allow">Разрешить</string>
+
+    <!-- Чеки -->
+    <string name="aif_receipt_button">Чек</string>
+    <string name="aif_receipt_pick">Выбрать фото</string>
+    <string name="aif_receipt_take">Сфотографировать</string>
+    <string name="aif_receipt_title">Позиции чека</string>
+    <string name="aif_receipt_reading">Читаю чек… Фото не покидает телефон и удаляется после разбора.</string>
+    <string name="aif_receipt_unreadable">Не удалось прочитать чек. Попробуйте фото поровнее и при хорошем свете.</string>
+    <string name="aif_receipt_failed">Модель сейчас не смогла обработать фото. Попробуйте ещё раз.</string>
+    <string name="aif_receipt_check">Сверка</string>
+    <string name="aif_receipt_items_total">Сумма позиций</string>
+    <string name="aif_receipt_operation">Операция</string>
+    <string name="aif_receipt_printed">Итого в чеке</string>
+    <string name="aif_receipt_missing">Не заполнены суммы: %1$d</string>
+    <string name="aif_receipt_over">Позиции больше операции на %1$s — проверьте суммы.</string>
+    <string name="aif_receipt_rest">Не распределено %1$s — останется в категории операции.</string>
+    <string name="aif_receipt_match">Позиции сходятся с операцией.</string>
+    <string name="aif_receipt_printed_mismatch">Сумма позиций не совпадает с «Итого» в чеке — возможно, строка прочитана неверно.</string>
+    <string name="aif_receipt_line_name">Позиция</string>
+    <string name="aif_receipt_line_amount">Сумма</string>
+    <string name="aif_receipt_remove_line">Удалить позицию</string>
+    <string name="aif_receipt_add_line">Добавить позицию</string>
+    <string name="aif_receipt_pick_category">Выберите категорию</string>
+    <string name="aif_receipt_note_mode">Пока расходы по категориям не делятся: состав чека сохранится в заметке операции, сумма и категория не изменятся.</string>
+    <string name="aif_receipt_split">Разбить операцию</string>
+    <string name="aif_receipt_save_note">Сохранить состав в заметку</string>
+    <string name="aif_receipt_note_rest">остальное</string>
+</resources>

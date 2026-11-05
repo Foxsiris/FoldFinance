@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Фото чеков с камеры: только папка cacheDir/receipts, файлы удаляются после разбора. -->
+<paths>
+    <cache-path name="receipts" path="receipts/" />
+</paths>
