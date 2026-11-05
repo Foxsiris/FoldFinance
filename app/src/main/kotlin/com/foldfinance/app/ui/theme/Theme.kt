@@ -14,13 +14,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * FoldFinance theme: brand palette («Шов»), Onest/Unbounded typography, hierarchy shapes and
- * reduced-motion awareness.
+ * FoldFinance theme «Obsidian»: brand palette, Onest typography with tabular digits, hierarchy
+ * shapes and reduced-motion awareness.
  *
- * @param darkTheme dark ink theme; a fully designed palette, not an inversion of light.
+ * @param darkTheme the primary, dark Obsidian theme; light is its designed analogue, not an inversion.
  * @param dynamicColor use wallpaper colours for Material roles (settings switch, off by default).
- *   Brand roles ([FoldFinanceTheme.palette]: income, refund, categories, seam) stay fixed so that
- *   money colours keep their meaning.
+ *   Brand roles ([FoldFinanceTheme.palette]: accent fill, income, review, categories, panels) stay
+ *   fixed so that money colours keep their meaning.
  * @param reducedMotion override for tests; by default follows the system animator scale.
  */
 @Composable
@@ -64,86 +64,90 @@ object FoldFinanceTheme {
 }
 
 /**
- * Full Material 3 colour scheme derived from the brand palette. Surface container levels go from
- * sunken to raised so that Material components (navigation bar, menus, dialogs) sit naturally
- * between `ink` and `surfaceRaised`.
+ * Full Material 3 colour scheme derived from the Obsidian palette. Surface container levels go
+ * from the background to the field colour, so that Material components (menus, dialogs, sheets,
+ * date pickers) sit on the same steps as our own panels and cards.
+ *
+ * `primary` is the accent *as content* ([FoldPalette.accentContent]): lime in dark, olive in light,
+ * so text buttons, switches and focused fields stay readable in both themes. The lime fill of the
+ * main actions is drawn explicitly with [FoldPalette.accent].
  */
 fun FoldPalette.toColorScheme(): ColorScheme = if (isDark) {
     darkColorScheme(
-        primary = saffron,
-        onPrimary = onSaffron,
-        primaryContainer = saffronContainer,
-        onPrimaryContainer = onSaffronContainer,
-        inversePrimary = PaletteTokens.Light.saffron,
-        secondary = Color(0xFFD9C08A),
-        onSecondary = onSaffron,
-        secondaryContainer = saffronContainer,
-        onSecondaryContainer = onSaffronContainer,
-        tertiary = mint,
-        onTertiary = Color(0xFF00382A),
-        tertiaryContainer = mintContainer,
-        onTertiaryContainer = Color(0xFFB7F2D9),
+        primary = accentContent,
+        onPrimary = onAccentContent,
+        primaryContainer = accentContainer,
+        onPrimaryContainer = onAccentContainer,
+        inversePrimary = PaletteTokens.Light.accentContent,
+        secondary = textSoft,
+        onSecondary = ink,
+        secondaryContainer = surfaceRaised,
+        onSecondaryContainer = text,
+        tertiary = income,
+        onTertiary = onAccent,
+        tertiaryContainer = incomeContainer,
+        onTertiaryContainer = income,
         background = ink,
         onBackground = text,
         surface = ink,
         onSurface = text,
         surfaceVariant = surfaceRaised,
-        onSurfaceVariant = textMuted,
-        surfaceTint = saffron,
+        onSurfaceVariant = textSecondary,
+        surfaceTint = Color.Transparent,
         inverseSurface = text,
         inverseOnSurface = ink,
-        error = alert,
-        onError = Color(0xFF450A08),
-        errorContainer = alertContainer,
-        onErrorContainer = Color(0xFFFFDAD6),
+        error = danger,
+        onError = onAccent,
+        errorContainer = dangerContainer,
+        onErrorContainer = danger,
         outline = outline,
         outlineVariant = seam,
         scrim = Color(0xFF000000),
-        surfaceBright = Color(0xFF2A3858),
+        surfaceBright = Color(0xFF222227),
         surfaceDim = ink,
-        surfaceContainerLowest = surfaceSunken,
-        surfaceContainerLow = Color(0xFF121C31),
+        surfaceContainerLowest = ink,
+        surfaceContainerLow = surface,
         surfaceContainer = surface,
-        surfaceContainerHigh = surfaceRaised,
-        surfaceContainerHighest = Color(0xFF263453),
+        surfaceContainerHigh = card,
+        surfaceContainerHighest = surfaceRaised,
     )
 } else {
     lightColorScheme(
-        primary = saffron,
-        onPrimary = onSaffron,
-        primaryContainer = saffronContainer,
-        onPrimaryContainer = onSaffronContainer,
-        inversePrimary = PaletteTokens.Dark.saffron,
-        secondary = Color(0xFF6B5A33),
-        onSecondary = Color(0xFFFFFFFF),
-        secondaryContainer = saffronContainer,
-        onSecondaryContainer = onSaffronContainer,
-        tertiary = mint,
+        primary = accentContent,
+        onPrimary = onAccentContent,
+        primaryContainer = accentContainer,
+        onPrimaryContainer = onAccentContainer,
+        inversePrimary = PaletteTokens.Dark.accentContent,
+        secondary = textSoft,
+        onSecondary = card,
+        secondaryContainer = surfaceRaised,
+        onSecondaryContainer = text,
+        tertiary = income,
         onTertiary = Color(0xFFFFFFFF),
-        tertiaryContainer = mintContainer,
-        onTertiaryContainer = Color(0xFF00382A),
+        tertiaryContainer = incomeContainer,
+        onTertiaryContainer = income,
         background = ink,
         onBackground = text,
         surface = ink,
         onSurface = text,
         surfaceVariant = surfaceRaised,
-        onSurfaceVariant = textMuted,
-        surfaceTint = saffron,
-        inverseSurface = Color(0xFF16213A),
-        inverseOnSurface = Color(0xFFE9EEF7),
-        error = alert,
+        onSurfaceVariant = textSecondary,
+        surfaceTint = Color.Transparent,
+        inverseSurface = PaletteTokens.Dark.card,
+        inverseOnSurface = PaletteTokens.Dark.text,
+        error = danger,
         onError = Color(0xFFFFFFFF),
-        errorContainer = alertContainer,
-        onErrorContainer = Color(0xFF410E0B),
+        errorContainer = dangerContainer,
+        onErrorContainer = danger,
         outline = outline,
         outlineVariant = seam,
         scrim = Color(0xFF000000),
-        surfaceBright = surface,
-        surfaceDim = Color(0xFFDCE1EA),
-        surfaceContainerLowest = surface,
-        surfaceContainerLow = Color(0xFFF8F9FC),
+        surfaceBright = card,
+        surfaceDim = Color(0xFFE2E2DD),
+        surfaceContainerLowest = card,
+        surfaceContainerLow = surface,
         surfaceContainer = surface,
-        surfaceContainerHigh = surfaceRaised,
-        surfaceContainerHighest = surfaceSunken,
+        surfaceContainerHigh = card,
+        surfaceContainerHighest = surfaceRaised,
     )
 }

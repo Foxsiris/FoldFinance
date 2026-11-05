@@ -66,4 +66,29 @@
     <string name="analytics_empty_body">Статистика считается по операциям из банковских SMS, уведомлений и добавленным вручную. Загляните в прошлый период или выберите другой.</string>
     <string name="analytics_empty_action">Предыдущий период</string>
     <string name="analytics_currency">Валюта</string>
+
+    <!-- Obsidian -->
+    <string name="analytics_custom_short">Свой</string>
+    <!-- «Расходы · октябрь 2026» -->
+    <string name="analytics_expenses_of">Расходы · %1$s</string>
+    <!-- «в среднем 2 303 ₽ в день» -->
+    <string name="analytics_average_per_day">в среднем %1$s в день</string>
+    <!-- Подпись пунктирной линии на графике -->
+    <string name="analytics_average_line">среднее %1$s</string>
+    <string name="analytics_selected_day">Выбранный день</string>
+    <string name="analytics_selected_month">Выбранный месяц</string>
+    <!-- «5 операций · в 2,1 раза выше среднего» -->
+    <string name="analytics_day_summary">%1$s · %2$s</string>
+    <string name="analytics_day_above">в %1$s раза выше среднего</string>
+    <string name="analytics_day_below">ниже среднего</string>
+    <string name="analytics_day_level">на уровне среднего</string>
+    <!-- «Топ категорий · октябрь» -->
+    <string name="analytics_top_categories">Топ категорий · %1$s</string>
+    <string name="analytics_tile_average">В среднем за день</string>
+    <string name="analytics_tile_ratio">Расходы от доходов</string>
+    <string name="analytics_tile_top">Больше всего</string>
+    <!-- «18 420 ₽ · 26%» -->
+    <string name="analytics_tile_top_value">%1$s · %2$s%%</string>
+    <!-- «17 октября · 5 операций» -->
+    <string name="analytics_day_header">%1$s · %2$s</string>
 </resources>

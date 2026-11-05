@@ -1,6 +1,16 @@
 package com.foldfinance.app.ui.history
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,7 +37,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -71,8 +80,9 @@ interface HistoryFilterActions {
 }
 
 /**
- * Persistent filter bar above the list: search + sort, then pills «Период», «Тип», «Категории»,
- * «Сумма» and «Сбросить». An active pill is saffron, like every active choice in the app.
+ * Persistent filter bar above the list (History mockup): the search field, then pills «Период»,
+ * «Тип», «Категории», «Сумма», the sort button and «Сбросить». An active pill gets the lime tint
+ * and border, like every active choice in the app.
  *
  * @param showCategoryPill `false` when the categories are shown as a chip strip instead (inner screen).
  */
@@ -87,16 +97,13 @@ fun HistoryFilterBar(
     currency: String = AppSettings.DEFAULT_CURRENCY,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.padding(contentPadding), verticalAlignment = Alignment.CenterVertically) {
-            SearchField(filter.query, actions::setQuery, Modifier.weight(1f))
-            Spacer(Modifier.width(4.dp))
-            SortButton(filter.sortValue, actions::setSort)
-        }
-        LazyRow(contentPadding = contentPadding, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        SearchField(filter.query, actions::setQuery, Modifier.padding(contentPadding).fillMaxWidth())
+        LazyRow(contentPadding = contentPadding, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             item { PeriodPill(filter.period, actions::setPeriod) }
             item { DirectionPill(filter.directionValues, actions::toggleDirection) }
             if (showCategoryPill) item { CategoryPill(filter, categories, actions) }
             item { AmountPill(filter, currency, actions::setAmountRange) }
+            item { SortButton(filter.sortValue, actions::setSort) }
             if (filter.isNarrowed) {
                 item {
                     FilterPill(
@@ -114,42 +121,57 @@ fun HistoryFilterBar(
 @Composable
 private fun SearchField(query: String, onQuery: (String) -> Unit, modifier: Modifier) {
     val palette = FoldFinanceTheme.palette
-    TextField(
-        value = query,
-        onValueChange = onQuery,
-        modifier = modifier.heightIn(min = 52.dp),
-        placeholder = { Text(stringResource(R.string.history_search), color = palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = palette.textMuted) },
-        trailingIcon = if (query.isNotEmpty()) {
-            {
-                IconButton(onClick = { onQuery("") }) {
-                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.history_search_clear), tint = palette.textMuted)
-                }
+    val placeholder = stringResource(R.string.history_search)
+    Row(
+        modifier
+            .heightIn(min = 46.dp)
+            .clip(FoldShapes.tile)
+            .background(palette.surfaceRaised)
+            .padding(start = 14.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Outlined.Search, contentDescription = null, tint = palette.textSecondary, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(10.dp))
+        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            if (query.isEmpty()) {
+                Text(placeholder, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp), color = palette.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            BasicTextField(
+                value = query,
+                onValueChange = onQuery,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, color = palette.text),
+                cursorBrush = SolidColor(palette.accentContent),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = placeholder },
+            )
+        }
+        if (query.isNotEmpty()) {
+            IconButton(onClick = { onQuery("") }) {
+                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.history_search_clear), tint = palette.textMuted)
             }
         } else {
-            null
-        },
-        singleLine = true,
-        shape = FoldShapes.pill,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = palette.surfaceRaised,
-            unfocusedContainerColor = palette.surfaceRaised,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            cursorColor = palette.saffron,
-            focusedTextColor = palette.text,
-            unfocusedTextColor = palette.text,
-        ),
-    )
+            Spacer(Modifier.width(10.dp))
+        }
+    }
 }
 
+/** Sort: an outlined square button at the end of the pills (History mockup). */
 @Composable
 private fun SortButton(sort: TransactionSort, onSort: (TransactionSort) -> Unit) {
+    val palette = FoldFinanceTheme.palette
     var open by rememberSaveable { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { open = true }) {
-            Icon(Icons.AutoMirrored.Outlined.Sort, contentDescription = stringResource(R.string.history_sort), tint = FoldFinanceTheme.palette.text)
+    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .size(36.dp)
+                .clip(FoldShapes.chip)
+                .border(1.dp, if (sort != TransactionSort.DATE_DESC) palette.accentLine else palette.outline, FoldShapes.chip)
+                .background(if (sort != TransactionSort.DATE_DESC) palette.accentSoft else Color.Transparent)
+                .clickable(role = Role.Button) { open = true },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.AutoMirrored.Outlined.Sort, contentDescription = stringResource(R.string.history_sort), tint = palette.textSoft, modifier = Modifier.size(18.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             TransactionSort.entries.forEach { option ->
@@ -314,7 +336,7 @@ private fun AmountField(value: String, onValue: (String) -> Unit, label: String,
     )
 }
 
-/** A filter pill: label + chevron; saffron when the filter is active. */
+/** A filter pill: label + chevron, 36 dp (48 dp touch); lime tint and border when the filter is active. */
 @Composable
 fun FilterPill(
     label: String,
@@ -324,25 +346,34 @@ fun FilterPill(
     showArrow: Boolean = true,
 ) {
     val palette = FoldFinanceTheme.palette
-    Surface(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 40.dp),
-        shape = FoldShapes.pill,
-        color = if (active) palette.saffronContainer else palette.surfaceRaised,
-        border = if (active) BorderStroke(1.dp, palette.saffron.copy(alpha = 0.5f)) else null,
+    Box(
+        modifier
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         Row(
-            Modifier.heightIn(min = 40.dp).padding(start = 14.dp, end = if (showArrow) 8.dp else 14.dp),
+            Modifier
+                .height(36.dp)
+                .clip(FoldShapes.chip)
+                .background(if (active) palette.accentSoft else Color.Transparent)
+                .border(1.dp, if (active) palette.accentLine else palette.outline, FoldShapes.chip)
+                .padding(start = 12.dp, end = if (showArrow) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = if (active) palette.onSaffronContainer else palette.text, maxLines = 1)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (active) FontWeight.Medium else FontWeight.Normal),
+                color = if (active) palette.text else palette.textSoft,
+                maxLines = 1,
+            )
             if (showArrow) {
                 Spacer(Modifier.width(2.dp))
                 Icon(
                     Icons.Outlined.KeyboardArrowDown,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = if (active) palette.onSaffronContainer else palette.textMuted,
+                    modifier = Modifier.size(18.dp),
+                    tint = if (active) palette.text else palette.textSecondary,
                 )
             }
         }
@@ -357,7 +388,7 @@ private fun CheckItem(text: String, checked: Boolean, onClick: () -> Unit, dot: 
         onClick = onClick,
         leadingIcon = dot?.let { color -> { Box(Modifier.size(10.dp).background(color, FoldShapes.pill)) } },
         trailingIcon = if (checked) {
-            { Icon(Icons.Outlined.Check, contentDescription = null, tint = palette.saffron) }
+            { Icon(Icons.Outlined.Check, contentDescription = null, tint = palette.accentContent) }
         } else {
             null
         },

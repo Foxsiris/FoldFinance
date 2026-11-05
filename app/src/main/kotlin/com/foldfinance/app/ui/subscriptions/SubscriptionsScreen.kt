@@ -302,8 +302,8 @@ private fun CandidateCard(item: SubscriptionItem, today: LocalDate, onConfirm: (
                 Button(
                     onClick = onConfirm,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                    shape = FoldShapes.pill,
-                    colors = ButtonDefaults.buttonColors(containerColor = palette.saffron, contentColor = palette.onSaffron),
+                    shape = FoldShapes.key,
+                    colors = ButtonDefaults.buttonColors(containerColor = palette.accent, contentColor = palette.onAccent),
                 ) { Text(stringResource(R.string.subscriptions_confirm), style = MaterialTheme.typography.labelLarge) }
                 OutlinedButton(
                     onClick = onDismiss,

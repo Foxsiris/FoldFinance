@@ -122,11 +122,11 @@ internal fun UnrecognizedSheet(state: ReviewUiState, actions: ReviewActions, now
 @Composable
 private fun UnrecognizedItem(message: RawMessage, meta: String, onAdd: () -> Unit, onHide: () -> Unit) {
     val palette = FoldFinanceTheme.palette
-    ListGroup(Modifier.fillMaxWidth(), color = palette.surfaceRaised) {
+    ListGroup(Modifier.fillMaxWidth(), color = palette.card) {
         Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp)) {
             Text(meta, style = MaterialTheme.typography.bodySmall, color = palette.textMuted, modifier = Modifier.padding(end = 8.dp))
             Spacer(Modifier.height(4.dp))
-            Text(message.text, style = MaterialTheme.typography.bodyLarge, color = palette.text, modifier = Modifier.padding(end = 8.dp))
+            Text(message.text, style = com.foldfinance.app.ui.theme.FoldTextStyles.mono, color = palette.textSoft, modifier = Modifier.padding(end = 8.dp))
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,

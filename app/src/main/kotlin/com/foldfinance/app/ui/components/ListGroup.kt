@@ -14,8 +14,8 @@ import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
 
 /**
- * A group of list rows on a card: 20 dp corners, rows inside are not rounded
- * (docs/design.md, «Форма по иерархии»). Separate rows with [ListGroupDivider].
+ * A group of list rows on a panel-coloured tile: 24 dp corners, rows inside are not rounded.
+ * Separate rows with [ListGroupDivider].
  */
 @Composable
 fun ListGroup(
@@ -37,6 +37,6 @@ fun ListGroupDivider(modifier: Modifier = Modifier, startInset: Dp = 68.dp) {
     HorizontalDivider(
         modifier = modifier.padding(start = startInset),
         thickness = 1.dp,
-        color = FoldFinanceTheme.palette.seam.copy(alpha = 0.6f),
+        color = FoldFinanceTheme.palette.seam,
     )
 }

@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.foldfinance.app.R
 import com.foldfinance.app.ui.format.MoneyFormat
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
@@ -51,7 +52,7 @@ fun NumericKeypad(
         onKey(key)
     }
     val rows = listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9))
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         rows.forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { digit ->
@@ -99,8 +100,8 @@ private fun KeypadButton(
     val palette = FoldFinanceTheme.palette
     Box(
         modifier = modifier
-            .clip(FoldShapes.tile)
-            .background(if (label == null) palette.ink.copy(alpha = 0f) else palette.surfaceRaised)
+            .clip(FoldShapes.key)
+            .background(palette.card)
             .clickable(role = Role.Button, onClick = onClick)
             .then(if (description != null) Modifier.semantics { contentDescription = description } else Modifier),
         contentAlignment = Alignment.Center,
@@ -108,15 +109,15 @@ private fun KeypadButton(
         if (label != null) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Medium, fontFeatureSettings = TabularNumbers),
+                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.sp, fontFeatureSettings = TabularNumbers),
                 color = palette.text,
             )
         } else {
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.Backspace,
                 contentDescription = null,
-                tint = palette.textMuted,
-                modifier = Modifier.size(26.dp),
+                tint = palette.textSecondary,
+                modifier = Modifier.size(24.dp),
             )
         }
     }

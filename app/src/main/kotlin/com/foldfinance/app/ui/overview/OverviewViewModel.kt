@@ -42,8 +42,9 @@ import kotlin.math.roundToInt
 /**
  * One bar of the overview chart: a day (week/month periods) or a month (year period).
  * @property key `epochDay` of [date]; for months, of the first day of the month.
+ * @property highlightMinor part of [amountMinor] that belongs to the selected category (drawn in its colour).
  */
-data class ChartBar(val key: Long, val date: LocalDate, val amountMinor: Long)
+data class ChartBar(val key: Long, val date: LocalDate, val amountMinor: Long, val highlightMinor: Long = 0)
 
 /** A category's share of the period's net expenses. [categoryId] `null` — without a category. */
 data class CategoryShare(val categoryId: Long?, val amountMinor: Long, val percent: Int)
@@ -66,7 +67,15 @@ data class OverviewUiState(
     val currency: String = AppSettings.DEFAULT_CURRENCY,
     val today: LocalDate = LocalDate.MIN,
     val todayMinor: Long = 0,
+    /** Expenses of today (the «Сегодня» tile: «3 расхода»). */
+    val todayExpenseCount: Int = 0,
     val monthMinor: Long = 0,
+    /** Income of the month by known operations. */
+    val monthIncomeMinor: Long = 0,
+    /** Every day of the current month (the mini chart of the outer screen); days after [today] are 0. */
+    val monthBars: List<ChartBar> = emptyList(),
+    /** Operations of the current month, newest first, unfiltered: «Последние» of the outer screen. */
+    val recent: List<Transaction> = emptyList(),
     val balances: List<KnownBalance> = emptyList(),
     val reviewCount: Int = 0,
     val period: PeriodChoice = PeriodChoice.Month,
@@ -78,6 +87,8 @@ data class OverviewUiState(
     val selectedBar: Long? = null,
     /** Operations of the period, newest first, narrowed by the selected category and bar. */
     val transactions: List<Transaction> = emptyList(),
+    /** Net expenses of [transactions] in [currency]: «5 операций · 6 180 ₽». */
+    val listExpenseMinor: Long = 0,
     val categories: Map<Long, Category> = emptyMap(),
     /** Subscriptions entry of the overview (the outer-screen bar has no «Подписки»). */
     val subscriptions: SubscriptionsSummary = SubscriptionsSummary(),
@@ -186,18 +197,37 @@ class OverviewViewModel @Inject constructor(
         val currency = extras.currency
         val todayMonth = AnalyticsCalculator.todayMonth(all, currency, now, zone)
         val summary = AnalyticsCalculator.summarize(all, range, now).currency(currency)
+        val selectedCategory = categoryKey?.let(::selectionOf)
+        // Part of each day (month) that belongs to the selected category: drawn in its colour.
+        val highlight: Map<LocalDate, Long> = if (selectedCategory == null) {
+            emptyMap()
+        } else {
+            all.asSequence()
+                .filter { it.occurredAt in range && it.currency == currency && selectedCategory.matches(it) }
+                .groupBy { tx ->
+                    val date = tx.occurredAt.atZone(zone).toLocalDate()
+                    if (choice == PeriodChoice.Year) date.withDayOfMonth(1) else date
+                }
+                .mapValues { (_, list) -> list.sumOf(AnalyticsCalculator::netExpenseContribution).coerceAtLeast(0) }
+        }
         val bars = if (choice == PeriodChoice.Year) {
             summary.daily.groupBy { YearMonth.from(it.date) }.map { (month, days) ->
                 val first = month.atDay(1)
-                ChartBar(first.toEpochDay(), first, days.sumOf { it.netExpenseMinor }.coerceAtLeast(0))
+                val total = days.sumOf { it.netExpenseMinor }.coerceAtLeast(0)
+                ChartBar(first.toEpochDay(), first, total, (highlight[first] ?: 0).coerceAtMost(total))
             }
         } else {
-            summary.daily.map { ChartBar(it.date.toEpochDay(), it.date, it.netExpenseMinor.coerceAtLeast(0)) }
+            summary.daily.map {
+                val total = it.netExpenseMinor.coerceAtLeast(0)
+                ChartBar(it.date.toEpochDay(), it.date, total, (highlight[it.date] ?: 0).coerceAtMost(total))
+            }
         }
+        val monthPeriod = Period.containing(PeriodType.MONTH, now, zone)
+        val month = AnalyticsCalculator.summarize(all, monthPeriod, now).currency(currency)
+        val today = now.atZone(zone).toLocalDate()
         val breakdown = summary.categories.filter { it.netExpenseMinor > 0 }.map {
             CategoryShare(it.categoryId, it.netExpenseMinor, it.sharePercent?.roundToInt() ?: 0)
         }
-        val selectedCategory = categoryKey?.let(::selectionOf)
         val bar = bars.firstOrNull { it.key == barKey }
         val inPeriod = all.filter { it.occurredAt in range }
         val list = inPeriod
@@ -216,9 +246,19 @@ class OverviewViewModel @Inject constructor(
             loading = false,
             hasAnyTransactions = extras.hasAny,
             currency = currency,
-            today = now.atZone(zone).toLocalDate(),
+            today = today,
             todayMinor = todayMonth.todayNetExpenseMinor,
+            todayExpenseCount = all.count {
+                it.direction == Direction.EXPENSE && it.currency == currency && it.occurredAt.atZone(zone).toLocalDate() == today
+            },
             monthMinor = todayMonth.monthNetExpenseMinor,
+            monthIncomeMinor = month.incomeMinor,
+            monthBars = month.daily.map { ChartBar(it.date.toEpochDay(), it.date, it.netExpenseMinor.coerceAtLeast(0)) },
+            recent = all.asSequence()
+                .filter { it.occurredAt in monthPeriod }
+                .sortedWith(compareByDescending<Transaction> { it.occurredAt }.thenByDescending { it.id })
+                .take(RECENT_SIZE)
+                .toList(),
             balances = known.sortedByDescending { it.asOf },
             reviewCount = extras.reviewCount,
             period = choice,
@@ -229,6 +269,7 @@ class OverviewViewModel @Inject constructor(
             selectedCategory = selectedCategory,
             selectedBar = bar?.key,
             transactions = list,
+            listExpenseMinor = list.filter { it.currency == currency }.sumOf(AnalyticsCalculator::netExpenseContribution).coerceAtLeast(0),
             categories = cats.associateBy { it.id },
             subscriptions = subscriptionsSummary(extras.subscriptions, currency),
         )
@@ -264,5 +305,8 @@ class OverviewViewModel @Inject constructor(
         const val KEY_CATEGORY = "overview.category"
         const val KEY_BAR = "overview.bar"
         private const val UNCATEGORIZED = -1L
+
+        /** Operations in «Последние» of the outer screen; the rest is one tap away in History. */
+        private const val RECENT_SIZE = 20
     }
 }

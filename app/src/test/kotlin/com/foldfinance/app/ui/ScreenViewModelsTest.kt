@@ -171,6 +171,24 @@ class ScreenViewModelsTest {
         assertThat(vm.state.value.selectedIds).isEmpty()
     }
 
+    @Test fun `skip moves the operation to the end of the queue and survives recreation`() = runTest {
+        val handle = SavedStateHandle()
+        val vm = review(handle)
+        vm.state.test {
+            var state = awaitItem()
+            while (state.loading) state = awaitItem()
+            vm.skip(2L)
+            state = awaitItem()
+            assertThat(state.queue.map { it.id }).containsExactly(16L, 8L, 2L).inOrder()
+            cancelAndIgnoreRemainingEvents()
+        }
+        review(handle.copy()).state.test {
+            var state = awaitItem()
+            while (state.loading) state = awaitItem()
+            assertThat(state.current?.id).isEqualTo(16L)
+        }
+    }
+
     // ------------------------------------------------------------------ Overview
 
     private fun overview(
@@ -193,6 +211,12 @@ class ScreenViewModelsTest {
             assertThat(state.reviewCount).isEqualTo(3)
             assertThat(state.balances.map { it.cardMask }).containsExactly("*4821", "*1177").inOrder()
             assertThat(state.bars).hasSize(30)
+            // Outer «Главная»: income line, today's count, every day of the month, the unfiltered recent feed.
+            assertThat(state.monthIncomeMinor).isGreaterThan(0L)
+            assertThat(state.todayExpenseCount).isEqualTo(4)
+            assertThat(state.monthBars).hasSize(30)
+            assertThat(state.monthBars.filter { it.date.isAfter(state.today) }.all { it.amountMinor == 0L }).isTrue()
+            assertThat(state.recent.first().occurredAt).isAtLeast(state.recent.last().occurredAt)
         }
     }
 

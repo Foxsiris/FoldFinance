@@ -2,18 +2,18 @@ package com.foldfinance.app.ui.shell
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.filled.Autorenew
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.TaskAlt
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.automirrored.filled.FactCheck
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Autorenew
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Insights
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.automirrored.outlined.FactCheck
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,12 +35,12 @@ enum class Section(
     val icon: ImageVector,
     val selectedIcon: ImageVector,
 ) {
-    Overview(R.string.section_overview, Icons.Outlined.Home, Icons.Filled.Home),
-    History(R.string.section_history, Icons.AutoMirrored.Outlined.ReceiptLong, Icons.AutoMirrored.Filled.ReceiptLong),
-    Review(R.string.section_review, Icons.Outlined.TaskAlt, Icons.Filled.TaskAlt),
-    Analytics(R.string.section_analytics, Icons.Outlined.Insights, Icons.Filled.Insights),
+    Overview(R.string.section_overview, Icons.Outlined.GridView, Icons.Filled.GridView),
+    History(R.string.section_history, Icons.Outlined.Schedule, Icons.Filled.Schedule),
+    Analytics(R.string.section_analytics, Icons.Outlined.BarChart, Icons.Filled.BarChart),
+    Review(R.string.section_review, Icons.AutoMirrored.Outlined.FactCheck, Icons.AutoMirrored.Filled.FactCheck),
     Subscriptions(R.string.section_subscriptions, Icons.Outlined.Autorenew, Icons.Filled.Autorenew),
-    Settings(R.string.section_settings, Icons.Outlined.Settings, Icons.Filled.Settings),
+    Settings(R.string.section_settings, Icons.Outlined.Tune, Icons.Filled.Tune),
 }
 
 /**

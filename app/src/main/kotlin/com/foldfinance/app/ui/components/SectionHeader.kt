@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 
 /**
- * Title of a list section in sentence case (no upper-case «eyebrows», docs/design.md), with an
+ * Title of a list section («Последние», «Категории»: 15 / 600), with an
  * optional supporting line and an optional trailing text action («Все», «Разобрать»).
  */
 @Composable
@@ -31,12 +31,12 @@ fun SectionHeader(
     val palette = FoldFinanceTheme.palette
     Row(
         modifier = modifier
-            .heightIn(min = 48.dp),
+            .heightIn(min = 44.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
             val hasAction = actionLabel != null && onAction != null
-            val titleStyle = MaterialTheme.typography.titleLarge
+            val titleStyle = MaterialTheme.typography.titleMedium
             Text(
                 text = title,
                 modifier = Modifier.semantics { heading() },
@@ -54,7 +54,7 @@ fun SectionHeader(
         }
         if (actionLabel != null && onAction != null) {
             TextButton(onClick = onAction) {
-                Text(text = actionLabel, style = MaterialTheme.typography.labelLarge, color = palette.saffron)
+                Text(text = actionLabel, style = MaterialTheme.typography.labelLarge, color = palette.accentContent)
             }
         }
     }
