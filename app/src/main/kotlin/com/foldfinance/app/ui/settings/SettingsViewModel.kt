@@ -146,6 +146,9 @@ class SettingsViewModel @Inject constructor(
      */
     fun onLeavingForSystemUi() = appLock.allowExternalActivity()
 
+    /** Системный экран не открылся: льгота блокировки не нужна. */
+    fun onSystemUiLaunchFailed() = appLock.cancelExternalActivity()
+
     /** Файл выбран (SAF): спросить пароль. `null` — пользователь закрыл окно выбора. */
     fun onDocumentPicked(kind: BackupKind, uri: Uri?) {
         if (uri == null) return

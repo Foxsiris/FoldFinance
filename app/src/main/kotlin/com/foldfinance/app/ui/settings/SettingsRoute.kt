@@ -69,17 +69,21 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
 
             override fun startExport() {
                 viewModel.onLeavingForSystemUi()
-                launchSafely { exportLauncher.launch(BackupManager.suggestedFileName(LocalDate.now())) }
+                launchSafely(viewModel::onSystemUiLaunchFailed) {
+                    exportLauncher.launch(BackupManager.suggestedFileName(LocalDate.now()))
+                }
             }
 
             override fun startImport() {
                 viewModel.onLeavingForSystemUi()
-                launchSafely { importLauncher.launch(arrayOf(BackupManager.MIME_TYPE, "*/*")) }
+                launchSafely(viewModel::onSystemUiLaunchFailed) {
+                    importLauncher.launch(arrayOf(BackupManager.MIME_TYPE, "*/*"))
+                }
             }
 
             override fun openSecuritySettings() {
                 viewModel.onLeavingForSystemUi()
-                openSecuritySettings(context)
+                launchSafely(viewModel::onSystemUiLaunchFailed) { openSecuritySettings(context) }
             }
         }
     }
@@ -102,11 +106,15 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
     )
 }
 
-private inline fun launchSafely(block: () -> Unit) {
+/**
+ * Запуск системного экрана. Если его нет на телефоне, кнопка ничего не делает, а льгота
+ * блокировки, выданная перед запуском, отменяется ([onFailure]), чтобы не «залипнуть».
+ */
+private inline fun launchSafely(onFailure: () -> Unit, block: () -> Unit) {
     try {
         block()
     } catch (_: ActivityNotFoundException) {
-        // На телефоне нет системного выбора файлов — кнопка просто ничего не делает.
+        onFailure()
     }
 }
 

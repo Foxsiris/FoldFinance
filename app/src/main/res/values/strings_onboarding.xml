@@ -115,4 +115,12 @@
     <string name="ingest_action_choose">Выбрать</string>
     <string name="ingest_action_scan">Сканировать</string>
     <string name="ingest_action_how">Как настроить</string>
+    <plurals name="ingest_push_failures_title">
+        <item quantity="one">Не удалось записать %d уведомление</item>
+        <item quantity="few">Не удалось записать %d уведомления</item>
+        <item quantity="many">Не удалось записать %d уведомлений</item>
+        <item quantity="other">Не удалось записать %d уведомления</item>
+    </plurals>
+    <string name="ingest_push_failures_body">Сохранено для повторного разбора: %1$d. Потеряно: %2$d — проверьте эти операции в банковском приложении.</string>
+    <string name="ingest_action_dismiss">Понятно</string>
 </resources>

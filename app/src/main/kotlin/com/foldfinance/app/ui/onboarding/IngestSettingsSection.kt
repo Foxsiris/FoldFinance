@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BatteryChargingFull
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Sms
@@ -79,6 +80,7 @@ fun IngestSettingsSection(modifier: Modifier = Modifier) {
         onRequestSms = { smsLauncher.launch(IngestPermissions.SMS_PERMISSIONS) },
         onOpenNotificationAccess = { SystemSettingsIntents.launch(context, SystemSettingsIntents.notificationListener(context)) },
         onRebind = viewModel::rebindListener,
+        onClearPushFailures = viewModel::clearPushFailures,
         onRequestPostNotifications = {
             if (IngestPermissions.needsPostNotificationsRequest) postLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         },
@@ -186,6 +188,7 @@ fun IngestSettingsContent(
     onRequestSms: () -> Unit = {},
     onOpenNotificationAccess: () -> Unit = {},
     onRebind: () -> Unit = {},
+    onClearPushFailures: () -> Unit = {},
     onRequestPostNotifications: () -> Unit = {},
     onOpenSources: () -> Unit = {},
     onRescan: () -> Unit = {},
@@ -234,6 +237,18 @@ fun IngestSettingsContent(
                 tint = if (connected) palette.mint else palette.saffron,
             ) {
                 if (perms.notificationAccess && !connected) RowAction(stringResource(R.string.ingest_action_rebind), onRebind)
+            }
+            val failures = state.pushFailures
+            if (failures.count > 0) {
+                ListGroupDivider()
+                IngestRow(
+                    icon = Icons.Outlined.ErrorOutline,
+                    title = pluralStringResource(R.plurals.ingest_push_failures_title, failures.count, failures.count),
+                    supporting = stringResource(R.string.ingest_push_failures_body, failures.stored, failures.lost),
+                    tint = palette.alert,
+                ) {
+                    RowAction(stringResource(R.string.ingest_action_dismiss), onClearPushFailures)
+                }
             }
             if (IngestPermissions.needsPostNotificationsRequest) {
                 ListGroupDivider()

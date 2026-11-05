@@ -12,6 +12,7 @@ import com.foldfinance.app.ingest.push.InstalledApp
 import com.foldfinance.app.ingest.push.InstalledAppsSource
 import com.foldfinance.app.ingest.push.ListenerConnection
 import com.foldfinance.app.ingest.push.ListenerHealth
+import com.foldfinance.app.ingest.push.PushIngestFailures
 import com.foldfinance.core.data.settings.IngestSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +33,7 @@ data class IngestSettingsUiState(
     val whitelistSize: Int = 0,
     val scan: ScanState = ScanState.Idle,
     val sources: SourcesState = SourcesState(),
+    val pushFailures: PushIngestFailures = PushIngestFailures(),
 )
 
 /** State of [IngestSettingsSection]. The source-picker draft lives in [SavedStateHandle]. */
@@ -50,12 +52,12 @@ class IngestSettingsViewModel @Inject constructor(
 
     val state: StateFlow<IngestSettingsUiState> = combine(
         permissionState,
-        health.status,
+        combine(health.status, health.ingestFailures) { status, failures -> status to failures },
         settings.pushPackageWhitelist,
         scheduler.observeFullScan().onStart { emit(ScanState.Idle) },
         combine(apps, handle.getStateFlow(KEY_DRAFT, emptyList<String>())) { a, d -> SourcesState(a, d.toSet()) },
-    ) { perms, listener, whitelist, scan, sources ->
-        IngestSettingsUiState(perms, listener.connection, whitelist.size, scan, sources)
+    ) { perms, (listener, failures), whitelist, scan, sources ->
+        IngestSettingsUiState(perms, listener.connection, whitelist.size, scan, sources, failures)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IngestSettingsUiState(permissions = permissionState.value))
 
     init {
@@ -68,6 +70,8 @@ class IngestSettingsViewModel @Inject constructor(
     }
 
     fun rebindListener() = health.requestRebind()
+
+    fun clearPushFailures() = health.clearIngestFailures()
 
     fun rescan() {
         if (permissions.hasSms()) scheduler.startFullScan()
