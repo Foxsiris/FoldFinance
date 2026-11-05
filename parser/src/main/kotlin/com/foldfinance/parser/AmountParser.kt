@@ -33,7 +33,9 @@ data class ParsedAmount(
  * - знаки `+`, `-`, `−` (U+2212).
  *
  * Неоднозначные записи (`1,500`, `1.500` — одна группа из трёх цифр без дробной части) помечаются
- * [ParsedAmount.isAmbiguous]. Не бросает исключений; на мусорном вводе возвращает `null` / пустой список.
+ * [ParsedAmount.isAmbiguous]. На мусорном вводе возвращает `null` / пустой список. Внутренняя ошибка
+ * (баг) не маскируется под «сумм нет»: исключение уходит вызывающему, и `MessageAnalyzer` превращает
+ * его в `Uncertain(PARSER_ERROR)` — сообщение сохраняется и будет перепарсено.
  */
 object AmountParser {
 
@@ -62,29 +64,29 @@ object AmountParser {
      * Разобрать строку, которая целиком является суммой (`"1 500,00 ₽"`, `"1,500.00"`).
      * Возвращает `null`, если строка не сумма или число слишком большое.
      */
-    fun parse(input: String): ParsedAmount? = runCatching {
+    fun parse(input: String): ParsedAmount? {
         val normalized = TextNormalizer.normalize(input)
         val start = normalized.indexOfFirst { !it.isWhitespace() }
         if (start < 0) return null
         val end = normalized.indexOfLast { !it.isWhitespace() }
         val core = normalized.substring(start, end + 1)
         val match = wholeRegex.matchEntire(core) ?: return null
-        build(
+        return build(
             signToken = match.groupValues[1],
             prefixToken = match.groupValues[2],
             number = match.groupValues[3],
             suffixToken = match.groupValues[4],
             range = start..end,
         )
-    }.getOrNull()
+    }
 
     /**
      * Найти в тексте все суммы с указанной валютой, по порядку появления.
      * Числа без валюты (время, маски карт, коды) не возвращаются.
      */
-    fun findAll(text: String): List<ParsedAmount> = runCatching {
+    fun findAll(text: String): List<ParsedAmount> {
         val normalized = TextNormalizer.normalize(text)
-        inTextRegex.findAll(normalized).mapNotNull { m ->
+        return inTextRegex.findAll(normalized).mapNotNull { m ->
             val prefixed = m.groupValues[3].isNotEmpty()
             build(
                 signToken = m.groupValues[1],
@@ -94,7 +96,7 @@ object AmountParser {
                 range = m.range,
             )
         }.toList()
-    }.getOrDefault(emptyList())
+    }
 
     /** ISO-код по знаку или слову валюты (`₽`, `р.`, `руб`, `RUR`, `$`, `евро`, …); `null`, если не валюта. */
     fun currencyOf(token: String): String? {

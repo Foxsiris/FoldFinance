@@ -71,6 +71,25 @@ class ParserRegistryTest {
         assertThat(result).isEqualTo(ParseResult.Uncertain(reason = UncertainReasons.PARSER_ERROR, parserId = "broken"))
     }
 
+    private class ThrowingParser(private val error: Throwable) : BankParser {
+        override val id: String = "throwing"
+        override fun canHandle(meta: MessageMeta): Boolean = true
+        override fun parse(text: String, meta: MessageMeta): ParseResult = throw error
+    }
+
+    @Test fun parserExceptionBecomesUncertainParserError() {
+        val parser = ThrowingParser(IllegalStateException("bug"))
+        val result = ParserRegistry(listOf(parser), parser).parse("Покупка 100 ₽", sms("900"))
+        assertThat(result).isEqualTo(ParseResult.Uncertain(reason = UncertainReasons.PARSER_ERROR, parserId = "throwing"))
+    }
+
+    @Test fun errorsAreNotSwallowed() {
+        // OutOfMemoryError и т. п. — не свойство сообщения: не маскировать под «не распознано».
+        val parser = ThrowingParser(OutOfMemoryError("test"))
+        val error = runCatching { ParserRegistry(listOf(parser), parser).parse("Покупка 100 ₽", sms("900")) }.exceptionOrNull()
+        assertThat(error).isInstanceOf(OutOfMemoryError::class.java)
+    }
+
     @Test fun defaultWithoutZoneWorks() {
         val result = ParserRegistry.default().parse("Покупка, карта *1234. 100 RUB. SHOP. Доступно 1 000 RUB", sms("Tinkoff"))
         assertThat(result).isInstanceOf(ParseResult.Parsed::class.java)

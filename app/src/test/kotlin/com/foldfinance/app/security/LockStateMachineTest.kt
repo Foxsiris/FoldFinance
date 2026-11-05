@@ -98,6 +98,29 @@ class LockStateMachineTest {
     }
 
     @Test
+    fun externalActivityGrace_expiresIfAppNeverLeft() {
+        machine.configure(enabled = true, timeoutMillis = RelockTimeout.IMMEDIATELY.millis)
+        machine.unlock()
+
+        // Системный экран так и не открылся; позже пользователь сам уходит из приложения.
+        machine.allowExternalActivity()
+        advance(minutes = 2)
+        backgroundFor(seconds = 30)
+        assertThat(machine.state).isEqualTo(LockState.LOCKED)
+    }
+
+    @Test
+    fun cancelExternalActivity_dropsGraceAtOnce() {
+        machine.configure(enabled = true, timeoutMillis = RelockTimeout.IMMEDIATELY.millis)
+        machine.unlock()
+
+        machine.allowExternalActivity()
+        machine.cancelExternalActivity()
+        backgroundFor(seconds = 5)
+        assertThat(machine.state).isEqualTo(LockState.LOCKED)
+    }
+
+    @Test
     fun longerTimeout_winsOverGrace() {
         machine.configure(enabled = true, timeoutMillis = RelockTimeout.FIFTEEN_MINUTES.millis)
         machine.unlock()

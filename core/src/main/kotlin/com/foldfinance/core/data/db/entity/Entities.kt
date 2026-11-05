@@ -14,7 +14,7 @@ import com.foldfinance.parser.Kind
 import com.foldfinance.parser.MessageChannel
 import java.time.Instant
 
-// Room-сущности схемы v1. Любое изменение колонок/индексов = новая версия БД + миграция + тест.
+// Room-сущности схемы v2. Любое изменение колонок/индексов = новая версия БД + миграция + тест.
 
 /**
  * Операция.
@@ -25,7 +25,9 @@ import java.time.Instant
  * - [counterpartyCardMask] — маска карты получателя/отправителя перевода;
  * - [rawMessageId] + [opIndex] — из какого сообщения и какой по счёту операции создана (для перепарсинга);
  * - [merchantNorm], [searchText] — нормализованные (нижний регистр, ё→е) строки для поиска и сравнения:
- *   встроенный `lower()`/`LIKE` SQLite не работают с кириллицей.
+ *   встроенный `lower()`/`LIKE` SQLite не работают с кириллицей;
+ * - [reviewConfirmed] (v2) — пользователь подтвердил операцию в очереди проверки: перепарсинг не
+ *   возвращает её в очередь, пока разобранные значения (сумма, валюта, направление, вид) не изменились.
  */
 @Entity(
     tableName = "transactions",
@@ -78,6 +80,7 @@ data class TransactionEntity(
     @ColumnInfo(name = "op_index") val opIndex: Int,
     @ColumnInfo(name = "created_at") val createdAt: Instant,
     @ColumnInfo(name = "updated_at") val updatedAt: Instant,
+    @ColumnInfo(name = "review_confirmed", defaultValue = "0") val reviewConfirmed: Boolean = false,
 )
 
 /**
@@ -85,7 +88,8 @@ data class TransactionEntity(
  *
  * [transactionId] — основная операция сообщения (первая); при кросс-источниковом дедупе —
  * существующая операция из другого канала. [userDeleted] — пользователь удалил операцию из
- * этого сообщения: перепарсинг не должен её воскрешать.
+ * этого сообщения: перепарсинг не должен её воскрешать; у нераспознанного сообщения — пользователь
+ * скрыл его из раздела «Не распознано».
  */
 @Entity(
     tableName = "raw_messages",

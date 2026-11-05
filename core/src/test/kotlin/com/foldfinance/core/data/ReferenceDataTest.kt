@@ -88,7 +88,11 @@ class ReferenceDataTest {
 
     @Test
     fun sourceKeys_areDeterministic() {
-        assertThat(SourceKeys.sms(42)).isEqualTo("42")
+        // _id|date|первые 16 hex SHA-256 текста: переиспользованный _id даёт другой ключ.
+        assertThat(SourceKeys.sms(42, 1_700_000_000_000, "abc")).isEqualTo("42|1700000000000|ba7816bf8f01cfea")
+        assertThat(SourceKeys.sms(42, 1_700_000_060_000, "abc")).isNotEqualTo(SourceKeys.sms(42, 1_700_000_000_000, "abc"))
+        assertThat(SourceKeys.isLegacySms("42")).isTrue()
+        assertThat(SourceKeys.isLegacySms("42|1700000000000|ba7816bf8f01cfea")).isFalse()
         assertThat(SourceKeys.sha256Hex("abc"))
             .isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
         assertThat(SourceKeys.push("0|ru.bank|1|null|10001", 1_700_000_000_000, "abc"))

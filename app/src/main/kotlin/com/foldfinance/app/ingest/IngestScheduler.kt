@@ -11,11 +11,12 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.foldfinance.app.ingest.sms.DeltaSmsScanWorker
 import com.foldfinance.app.ingest.sms.InitialSmsScanWorker
+import com.foldfinance.app.ingest.sms.LiveScanProgress
 import com.foldfinance.app.ingest.sms.ScanProgress
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,10 +46,15 @@ sealed interface ScanState {
  *   short delay and a second one later as a safety net.
  * - [WORK_REPARSE] — [ReparseWorker], KEEP.
  *
- * Constructible without Hilt (the receiver uses `IngestScheduler(context)`).
+ * Constructible without Hilt (the receiver uses `IngestScheduler(context)`; such an instance only
+ * enqueues work — [observeFullScan] then has no sums).
  */
 @Singleton
-class IngestScheduler @Inject constructor(@ApplicationContext context: Context) {
+class IngestScheduler @Inject constructor(
+    @ApplicationContext context: Context,
+    private val liveScan: LiveScanProgress,
+) {
+    constructor(context: Context) : this(context, LiveScanProgress())
 
     private val appContext = context.applicationContext
     private val workManager: WorkManager get() = WorkManager.getInstance(appContext)
@@ -97,11 +103,15 @@ class IngestScheduler @Inject constructor(@ApplicationContext context: Context) 
         ensureReparse()
     }
 
-    /** Live state of the full scan. */
+    /**
+     * Live state of the full scan: counters from WorkManager, RUB sums from memory
+     * ([LiveScanProgress]) — sums are never stored in WorkManager's unencrypted database. After a
+     * process restart the sums are unknown ([ScanProgress.sumsKnown] is `false`).
+     */
     fun observeFullScan(): Flow<ScanState> =
-        workManager.getWorkInfosForUniqueWorkFlow(WORK_FULL_SCAN)
-            .map { infos -> infos.lastOrNull()?.toScanState() ?: ScanState.Idle }
-            .distinctUntilChanged()
+        combine(workManager.getWorkInfosForUniqueWorkFlow(WORK_FULL_SCAN), liveScan.progress) { infos, live ->
+            infos.lastOrNull()?.toScanState(live) ?: ScanState.Idle
+        }.distinctUntilChanged()
 
     companion object {
         const val WORK_FULL_SCAN: String = "ingest.sms.full_scan"
@@ -114,10 +124,10 @@ class IngestScheduler @Inject constructor(@ApplicationContext context: Context) 
         const val DELTA_NOW_DELAY_SECONDS: Long = 3
         const val DELTA_LATE_DELAY_SECONDS: Long = 60
 
-        internal fun WorkInfo.toScanState(): ScanState = when (state) {
+        internal fun WorkInfo.toScanState(live: ScanProgress? = null): ScanState = when (state) {
             WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING, WorkInfo.State.BLOCKED ->
-                ScanState.Running(ScanProgress.fromData(progress) ?: ScanProgress())
-            WorkInfo.State.SUCCEEDED -> ScanState.Finished(ScanProgress.fromData(outputData) ?: ScanProgress())
+                ScanState.Running(ScanProgress.fromData(progress)?.withSumsFrom(live) ?: ScanProgress())
+            WorkInfo.State.SUCCEEDED -> ScanState.Finished(ScanProgress.fromData(outputData)?.withSumsFrom(live) ?: ScanProgress())
             WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> ScanState.Failed
         }
     }

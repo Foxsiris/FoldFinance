@@ -24,6 +24,9 @@ import timber.log.Timber
  * `setProgress` after every page and returned as output ([ScanProgress.toData]).
  *
  * Input [KEY_QUIET]: no foreground notification — the automatic re-pass after a parser upgrade.
+ *
+ * Errors: retried up to [MAX_ATTEMPTS] times; the last attempt skips failing SMS (stored as FAILED)
+ * so one poison message cannot make the import fail for good.
  */
 @HiltWorker
 class InitialSmsScanWorker @AssistedInject constructor(
@@ -44,7 +47,7 @@ class InitialSmsScanWorker @AssistedInject constructor(
         if (!quiet) promote(ScanProgress())
         return try {
             var lastShown = -1
-            val result = scanner.scan(ScanMode.FULL) { progress ->
+            val result = scanner.scan(ScanMode.FULL, skipFailing = runAttemptCount >= MAX_ATTEMPTS) { progress ->
                 setProgress(progress.toData())
                 if (!quiet && progress.scanned != lastShown) {
                     lastShown = progress.scanned
@@ -74,6 +77,6 @@ class InitialSmsScanWorker @AssistedInject constructor(
 
     companion object {
         const val KEY_QUIET: String = "quiet"
-        private const val MAX_ATTEMPTS = 5
+        const val MAX_ATTEMPTS: Int = 5
     }
 }

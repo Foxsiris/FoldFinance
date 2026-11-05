@@ -27,7 +27,7 @@ data class IncomingMessage(
     override fun toString(): String = "IncomingMessage(channel=$channel, sender=$sender, receivedAt=$receivedAt)"
 }
 
-/** Результат [IngestRepository.ingest]. */
+/** Результат [IngestRepository.ingest] и [IngestRepository.recordFailed]. */
 sealed interface IngestOutcome {
     /** Сообщение уже было обработано (тот же источник или то же содержимое) — ничего не изменено. */
     data class AlreadyProcessed(val rawMessageId: Long) : IngestOutcome
@@ -66,12 +66,41 @@ interface IngestRepository {
      * Всё в одной транзакции БД; повторный вызов с тем же сообщением идемпотентен.
      */
     suspend fun ingest(input: IncomingMessage): IngestOutcome
+
+    /**
+     * Сообщение с таким ключом источника уже сохранено. Дешёвая проверка без разбора текста —
+     * для повторного чтения окна SMS ниже курсора дельта-скана.
+     */
+    suspend fun isKnown(channel: MessageChannel, sourceKey: String): Boolean
+
+    /**
+     * Сохранить сообщение, разбор/запись которого упали ([ingest] бросил исключение), со статусом
+     * FAILED и текущей версией парсера, без операций: оно не теряется, видно в «Не распознано» и
+     * будет перепарсено следующей версией парсера. Идемпотентно (уже сохранённое не меняется).
+     *
+     * @return [IngestOutcome.AlreadyProcessed] или [IngestOutcome.Unrecognized] с причиной
+     *   [com.foldfinance.parser.UncertainReasons.PARSER_ERROR].
+     */
+    suspend fun recordFailed(input: IncomingMessage): IngestOutcome
 }
 
 /** Построение `sourceKey` и хешей текста. */
 object SourceKeys {
-    /** Ключ SMS: `_id` из `content://sms`. */
-    fun sms(smsId: Long): String = smsId.toString()
+    /**
+     * Ключ SMS: `_id|date|первые 16 hex SHA-256 текста`.
+     *
+     * Одного `_id` мало: в AOSP таблица `sms` без AUTOINCREMENT, и после удаления последней SMS
+     * следующая получает тот же `_id` — по старому ключу она считалась бы уже обработанной.
+     * Записи, сохранённые со старым ключом (только `_id`), находятся по содержимому
+     * (`RawMessageDao.findSameContent`) и при встрече переводятся на новый ключ ([isLegacySms]).
+     */
+    fun sms(smsId: Long, dateMillis: Long, text: String): String =
+        "$smsId|$dateMillis|${sha256Hex(text).take(SMS_HASH_CHARS)}"
+
+    /** Ключ SMS старого формата (до БД v2): только `_id`. */
+    fun isLegacySms(sourceKey: String): Boolean = sourceKey.isNotEmpty() && sourceKey.all { it.isDigit() }
+
+    private const val SMS_HASH_CHARS = 16
 
     /** Ключ уведомления: `key|postTime|sha256(text)` — одно уведомление может обновляться с новым текстом. */
     fun push(notificationKey: String, postTimeMillis: Long, text: String): String =

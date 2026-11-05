@@ -57,7 +57,8 @@ enum class ParseStatus { PARSED, UNCERTAIN, NOT_FINANCIAL, FAILED }
  * Исходное сообщение банка. Хранится только для источников из белого списка
  * (уведомления не из белого списка не сохраняются вообще). Текст лежит в зашифрованной БД.
  *
- * @property sourceKey идентичность источника: SMS `_id` или `key|postTime` уведомления.
+ * @property sourceKey идентичность источника: SMS `_id|date|хеш текста` (старые записи — просто `_id`)
+ *   или `key|postTime|хеш текста` уведомления.
  */
 data class RawMessage(
     val id: Long = 0,

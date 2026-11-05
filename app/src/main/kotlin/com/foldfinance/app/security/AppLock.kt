@@ -46,13 +46,21 @@ enum class LockState {
  * - Включение блокировки в настройках не блокирует текущий сеанс, выключение — разблокирует.
  * - [allowExternalActivity]: приложение само открывает системный экран (выбор файла SAF,
  *   настройки телефона) — следующее возвращение из фона блокирует только после
- *   [EXTERNAL_ACTIVITY_GRACE_MILLIS], а не сразу.
+ *   [EXTERNAL_ACTIVITY_GRACE_MILLIS], а не сразу. Льгота взводится на
+ *   [EXTERNAL_ACTIVITY_ARM_MILLIS]: если приложение не ушло в фон за это время (системный экран
+ *   так и не открылся), она сгорает и не достаётся следующему обычному уходу в фон.
+ *   [cancelExternalActivity] снимает её сразу — при неудачном запуске системного экрана.
  */
 class LockStateMachine(private val clock: MonotonicClock) {
     private var enabled: Boolean? = null
     private var timeoutMillis: Long = 0
     private var backgroundAt: Long? = null
-    private var externalActivity = false
+
+    /** Когда вызван [allowExternalActivity]; `null` — льготы нет. */
+    private var externalActivityAt: Long? = null
+
+    /** Уход в фон пришёлся на взведённую льготу. */
+    private var backgroundIsExternal = false
 
     var state: LockState = LockState.LOADING
         private set
@@ -70,14 +78,18 @@ class LockStateMachine(private val clock: MonotonicClock) {
     }
 
     fun onBackground() {
-        backgroundAt = clock.nowMillis()
+        val now = clock.nowMillis()
+        backgroundAt = now
+        val armedAt = externalActivityAt
+        backgroundIsExternal = armedAt != null && now - armedAt <= EXTERNAL_ACTIVITY_ARM_MILLIS
+        externalActivityAt = null
     }
 
     fun onForeground() {
         val since = backgroundAt ?: return
         backgroundAt = null
-        val grace = externalActivity
-        externalActivity = false
+        val grace = backgroundIsExternal
+        backgroundIsExternal = false
         if (enabled != true || state != LockState.UNLOCKED) return
         val limit = if (grace) maxOf(timeoutMillis, EXTERNAL_ACTIVITY_GRACE_MILLIS) else timeoutMillis
         if (clock.nowMillis() - since >= limit) state = LockState.LOCKED
@@ -88,11 +100,20 @@ class LockStateMachine(private val clock: MonotonicClock) {
     }
 
     fun allowExternalActivity() {
-        externalActivity = true
+        externalActivityAt = clock.nowMillis()
+    }
+
+    /** Системный экран не открылся (`ActivityNotFoundException` и т. п.): льгота не нужна. */
+    fun cancelExternalActivity() {
+        externalActivityAt = null
     }
 
     companion object {
+        /** Сколько приложение может пробыть в фоне на системном экране без повторной блокировки. */
         val EXTERNAL_ACTIVITY_GRACE_MILLIS: Long = TimeUnit.MINUTES.toMillis(3)
+
+        /** Сколько живёт взведённая льгота, если приложение так и не ушло в фон. */
+        val EXTERNAL_ACTIVITY_ARM_MILLIS: Long = TimeUnit.MINUTES.toMillis(1)
     }
 }
 
@@ -132,6 +153,9 @@ class AppLock internal constructor(
 
     /** См. [LockStateMachine.allowExternalActivity]. */
     fun allowExternalActivity() = update { allowExternalActivity() }
+
+    /** См. [LockStateMachine.cancelExternalActivity]: вызвать, если запуск системного экрана не удался. */
+    fun cancelExternalActivity() = update { cancelExternalActivity() }
 
     private fun update(block: LockStateMachine.() -> Unit) {
         synchronized(machine) {

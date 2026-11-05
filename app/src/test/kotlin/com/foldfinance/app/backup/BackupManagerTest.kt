@@ -27,6 +27,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
+import com.foldfinance.app.ingest.InMemoryPreferencesStore
+import com.foldfinance.core.data.settings.IngestSettings
+import org.robolectric.Shadows.shadowOf
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Clock
@@ -151,6 +155,63 @@ class BackupManagerTest {
 
         assertThat(TransactionRepositoryImpl(fresh, clock).observe().first()).isEmpty()
         assertThat(replacedCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun export_isReadBackAndVerified_badReadBackIsReported() = runTest {
+        populate(phone)
+        val uri = Uri.parse("content://test.backup/doc")
+        val resolver = shadowOf(context.contentResolver)
+
+        // Провайдер «записал», но читается не то (обрезанный/чужой файл) — экспорт не считается успешным.
+        resolver.registerOutputStream(uri, ByteArrayOutputStream())
+        resolver.registerInputStream(uri, ByteArrayInputStream(ByteArray(16)))
+        val pass = password()
+        assertThat(manager(phone).export(uri, pass)).isEqualTo(BackupResult.Failure(BackupError.IO))
+        assertThat(pass.all { it == '\u0000' }).isTrue()
+
+        // Файл вообще не перечитывается (провайдер бросает RuntimeException) — тоже ошибка, а не исключение.
+        val unreadable = Uri.parse("content://test.backup/unreadable")
+        resolver.registerOutputStream(unreadable, ByteArrayOutputStream())
+        assertThat(manager(phone).export(unreadable, password())).isEqualTo(BackupResult.Failure(BackupError.IO))
+    }
+
+    @Test
+    fun import_constraintViolation_isInvalidContent_otherDbErrorsAreIo() = runTest {
+        populate(phone)
+        manager(phone).export(file(), password())
+
+        // Ограничение БД при записи снимка → INVALID_CONTENT, данные прежние.
+        fresh.openHelper.writableDatabase.execSQL(
+            "CREATE TRIGGER reject BEFORE INSERT ON cards BEGIN SELECT RAISE(ABORT, 'rejected'); END",
+        )
+        assertThat(manager(fresh).import(file(), password())).isEqualTo(BackupResult.Failure(BackupError.INVALID_CONTENT))
+        assertThat(TransactionRepositoryImpl(fresh, clock).observe().first()).isEmpty()
+        assertThat(replacedCalls).isEqualTo(0)
+
+        // Любая другая ошибка (здесь — закрытая БД) → IO, а не исключение и не вечное «Выполняется».
+        fresh.close()
+        assertThat(manager(fresh).import(file(), password())).isEqualTo(BackupResult.Failure(BackupError.IO))
+    }
+
+    @Test
+    fun afterRestore_resetsSmsCursor_andStartsQuietFullScanOnlyWithAutoTracking() = runTest {
+        val settings = IngestSettings(InMemoryPreferencesStore())
+        settings.advanceLastProcessedSmsId(500)
+        var scans = 0
+        var widgets = 0
+        val after = AfterRestore(settings, startQuietFullScan = { scans++ }, refreshWidget = { widgets++ })
+
+        after()
+        assertThat(settings.lastProcessedSmsId()).isEqualTo(0)
+        assertThat(scans).isEqualTo(1)
+        assertThat(widgets).isEqualTo(1)
+
+        settings.advanceLastProcessedSmsId(500)
+        settings.setAutoTrackingEnabled(false)
+        after()
+        assertThat(settings.lastProcessedSmsId()).isEqualTo(0)
+        assertThat(scans).isEqualTo(1)
     }
 
     @Test

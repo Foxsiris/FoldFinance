@@ -22,6 +22,9 @@ import timber.log.Timber
  *    with an older parser, SMS access is granted and auto-tracking is on.
  *
  * Enqueued with KEEP at app start / by the delta scan; returns at once when there is nothing to do.
+ *
+ * Errors: retried at most [MAX_ATTEMPTS] times; the last attempt marks a message whose re-parse
+ * keeps failing as FAILED (current parser version) and goes on, so it cannot block the rest forever.
  */
 @HiltWorker
 class ReparseWorker @AssistedInject constructor(
@@ -35,7 +38,7 @@ class ReparseWorker @AssistedInject constructor(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result = try {
-        val report = if (reparse.pendingCount() > 0) reparse() else null
+        val report = if (reparse.pendingCount() > 0) reparse(skipFailing = runAttemptCount >= MAX_ATTEMPTS) else null
         val lastFull = runtimePrefs.lastFullScanParserVersion()
         if (lastFull in 1 until PARSER_VERSION && permissions.hasSms() && settings.autoTrackingEnabled()) {
             scheduler.startFullScan(quiet = true)
@@ -45,10 +48,11 @@ class ReparseWorker @AssistedInject constructor(
         throw e
     } catch (e: Exception) {
         if (BuildConfig.DEBUG) Timber.w("reparse failed: %s", e.javaClass.simpleName)
-        Result.retry()
+        if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
     }
 
     companion object {
         const val KEY_MESSAGES: String = "messages"
+        const val MAX_ATTEMPTS: Int = 3
     }
 }

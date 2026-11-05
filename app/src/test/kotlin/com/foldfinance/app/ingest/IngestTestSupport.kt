@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.test.core.app.ApplicationProvider
 import com.foldfinance.app.ingest.sms.DatabaseOperationLookup
+import com.foldfinance.app.ingest.sms.LiveScanProgress
 import com.foldfinance.app.ingest.sms.SmsAdmission
 import com.foldfinance.app.ingest.sms.SmsReader
 import com.foldfinance.app.ingest.sms.SmsRecord
@@ -14,7 +15,9 @@ import com.foldfinance.core.data.ingest.IncomingMessage
 import com.foldfinance.core.data.ingest.IngestOutcome
 import com.foldfinance.core.data.ingest.IngestRepository
 import com.foldfinance.core.data.ingest.IngestRepositoryImpl
+import com.foldfinance.core.data.ingest.SourceKeys
 import com.foldfinance.core.data.settings.IngestSettings
+import com.foldfinance.parser.MessageChannel
 import com.foldfinance.parser.ParserRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,6 +74,9 @@ object Texts {
 fun sms(id: Long, body: String, address: String = "900", at: Instant = T0.plusSeconds(id * 60)) =
     SmsRecord(id = id, address = address, dateMillis = at.toEpochMilli(), body = body)
 
+/** Source key the scanner builds for this SMS. */
+val SmsRecord.key: String get() = SourceKeys.sms(id, dateMillis, body)
+
 /** Inbox in memory; records every page request. */
 class FakeSmsReader(messages: List<SmsRecord> = emptyList()) : SmsReader {
     val inbox: MutableList<SmsRecord> = messages.toMutableList()
@@ -84,17 +90,32 @@ class FakeSmsReader(messages: List<SmsRecord> = emptyList()) : SmsReader {
     override suspend fun count(afterId: Long): Int = inbox.count { it.id > afterId }
 }
 
-/** Delegates to [delegate], records inputs, optionally fails on given SMS source keys. */
+/**
+ * Delegates to [delegate], records inputs, optionally fails on given source keys
+ * ([failOnSourceKeys] — `ingest` only; [failRecordFailed] — `recordFailed` too).
+ */
 class RecordingIngest(
     private val delegate: IngestRepository,
     var failOnSourceKeys: Set<String> = emptySet(),
 ) : IngestRepository {
     val received: MutableList<IncomingMessage> = mutableListOf()
+    val recordedFailed: MutableList<IncomingMessage> = mutableListOf()
+    var failRecordFailed: Boolean = false
+    var ingestCalls: Int = 0
 
     override suspend fun ingest(input: IncomingMessage): IngestOutcome {
+        ingestCalls++
         if (input.sourceKey in failOnSourceKeys) throw IllegalStateException("disk full")
         received += input
         return delegate.ingest(input)
+    }
+
+    override suspend fun isKnown(channel: MessageChannel, sourceKey: String): Boolean = delegate.isKnown(channel, sourceKey)
+
+    override suspend fun recordFailed(input: IncomingMessage): IngestOutcome {
+        if (failRecordFailed) throw IllegalStateException("disk full")
+        recordedFailed += input
+        return delegate.recordFailed(input)
     }
 }
 
@@ -104,16 +125,21 @@ class ScanHarness(messages: List<SmsRecord> = emptyList()) {
     val settings = IngestSettings(InMemoryPreferencesStore())
     val reader = FakeSmsReader(messages)
     val ingest = RecordingIngest(IngestRepositoryImpl(db, Registry, TestClock))
+    val live = LiveScanProgress()
     val scanner = SmsScanner(
         reader = reader,
         ingest = ingest,
         admission = SmsAdmission(Registry),
         settings = settings,
         lookup = DatabaseOperationLookup(db.transactionDao(), db.rawMessageDao()),
+        live = live,
     )
 
     fun countRows(table: String): Int =
         db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM $table").use { it.moveToFirst(); it.getInt(0) }
+
+    /** Source key of inbox SMS [id]. */
+    fun keyOf(id: Long): String = reader.inbox.first { it.id == id }.key
 
     fun close() = db.close()
 }

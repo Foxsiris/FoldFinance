@@ -153,6 +153,7 @@ private fun Cursor.readTransaction() = TransactionRow(
     opIndex = int("op_index"),
     createdAt = long("created_at"),
     updatedAt = long("updated_at"),
+    reviewConfirmed = bool("review_confirmed"),
 )
 
 private fun Cursor.readRawMessage() = RawMessageRow(
@@ -249,6 +250,7 @@ private fun TransactionRow.values() = ContentValues().apply {
     put("op_index", opIndex)
     put("created_at", createdAt)
     put("updated_at", updatedAt)
+    put("review_confirmed", reviewConfirmed.int())
 }
 
 private fun RawMessageRow.values() = ContentValues().apply {

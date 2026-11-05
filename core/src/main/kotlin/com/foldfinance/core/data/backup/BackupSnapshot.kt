@@ -65,6 +65,8 @@ data class TransactionRow(
     val opIndex: Int,
     val createdAt: Long,
     val updatedAt: Long,
+    /** С БД v2; в снимках v1 отсутствует — `false`. */
+    val reviewConfirmed: Boolean = false,
 )
 
 /** Строка таблицы `raw_messages` (текст сообщения банка — только внутри зашифрованного файла). */

@@ -27,6 +27,18 @@
         <item quantity="many">Выбрано %d операций</item>
         <item quantity="other">Выбрано %d операции</item>
     </plurals>
+    <string name="review_unrecognized_title">Не распознано</string>
+    <string name="review_unrecognized_body">Похоже на сообщения банка, но операцию из них извлечь не удалось. Добавьте её вручную или скройте сообщение.</string>
+    <string name="review_unrecognized_add">Добавить вручную</string>
+    <string name="review_unrecognized_hide">Скрыть</string>
+    <!-- 900 · 5 ноября, 14:05 -->
+    <string name="review_unrecognized_meta">%1$s · %2$s, %3$s</string>
+    <plurals name="review_unrecognized_count">
+        <item quantity="one">Не распознано %d сообщение</item>
+        <item quantity="few">Не распознано %d сообщения</item>
+        <item quantity="many">Не распознано %d сообщений</item>
+        <item quantity="other">Не распознано %d сообщения</item>
+    </plurals>
     <plurals name="review_confirm_selected">
         <item quantity="one">Подтвердить %d</item>
         <item quantity="few">Подтвердить %d</item>

@@ -51,6 +51,38 @@ interface RawMessageDao {
     @Query("SELECT COUNT(*) FROM raw_messages WHERE parser_version < :currentVersion")
     suspend fun countStale(currentVersion: Int): Int
 
+    /**
+     * Сбойное сообщение («ядовитое»: запись его разбора падает): статус FAILED и версия [version],
+     * чтобы перепарсинг не спотыкался о него до следующей версии парсера.
+     */
+    @Query("UPDATE raw_messages SET parse_status = 'FAILED', parser_version = :version WHERE id = :id")
+    suspend fun markFailed(id: Long, version: Int)
+
+    /** Перевести сохранённое сообщение на новый ключ источника (ленивая миграция ключей SMS). */
+    @Query("UPDATE raw_messages SET source_key = :sourceKey WHERE id = :id")
+    suspend fun updateSourceKey(id: Long, sourceKey: String)
+
+    /**
+     * Нераспознанные сообщения для раздела «Не распознано»: похожи на операцию (UNCERTAIN) или
+     * разбор упал (FAILED), операции нет, пользователь их не скрыл. Новые сверху.
+     */
+    @Query(
+        """
+        SELECT * FROM raw_messages
+        WHERE parse_status IN ('UNCERTAIN', 'FAILED') AND transaction_id IS NULL AND user_deleted = 0
+        ORDER BY received_at DESC, id DESC
+        """,
+    )
+    fun observeUnrecognized(): Flow<List<RawMessageEntity>>
+
+    /** Скрыть нераспознанное сообщение (и не создавать из него операции при перепарсинге). */
+    @Query("UPDATE raw_messages SET user_deleted = 1 WHERE id = :id AND transaction_id IS NULL")
+    suspend fun hide(id: Long)
+
+    /** Привязать нераспознанное сообщение к операции, добавленной вручную по его тексту. */
+    @Query("UPDATE raw_messages SET transaction_id = :transactionId WHERE id = :id AND transaction_id IS NULL")
+    suspend fun attachToTransaction(id: Long, transactionId: Long): Int
+
     @Query("SELECT * FROM raw_messages WHERE transaction_id = :transactionId ORDER BY received_at, id")
     fun observeByTransaction(transactionId: Long): Flow<List<RawMessageEntity>>
 

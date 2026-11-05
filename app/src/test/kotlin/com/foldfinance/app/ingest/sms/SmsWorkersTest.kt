@@ -22,7 +22,6 @@ import com.foldfinance.app.ingest.TestClock
 import com.foldfinance.app.ingest.Texts
 import com.foldfinance.app.ingest.sms
 import com.foldfinance.core.data.ingest.ReparseUseCase
-import com.foldfinance.core.data.ingest.SourceKeys
 import com.foldfinance.parser.PARSER_VERSION
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.Futures
@@ -94,6 +93,27 @@ class SmsWorkersTest {
         assertThat(runtimePrefs.lastFullScanParserVersion()).isEqualTo(PARSER_VERSION)
     }
 
+    @Test fun `worker data carries counters only, never money sums`() = runTest {
+        grantSms()
+        val progress = RecordingProgress()
+        val worker = TestListenableWorkerBuilder<InitialSmsScanWorker>(context)
+            .setWorkerFactory(factory)
+            .setProgressUpdater(progress)
+            .build()
+
+        val output = (worker.doWork() as ListenableWorker.Result.Success).outputData
+
+        val counters = setOf("scanned", "total", "found", "income_count", "expense_count")
+        assertThat(output.keyValueMap.keys).isEqualTo(counters)
+        progress.updates.forEach { assertThat(it.keyValueMap.keys).isEqualTo(counters) }
+        // The sums of the same scan live in memory only.
+        assertThat(h.live.progress.value!!.expenseRubMinor).isEqualTo(150_000)
+        val shown = ScanProgress.fromData(output)!!.withSumsFrom(h.live.progress.value)
+        assertThat(shown.sumsKnown).isTrue()
+        assertThat(shown.expenseRubMinor).isEqualTo(150_000)
+        assertThat(ScanProgress.fromData(output)!!.withSumsFrom(null).sumsKnown).isFalse()
+    }
+
     @Test fun `initial scan without sms permission fails and reads nothing`() = runTest {
         val worker = TestListenableWorkerBuilder<InitialSmsScanWorker>(context).setWorkerFactory(factory).build()
 
@@ -111,7 +131,8 @@ class SmsWorkersTest {
         val result = worker.doWork()
 
         assertThat(result).isInstanceOf(ListenableWorker.Result.Success::class.java)
-        assertThat(h.ingest.received.map { it.sourceKey }).containsExactly(SourceKeys.sms(3))
+        // 1 is below the cursor but was never stored: the re-check window picks it up (2 is an OTP).
+        assertThat(h.ingest.received.map { it.sourceKey }).containsExactly(h.keyOf(1), h.keyOf(3)).inOrder()
         assertThat(h.settings.lastProcessedSmsId()).isEqualTo(3)
     }
 
@@ -126,9 +147,37 @@ class SmsWorkersTest {
         assertThat(h.settings.lastProcessedSmsId()).isEqualTo(0)
     }
 
+    @Test fun `delta worker on its last attempt stores a poison sms as failed and moves on`() = runTest {
+        grantSms()
+        h.ingest.failOnSourceKeys = setOf(h.keyOf(3))
+        val worker = TestListenableWorkerBuilder<DeltaSmsScanWorker>(context)
+            .setWorkerFactory(factory)
+            .setRunAttemptCount(DeltaSmsScanWorker.MAX_ATTEMPTS)
+            .build()
+
+        val result = worker.doWork()
+
+        assertThat(result).isInstanceOf(ListenableWorker.Result.Success::class.java)
+        assertThat(h.settings.lastProcessedSmsId()).isEqualTo(3)
+        assertThat(h.ingest.recordedFailed.map { it.sourceKey }).containsExactly(h.keyOf(3))
+    }
+
+    @Test fun `delta worker gives up instead of retrying forever`() = runTest {
+        grantSms()
+        h.ingest.failOnSourceKeys = setOf(h.keyOf(3))
+        h.ingest.failRecordFailed = true
+        val worker = TestListenableWorkerBuilder<DeltaSmsScanWorker>(context)
+            .setWorkerFactory(factory)
+            .setRunAttemptCount(DeltaSmsScanWorker.MAX_ATTEMPTS)
+            .build()
+
+        assertThat(worker.doWork()).isInstanceOf(ListenableWorker.Result.Failure::class.java)
+        assertThat(h.settings.lastProcessedSmsId()).isEqualTo(2)
+    }
+
     @Test fun `delta worker retries when writing fails, cursor stays before the failure`() = runTest {
         grantSms()
-        h.ingest.failOnSourceKeys = setOf(SourceKeys.sms(3))
+        h.ingest.failOnSourceKeys = setOf(h.keyOf(3))
         val worker = TestListenableWorkerBuilder<DeltaSmsScanWorker>(context).setWorkerFactory(factory).build()
 
         val result = worker.doWork()

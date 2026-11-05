@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -64,15 +65,16 @@ import com.foldfinance.app.ui.layout.LocalAppLayout
 import com.foldfinance.app.ui.layout.TwoPane
 import com.foldfinance.app.ui.theme.FoldFinanceTheme
 import com.foldfinance.app.ui.theme.FoldShapes
+import com.foldfinance.app.ui.transaction.FormEvent
 import com.foldfinance.app.ui.transaction.FormMode
 import com.foldfinance.app.ui.transaction.LocalAppSnackbar
 import com.foldfinance.app.ui.transaction.MerchantRuleDialog
-import com.foldfinance.app.ui.transaction.SavedSnackbarEffect
 import com.foldfinance.app.ui.transaction.TransactionDetail
 import com.foldfinance.app.ui.transaction.TransactionDetailActions
 import com.foldfinance.app.ui.transaction.TransactionDetailState
 import com.foldfinance.app.ui.transaction.TransactionForm
 import com.foldfinance.app.ui.transaction.TransactionFormActions
+import com.foldfinance.app.ui.transaction.TransactionFormSheet
 import com.foldfinance.app.ui.transaction.TransactionFormState
 import com.foldfinance.app.ui.transaction.TransactionFormViewModel
 import com.foldfinance.app.ui.transaction.categoryVisualOrNone
@@ -99,6 +101,12 @@ interface ReviewActions {
     fun focus(id: Long)
     fun openPicker(id: Long)
     fun closePicker()
+
+    /** «Не распознано» (defaults: no-ops, so previews and tests need not implement them). */
+    fun openUnrecognized() {}
+    fun closeUnrecognized() {}
+    fun hideUnrecognized(rawMessageId: Long) {}
+    fun addUnrecognizedManually(rawMessageId: Long) {}
 }
 
 /**
@@ -109,6 +117,9 @@ interface ReviewActions {
  * - Book: the queue with checkboxes on the left, the editor of the focused operation (or the bulk
  *   panel for a multi-selection) on the right.
  * - Tabletop: the card on top, the categories and «Подтвердить» below.
+ * - Everywhere: «Не распознано» under the header when stored bank messages gave no operation —
+ *   a sheet with their texts, «Скрыть» and «Добавить вручную» (the add form opens as a sheet with
+ *   the text in the note; the saved operation gets the message attached).
  */
 @Composable
 fun ReviewRoute(
@@ -124,9 +135,18 @@ fun ReviewRoute(
     val deletedText = stringResource(R.string.tx_deleted)
     val undoText = stringResource(R.string.tx_undo)
     val ruleText = stringResource(R.string.tx_rule_applied)
-    SavedSnackbarEffect(editor.formEvents)
+    val savedText = stringResource(R.string.tx_saved)
+    // Like SavedSnackbarEffect, plus: an operation added from «Не распознано» takes the message along.
+    LaunchedEffect(editor, snackbar) {
+        editor.formEvents.collect { event ->
+            if (event is FormEvent.Saved) {
+                if (event.added) viewModel.onManualAdded(event.transactionId)
+                snackbar.showSnackbar(savedText)
+            }
+        }
+    }
 
-    val actions = remember(viewModel) {
+    val actions = remember(viewModel, editor) {
         object : ReviewActions {
             override fun confirm(id: Long) = viewModel.confirm(id)
             override fun confirmSelected() = viewModel.confirmSelected()
@@ -138,6 +158,16 @@ fun ReviewRoute(
             override fun focus(id: Long) = viewModel.focus(id)
             override fun openPicker(id: Long) = viewModel.openPicker(id)
             override fun closePicker() = viewModel.closePicker()
+            override fun openUnrecognized() = viewModel.openUnrecognized()
+            override fun closeUnrecognized() = viewModel.closeUnrecognized()
+            override fun hideUnrecognized(rawMessageId: Long) = viewModel.hideUnrecognized(rawMessageId)
+            override fun addUnrecognizedManually(rawMessageId: Long) {
+                val message = viewModel.startManualAdd(rawMessageId) ?: return
+                editor.close()
+                editor.openAdd()
+                editor.setNote(message.text)
+                editor.setOccurredAt(message.receivedAt)
+            }
         }
     }
     val detailActions = remember(viewModel, editor, snackbar) {
@@ -166,6 +196,9 @@ fun ReviewRoute(
         zone = viewModel.zone,
         modifier = modifier,
     )
+
+    // Manual add from «Не распознано» (edit forms are hosted inside the screen).
+    if (editorState.mode == FormMode.Add) TransactionFormSheet(editorState, editor, viewModel.now(), viewModel.zone)
 
     rulePrompt?.let { prompt ->
         MerchantRuleDialog(
@@ -196,6 +229,7 @@ fun ReviewScreen(
         Box(modifier.fillMaxSize())
         return
     }
+    UnrecognizedSheet(state, actions, now, zone)
     when (layout) {
         is AppLayout.Compact -> CompactReview(state, actions, detail, now, zone, modifier)
         is AppLayout.Tabletop -> TwoPane(
@@ -203,6 +237,7 @@ fun ReviewScreen(
             first = {
                 Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 12.dp)) {
                     ReviewHeader(state.queue.size)
+                    UnrecognizedEntry(state, actions)
                     Spacer(Modifier.weight(1f))
                     val current = state.current
                     if (current == null) {
@@ -278,6 +313,7 @@ private fun CompactReview(
     val current = state.current
     Column(modifier.fillMaxSize().padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 12.dp)) {
         ReviewHeader(state.queue.size)
+        UnrecognizedEntry(state, actions)
         if (current == null) {
             Spacer(Modifier.weight(1f))
             AllDone()
@@ -416,6 +452,7 @@ private fun QueueList(state: ReviewUiState, actions: ReviewActions, zone: ZoneId
     Column(modifier.testTag("review.list")) {
         Column(Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 8.dp)) {
             ReviewHeader(state.queue.size)
+            UnrecognizedEntry(state, actions)
             if (state.queue.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (state.selectedIds.isEmpty()) {

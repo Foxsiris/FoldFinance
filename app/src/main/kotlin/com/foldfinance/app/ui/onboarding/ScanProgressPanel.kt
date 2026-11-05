@@ -110,7 +110,8 @@ fun ScanCounters(scan: ScanState, modifier: Modifier = Modifier) {
                 title = stringResource(R.string.onboarding_scan_income),
                 supporting = pluralStringResource(R.plurals.onboarding_operations, progress.incomeCount, progress.incomeCount),
             ) {
-                MoneyText(progress.incomeRubMinor, RUB, direction = Direction.INCOME, style = MoneyStyle.InlineStrong)
+                // Sums live only in memory (never in WorkManager data): after a process restart they are unknown.
+                if (progress.sumsKnown) MoneyText(progress.incomeRubMinor, RUB, direction = Direction.INCOME, style = MoneyStyle.InlineStrong)
             }
             ListGroupDivider()
             IngestRow(
@@ -119,7 +120,7 @@ fun ScanCounters(scan: ScanState, modifier: Modifier = Modifier) {
                 title = stringResource(R.string.onboarding_scan_expense),
                 supporting = pluralStringResource(R.plurals.onboarding_operations, progress.expenseCount, progress.expenseCount),
             ) {
-                MoneyText(progress.expenseRubMinor, RUB, direction = Direction.EXPENSE, style = MoneyStyle.InlineStrong)
+                if (progress.sumsKnown) MoneyText(progress.expenseRubMinor, RUB, direction = Direction.EXPENSE, style = MoneyStyle.InlineStrong)
             }
         }
         Spacer(Modifier.height(8.dp))

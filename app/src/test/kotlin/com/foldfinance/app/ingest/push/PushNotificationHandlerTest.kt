@@ -149,6 +149,51 @@ class PushNotificationHandlerTest {
         assertThat(rawCount()).isEqualTo(0)
     }
 
+    private fun failingHandler(settings: IngestSettings, health: ListenerHealth): Pair<PushNotificationHandler, PushWhitelist> {
+        val whitelist = PushWhitelist(settings, whitelistScope, null)
+        return PushNotificationHandler(whitelist, ingest, scope, health, retryDelaysMillis = listOf(1, 1)) to whitelist
+    }
+
+    private fun failedRawCount(): Int =
+        db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM raw_messages WHERE parse_status = 'FAILED'")
+            .use { it.moveToFirst(); it.getInt(0) }
+
+    @Test fun `failing ingest is retried, then stored as failed and counted for settings`() {
+        val settings = IngestSettings(InMemoryPreferencesStore())
+        runBlocking { settings.setPushPackageWhitelist(setOf(bank)) }
+        val health = ListenerHealth(ApplicationProvider.getApplicationContext())
+        val (handler, whitelist) = failingHandler(settings, health)
+        runBlocking { whitelist.allows(bank) }
+        val pushed = content()
+        ingest.failOnSourceKeys = setOf(SourceKeys.push(pushed.key, pushed.postTimeMillis, pushed.text))
+
+        handler.onPosted(bank) { pushed }
+        awaitIngestJobs()
+
+        assertThat(ingest.ingestCalls).isEqualTo(3)
+        assertThat(ingest.recordedFailed).hasSize(1)
+        assertThat(failedRawCount()).isEqualTo(1)
+        assertThat(health.ingestFailures.value.count).isEqualTo(1)
+        assertThat(health.ingestFailures.value.lost).isEqualTo(0)
+    }
+
+    @Test fun `push that cannot be stored at all is counted as lost`() {
+        val settings = IngestSettings(InMemoryPreferencesStore())
+        runBlocking { settings.setPushPackageWhitelist(setOf(bank)) }
+        val health = ListenerHealth(ApplicationProvider.getApplicationContext())
+        val (handler, whitelist) = failingHandler(settings, health)
+        runBlocking { whitelist.allows(bank) }
+        val pushed = content()
+        ingest.failOnSourceKeys = setOf(SourceKeys.push(pushed.key, pushed.postTimeMillis, pushed.text))
+        ingest.failRecordFailed = true
+
+        handler.onPosted(bank) { pushed }
+        awaitIngestJobs()
+
+        assertThat(rawCount()).isEqualTo(0)
+        assertThat(health.ingestFailures.value.lost).isEqualTo(1)
+    }
+
     @Test fun `own package is allowed only when given as the debug package`() {
         val own = "com.foldfinance.app.debug"
         val settings = IngestSettings(InMemoryPreferencesStore())

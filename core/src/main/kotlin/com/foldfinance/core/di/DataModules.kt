@@ -27,6 +27,8 @@ import com.foldfinance.core.data.repository.SubscriptionRepository
 import com.foldfinance.core.data.repository.SubscriptionRepositoryImpl
 import com.foldfinance.core.data.repository.TransactionRepository
 import com.foldfinance.core.data.repository.TransactionRepositoryImpl
+import com.foldfinance.core.data.repository.UnrecognizedMessagesRepository
+import com.foldfinance.core.data.repository.UnrecognizedMessagesRepositoryImpl
 import com.foldfinance.core.data.security.DatabaseKeyManager
 import com.foldfinance.core.data.settings.IngestSettingsStore
 import com.foldfinance.parser.ParserRegistry
@@ -117,4 +119,5 @@ abstract class RepositoryModule {
     @Binds abstract fun balances(impl: BalanceRepositoryImpl): BalanceRepository
     @Binds abstract fun subscriptions(impl: SubscriptionRepositoryImpl): SubscriptionRepository
     @Binds abstract fun ingest(impl: IngestRepositoryImpl): IngestRepository
+    @Binds abstract fun unrecognized(impl: UnrecognizedMessagesRepositoryImpl): UnrecognizedMessagesRepository
 }

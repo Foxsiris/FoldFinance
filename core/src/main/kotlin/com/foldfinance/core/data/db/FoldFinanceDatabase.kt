@@ -5,7 +5,10 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.execSQL
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.foldfinance.core.data.db.dao.CardDao
 import com.foldfinance.core.data.db.dao.CategoryDao
@@ -50,8 +53,20 @@ abstract class FoldFinanceDatabase : RoomDatabase() {
     abstract fun subscriptionDao(): SubscriptionDao
 
     companion object {
-        const val VERSION: Int = 1
+        const val VERSION: Int = 2
         const val NAME: String = "foldfinance.db"
+
+        /** v2: `transactions.review_confirmed` — подтверждение пользователя переживает перепарсинг. */
+        val MIGRATION_1_2: Migration = object : Migration(1, 2) {
+            private val sql = "ALTER TABLE transactions ADD COLUMN review_confirmed INTEGER NOT NULL DEFAULT 0"
+
+            override fun migrate(db: SupportSQLiteDatabase) = db.execSQL(sql)
+
+            override fun migrate(connection: SQLiteConnection) = connection.execSQL(sql)
+        }
+
+        /** Все миграции по порядку версий. */
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
 
         /**
          * Собрать БД.
@@ -70,7 +85,7 @@ abstract class FoldFinanceDatabase : RoomDatabase() {
                 Room.databaseBuilder(context, FoldFinanceDatabase::class.java, name)
             }
             if (openHelperFactory != null) builder.openHelperFactory(openHelperFactory)
-            return builder.addCallback(SeedCallback).build()
+            return builder.addMigrations(*MIGRATIONS).addCallback(SeedCallback).build()
         }
     }
 

@@ -10,6 +10,7 @@ import com.foldfinance.core.data.ingest.SourceKeys
 import com.foldfinance.parser.MessageChannel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
@@ -61,18 +62,24 @@ data class PushContent(
  *    land in the encrypted database.)
  * 3. Whitelist still loading (first notification after process start) → wait for it off the
  *    callback thread, then apply the same rule; the content is read only after a positive answer.
+ * 4. A push cannot be re-read later, so a failing `ingest` is retried with [retryDelaysMillis]
+ *    pauses; if every attempt fails, the text is stored as FAILED ([IngestRepository.recordFailed])
+ *    when possible, and the failure is counted in [ListenerHealth.ingestFailures] for settings.
  */
 @Singleton
 class PushNotificationHandler internal constructor(
     private val whitelist: PushWhitelist,
     private val ingest: IngestRepository,
     private val scope: CoroutineScope,
+    private val health: ListenerHealth? = null,
+    private val retryDelaysMillis: List<Long> = DEFAULT_RETRY_DELAYS_MILLIS,
 ) {
     @Inject constructor(
         provider: PushWhitelist.Provider,
         ingest: IngestRepository,
         @IngestCoroutineScope scope: CoroutineScope,
-    ) : this(provider.whitelist, ingest, scope)
+        health: ListenerHealth,
+    ) : this(provider.whitelist, ingest, scope, health)
 
     /**
      * @param packageName `StatusBarNotification.packageName` — the only thing read before the check.
@@ -94,21 +101,41 @@ class PushNotificationHandler internal constructor(
     }
 
     private suspend fun ingest(packageName: String, content: PushContent) {
-        try {
-            ingest.ingest(
-                IncomingMessage(
-                    channel = MessageChannel.PUSH,
-                    sender = packageName,
-                    sourceKey = SourceKeys.push(content.key, content.postTimeMillis, content.text),
-                    receivedAt = Instant.ofEpochMilli(content.postTimeMillis),
-                    text = content.text,
-                    title = content.title,
-                ),
-            )
+        val message = IncomingMessage(
+            channel = MessageChannel.PUSH,
+            sender = packageName,
+            sourceKey = SourceKeys.push(content.key, content.postTimeMillis, content.text),
+            receivedAt = Instant.ofEpochMilli(content.postTimeMillis),
+            text = content.text,
+            title = content.title,
+        )
+        var attempt = 0
+        while (true) {
+            try {
+                ingest.ingest(message)
+                return
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) Timber.w("push ingest attempt %d failed: %s", attempt + 1, e.javaClass.simpleName)
+                val pause = retryDelaysMillis.getOrNull(attempt++) ?: break
+                delay(pause)
+            }
+        }
+        val stored = try {
+            ingest.recordFailed(message)
+            true
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (BuildConfig.DEBUG) Timber.w("push ingest failed: %s", e.javaClass.simpleName)
+            if (BuildConfig.DEBUG) Timber.w("push lost: %s", e.javaClass.simpleName)
+            false
         }
+        health?.onIngestFailed(stored)
+    }
+
+    companion object {
+        /** Pauses before the 2nd and 3rd attempts. */
+        val DEFAULT_RETRY_DELAYS_MILLIS: List<Long> = listOf(500, 2_000)
     }
 }

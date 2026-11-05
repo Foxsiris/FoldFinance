@@ -7,6 +7,7 @@ import com.foldfinance.core.data.db.TextNorm
 import com.foldfinance.core.data.db.entity.CardEntity
 import com.foldfinance.core.data.db.entity.CategoryEntity
 import com.foldfinance.core.data.db.entity.MerchantRuleEntity
+import com.foldfinance.core.data.db.entity.TransactionEntity
 import com.foldfinance.core.data.db.toEntity
 import com.foldfinance.core.data.db.toModel
 import com.foldfinance.core.data.ingest.TransferClassifier
@@ -165,7 +166,9 @@ interface CardRepository {
     /**
      * Пометить карту своей / не своей (создаёт карту, если её ещё нет). Переводы с участием
      * карты пересчитываются: перевод на свою карту — `INTERNAL_TRANSFER`, иначе исходное
-     * направление парсера. Правленые вручную операции не трогаются.
+     * направление парсера. Не трогаются только операции, где пользователь сам сменил
+     * направление (оно расходится с вычисленным по прежнему списку своих карт); смена категории,
+     * мерчанта или заметки пересчёту не мешает.
      */
     suspend fun setOwn(mask: String, isOwn: Boolean)
 
@@ -184,19 +187,27 @@ class CardRepositoryImpl @Inject constructor(
 
     override suspend fun setOwn(mask: String, isOwn: Boolean) {
         db.withTransaction {
+            val ownBefore = dao.getOwnMasks().toSet()
             val current = dao.get(mask)
             dao.upsert(current?.copy(isOwn = isOwn) ?: CardEntity(mask = mask, label = null, isOwn = isOwn))
             val own = dao.getOwnMasks().toSet()
             val txDao = db.transactionDao()
             val now = clock.millis()
             txDao.getTransfersInvolving(mask)
-                .filterNot { it.userEdited }
+                .filterNot { it.userEdited && it.directionChangedByUser(ownBefore) }
                 .forEach { tx ->
                     val direction = TransferClassifier.direction(tx.kind, tx.parsedDirection, tx.counterpartyCardMask, own)
                     if (direction != tx.direction) txDao.setDirection(tx.id, direction, now)
                 }
         }
     }
+
+    /**
+     * Направление расходится с тем, что дало бы правило по списку своих карт [ownMasks] до
+     * изменения, — значит, его выставил пользователь в редакторе.
+     */
+    private fun TransactionEntity.directionChangedByUser(ownMasks: Set<String>): Boolean =
+        direction != TransferClassifier.direction(kind, parsedDirection, counterpartyCardMask, ownMasks)
 
     override suspend fun setLabel(mask: String, label: String?) {
         db.withTransaction {

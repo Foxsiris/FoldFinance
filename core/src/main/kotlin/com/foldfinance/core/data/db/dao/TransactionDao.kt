@@ -106,7 +106,8 @@ interface TransactionDao {
     @Query("UPDATE transactions SET category_id = :categoryId, user_edited = 1, updated_at = :now WHERE id IN (:ids)")
     suspend fun setCategory(ids: List<Long>, categoryId: Long?, now: Long): Int
 
-    @Query("UPDATE transactions SET needs_review = 0, updated_at = :now WHERE id IN (:ids)")
+    /** Подтверждение пользователя: из очереди проверки, и перепарсинг не вернёт обратно (см. `review_confirmed`). */
+    @Query("UPDATE transactions SET needs_review = 0, review_confirmed = 1, updated_at = :now WHERE id IN (:ids)")
     suspend fun confirmReview(ids: List<Long>, now: Long): Int
 
     @Query("DELETE FROM transactions WHERE id = :id")

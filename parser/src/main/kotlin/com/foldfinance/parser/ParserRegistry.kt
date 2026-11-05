@@ -15,11 +15,18 @@ class ParserRegistry(
     private val parsers: List<BankParser>,
     private val fallback: BankParser,
 ) {
-    /** Разобрать сообщение подходящим парсером. Никогда не бросает исключения. */
+    /**
+     * Разобрать сообщение подходящим парсером. Исключение парсера (баг) → `Uncertain(PARSER_ERROR)`:
+     * сообщение сохраняется и будет перепарсено исправленной версией. `Error` (нехватка памяти и
+     * т. п.) не перехватывается — это не свойство сообщения.
+     */
     fun parse(text: String, meta: MessageMeta): ParseResult {
         val parser = parserFor(meta)
-        return runCatching { parser.parse(text, meta) }
-            .getOrElse { ParseResult.Uncertain(reason = UncertainReasons.PARSER_ERROR, parserId = parser.id) }
+        return try {
+            parser.parse(text, meta)
+        } catch (e: Exception) {
+            ParseResult.Uncertain(reason = UncertainReasons.PARSER_ERROR, parserId = parser.id)
+        }
     }
 
     /** Парсер, который будет использован для сообщения с такими метаданными. */

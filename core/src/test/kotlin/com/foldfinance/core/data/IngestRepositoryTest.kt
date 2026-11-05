@@ -176,7 +176,7 @@ class IngestRepositoryTest {
     }
 
     @Test
-    fun markingCardOwnLater_reclassifiesPastTransfers_exceptUserEdited() = runTest {
+    fun markingCardOwnLater_reclassifiesPastTransfers_exceptManualDirection() = runTest {
         val cards = CardRepositoryImpl(db, clock)
         val repo = ingest(
             registryOf(
@@ -186,12 +186,14 @@ class IngestRepositoryTest {
         )
         val t1 = (repo.ingest(sms(1, "t1", T0)) as IngestOutcome.Recorded).transactionIds.single()
         val t2 = (repo.ingest(sms(2, "t2", T0.plusSeconds(600))) as IngestOutcome.Recorded).transactionIds.single()
+        // Правка заметки не мешает пересчёту; ручная смена направления — мешает.
+        transactions.update(transactions.observeById(t1).first()!!.copy(note = "себе"))
         val edited = transactions.observeById(t2).first()!!
-        transactions.update(edited.copy(note = "долг"))
+        transactions.update(edited.copy(note = "долг", direction = Direction.INCOME))
 
         cards.setOwn("*5678", true)
         assertThat(transactions.observeById(t1).first()!!.direction).isEqualTo(Direction.INTERNAL_TRANSFER)
-        assertThat(transactions.observeById(t2).first()!!.direction).isEqualTo(Direction.EXPENSE)
+        assertThat(transactions.observeById(t2).first()!!.direction).isEqualTo(Direction.INCOME)
 
         cards.setOwn("*5678", false)
         assertThat(transactions.observeById(t1).first()!!.direction).isEqualTo(Direction.EXPENSE)

@@ -102,21 +102,29 @@ internal class OperationWriter(
                 }
                 raw.userDeleted -> Unit
                 // Основная операция сообщения уже слита с операцией из другого канала.
-                index == 0 && raw.transactionId != null -> ids += raw.transactionId
+                index == 0 && raw.transactionId != null -> {
+                    ids += raw.transactionId
+                    txDao.getById(raw.transactionId)?.let { target ->
+                        val enriched = enrichMerged(target, op)
+                        if (enriched !== target) txDao.update(enriched)
+                        review = review || enriched.needsReview
+                    }
+                }
                 else -> {
                     registerCard(op.cardMask)
-                    val (id, isNew) = createOrMerge(raw, index, op, uncertain, ctx)
-                    ids += id
-                    if (isNew) created++ else merged++
-                    review = review || (isNew && needsReview(op, uncertain))
+                    val placed = createOrMerge(raw, index, op, uncertain, ctx)
+                    ids += placed.id
+                    if (placed.isNew) created++ else merged++
+                    review = review || placed.needsReview
                 }
             }
         }
 
-        // Операции, которых новая версия парсера больше не видит: не удаляем молча, а отправляем на проверку.
+        // Операции, которых новая версия парсера больше не видит: не удаляем молча, а отправляем на проверку
+        // (даже подтверждённые: подтверждалась операция, которой в сообщении больше нет).
         existingByIndex.values
             .filter { it.opIndex >= ops.size && !it.userEdited && !it.needsReview }
-            .forEach { txDao.update(it.copy(needsReview = true, updatedAt = clock.instant())) }
+            .forEach { txDao.update(it.copy(needsReview = true, reviewConfirmed = false, updatedAt = clock.instant())) }
 
         db.knownBalanceDao().deleteForRawMessage(raw.id)
         val balanceMask = balance?.cardMask ?: ops.mapNotNull { it.cardMask }.distinct().singleOrNull()
@@ -144,15 +152,17 @@ internal class OperationWriter(
         return Applied(ids, created, merged, updated, review)
     }
 
+    private class Placed(val id: Long, val isNew: Boolean, val needsReview: Boolean)
+
     private suspend fun createOrMerge(
         raw: RawMessageEntity,
         index: Int,
         op: ParsedOperation,
         uncertain: Boolean,
         ctx: Context,
-    ): Pair<Long, Boolean> {
+    ): Placed {
         val dedupKey = dedupKey(raw, index)
-        txDao.getByDedupKey(dedupKey)?.let { return it.id to false }
+        txDao.getByDedupKey(dedupKey)?.let { return Placed(it.id, isNew = false, needsReview = it.needsReview) }
 
         val occurredAt = occurredAt(op, raw)
         val at = occurredAt.toEpochMilli()
@@ -168,18 +178,9 @@ internal class OperationWriter(
             at = at,
         )
         if (candidate != null) {
-            // Дополняем то, чего не было в первом источнике; правки пользователя не трогаем.
-            if (!candidate.userEdited && candidate.merchant == null && op.merchant != null) {
-                txDao.update(
-                    candidate.copy(
-                        merchant = op.merchant,
-                        merchantNorm = TextNorm.normalize(op.merchant),
-                        searchText = TextNorm.searchText(op.merchant, candidate.note),
-                        updatedAt = clock.instant(),
-                    ),
-                )
-            }
-            return candidate.id to false
+            val enriched = enrichMerged(candidate, op)
+            if (enriched !== candidate) txDao.update(enriched)
+            return Placed(candidate.id, isNew = false, needsReview = enriched.needsReview)
         }
 
         val now = clock.instant()
@@ -210,8 +211,33 @@ internal class OperationWriter(
             updatedAt = now,
         )
         val id = txDao.insertIgnore(entity)
-        if (id == -1L) return requireNotNull(txDao.getByDedupKey(dedupKey)).id to false
-        return id to true
+        if (id == -1L) {
+            val existing = requireNotNull(txDao.getByDedupKey(dedupKey))
+            return Placed(existing.id, isNew = false, needsReview = existing.needsReview)
+        }
+        return Placed(id, isNew = true, needsReview = entity.needsReview)
+    }
+
+    /**
+     * Операция [target] из другого канала, с которой слито сообщение с операцией [op]:
+     * - дополняем то, чего не было в первом источнике (мерчант);
+     * - слияние без надёжного признака — масок карт нет (совпали только сумма, валюта, направление
+     *   и время) или мерчанты разные — не угадываем молча: операция остаётся одна (обычно это и
+     *   правда одна операция в SMS и push), но уходит на проверку.
+     * Правки пользователя не трогаем. @return сам [target], если менять нечего.
+     */
+    private fun enrichMerged(target: TransactionEntity, op: ParsedOperation): TransactionEntity {
+        if (target.userEdited) return target
+        val merchant = target.merchant ?: op.merchant
+        val doubtful = op.cardMask == null || target.cardMask == null || merchantsDiffer(target.merchant, op.merchant)
+        val result = target.copy(
+            merchant = merchant,
+            merchantNorm = TextNorm.normalize(merchant),
+            searchText = TextNorm.searchText(merchant, target.note),
+            needsReview = target.needsReview || doubtful,
+            reviewConfirmed = target.reviewConfirmed && !doubtful,
+        )
+        return if (result == target) target else result.copy(updatedAt = clock.instant())
     }
 
     private suspend fun rebuild(
@@ -222,7 +248,23 @@ internal class OperationWriter(
         ctx: Context,
     ): TransactionEntity {
         val occurredAt = occurredAt(op, raw)
-        val fields = resolveFields(op, occurredAt, uncertain, ctx, excludeId = existing.id)
+        // К операции привязаны сообщения из другого канала (кросс-источниковое слияние): то, чего
+        // нет в этом сообщении, пришло из них — мерчант (и категория по нему) не теряется.
+        val merged = rawDao.getByTransaction(existing.id).any { it.id != raw.id }
+        val effective = if (merged && op.merchant == null) op.copy(merchant = existing.merchant) else op
+        val fields = resolveFields(effective, occurredAt, uncertain, ctx, excludeId = existing.id)
+        // Подтверждение пользователя относится к значениям, которые он видел: пока сумма, валюта,
+        // направление и вид те же, перепарсинг не возвращает операцию в очередь проверки.
+        val materialChange = existing.amountMinor != op.amountMinor || existing.currency != op.currency ||
+            existing.parsedDirection != op.direction || existing.kind != op.kind
+        val confirmed = existing.reviewConfirmed && !materialChange
+        val needsReview = when {
+            confirmed -> false
+            // Слитая операция на проверке (например, слияние без масок карт) остаётся там до решения
+            // пользователя: по одному сообщению сомнение не снять.
+            merged && existing.needsReview -> true
+            else -> fields.needsReview
+        }
         val candidate = existing.copy(
             occurredAt = occurredAt,
             amountMinor = op.amountMinor,
@@ -230,14 +272,15 @@ internal class OperationWriter(
             direction = fields.direction,
             parsedDirection = op.direction,
             kind = op.kind,
-            merchant = op.merchant,
-            merchantNorm = TextNorm.normalize(op.merchant),
+            merchant = effective.merchant,
+            merchantNorm = TextNorm.normalize(effective.merchant),
             cardMask = op.cardMask,
             counterpartyCardMask = op.counterpartyCardMask,
             categoryId = fields.categoryId,
             confidence = op.confidence,
-            needsReview = fields.needsReview,
-            searchText = TextNorm.searchText(op.merchant, existing.note),
+            needsReview = needsReview,
+            reviewConfirmed = confirmed,
+            searchText = TextNorm.searchText(effective.merchant, existing.note),
             linkedTransactionId = fields.linkedTransactionId,
         )
         return if (candidate == existing) existing else candidate.copy(updatedAt = clock.instant())
@@ -290,6 +333,13 @@ internal class OperationWriter(
 
     private fun needsReview(op: ParsedOperation, uncertain: Boolean): Boolean =
         uncertain || op.confidence < ParsedOperation.NEEDS_REVIEW_THRESHOLD
+
+    /** Оба мерчанта известны и ни один не содержит другой (после нормализации). */
+    private fun merchantsDiffer(a: String?, b: String?): Boolean {
+        val na = TextNorm.normalize(a) ?: return false
+        val nb = TextNorm.normalize(b) ?: return false
+        return !na.contains(nb) && !nb.contains(na)
+    }
 
     private fun occurredAt(op: ParsedOperation, raw: RawMessageEntity): Instant =
         op.occurredAtMillis?.let(Instant::ofEpochMilli) ?: raw.receivedAt
