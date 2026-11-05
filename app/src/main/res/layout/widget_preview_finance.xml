@@ -5,6 +5,7 @@
   Тёмная палитра «Obsidian», цифры — образец из макета. Только виды, разрешённые в RemoteViews.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_preview_bg"
@@ -89,7 +90,8 @@
                 android:layout_gravity="center"
                 android:contentDescription="@string/widget_add"
                 android:src="@drawable/widget_ic_plus"
-                android:tint="#FF0B0B0C" />
+                android:tint="#FF0B0B0C"
+                tools:ignore="UseAppTint" />
         </FrameLayout>
     </LinearLayout>
 </LinearLayout>
